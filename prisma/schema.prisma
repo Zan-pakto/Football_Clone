@@ -1,0 +1,109 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  externalId  String   @unique @map("external_id")
+  name        String
+  logoUrl     String?  @map("logo_url")
+  country     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  homeMatches Match[]  @relation("HomeTeam")
+  awayMatches Match[]  @relation("AwayTeam")
+
+  @@map("teams")
+}
+
+model League {
+  id          String   @id @default(uuid())
+  externalId  String   @unique @map("external_id")
+  name        String
+  country     String
+  logoUrl     String?  @map("logo_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  matches     Match[]
+
+  @@map("leagues")
+}
+
+model Match {
+  id          String   @id @default(uuid())
+  externalId  String   @unique @map("external_id")
+  leagueId    String?  @map("league_id")
+  homeTeamId  String   @map("home_team_id")
+  awayTeamId  String   @map("away_team_id")
+  matchDate   String   @map("match_date")
+  kickTime    String?  @map("kick_time")
+  status      String   @default("upcoming")
+  elapsed     String?
+  homeScore   String?  @map("home_score")
+  awayScore   String?  @map("away_score")
+  sourceUrl   String?  @map("source_url")
+  confidence  String?
+  homeOdd     String?  @map("home_odd")
+  drawOdd     String?  @map("draw_odd")
+  awayOdd     String?  @map("away_odd")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  league      League?  @relation(fields: [leagueId], references: [id])
+  homeTeam    Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  predictions       Prediction[]
+  predictionHistory PredictionHistory[]
+
+  @@map("matches")
+}
+
+model Prediction {
+  id             String   @id @default(uuid())
+  matchId        String   @map("match_id")
+  predictionType String   @map("prediction_type") // 'pickScore', 'goals', 'btts', 'bestTip'
+  prediction     String
+  odd            String?
+  confidence     String?
+  result         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, predictionType])
+  @@map("predictions")
+}
+
+model PredictionHistory {
+  id             String   @id @default(uuid())
+  matchId        String   @map("match_id")
+  predictionType String   @map("prediction_type")
+  prediction     String
+  odd            String?
+  confidence     String?
+  capturedAt     DateTime @default(now()) @map("captured_at")
+
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("prediction_history")
+}
+
+model ScrapeLog {
+  id           String   @id @default(uuid())
+  sourceUrl    String   @map("source_url")
+  contentHash  String?  @map("content_hash")
+  status       String
+  recordsFound Int      @default(0) @map("records_found")
+  scrapedAt    DateTime @default(now()) @map("scraped_at")
+
+  @@map("scrape_logs")
+}
