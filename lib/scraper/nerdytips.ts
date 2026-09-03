@@ -1,5 +1,6 @@
 import { extractLeagueGroups, parseMatchRowsHtml, extractMainHtmlMatches } from "./parser";
 import { LiveScrapeResult, ScrapeResult, MatchData } from "./types";
+import { NerdyTipsAuthManager } from "./auth";
 
 const BASE_URL = "https://nerdytips.com";
 const DEFAULT_USER_AGENT =
@@ -17,12 +18,19 @@ export class NerdyTipsScraper {
       const queryParams = new URLSearchParams({ d, ...extraParams });
       const mainPageUrl = `${BASE_URL}/all-matches?${queryParams.toString()}`;
 
-      const pageRes = await fetch(mainPageUrl, {
-        headers: {
-          "User-Agent": DEFAULT_USER_AGENT,
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
+      let cookieHeader = await NerdyTipsAuthManager.getCookieHeader();
+
+      const headers: Record<string, string> = {
+        "User-Agent": DEFAULT_USER_AGENT,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      };
+
+      if (cookieHeader) {
+        headers["Cookie"] = cookieHeader;
+      }
+
+      let pageRes = await fetch(mainPageUrl, {
+        headers,
         cache: "no-store",
       });
 
@@ -30,7 +38,23 @@ export class NerdyTipsScraper {
         throw new Error(`Main page request failed with status ${pageRes.status}`);
       }
 
-      const mainHtml = await pageRes.text();
+      let mainHtml = await pageRes.text();
+
+      // Check if session might have expired (e.g. data-locked="1" is present despite having auth credentials)
+      const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL;
+      if (username && mainHtml.includes('data-locked="1"') && cookieHeader) {
+        console.warn("[NerdyTipsScraper] Detected locked predictions with existing cookie. Re-authenticating...");
+        NerdyTipsAuthManager.invalidate();
+        cookieHeader = await NerdyTipsAuthManager.getCookieHeader();
+        if (cookieHeader) {
+          headers["Cookie"] = cookieHeader;
+          pageRes = await fetch(mainPageUrl, { headers, cache: "no-store" });
+          if (pageRes.ok) {
+            mainHtml = await pageRes.text();
+          }
+        }
+      }
+
       const leagues = extractLeagueGroups(mainHtml);
 
       // Parse matches pre-rendered directly inside mainHtml (e.g. featured, live, or first league groups)
@@ -51,12 +75,18 @@ export class NerdyTipsScraper {
 
         const rowsUrl = `${BASE_URL}/all-matches/rows?${rowsParams.toString()}`;
 
+        const rowsHeaders: Record<string, string> = {
+          "User-Agent": DEFAULT_USER_AGENT,
+          Accept: "application/json, text/plain, */*",
+          "X-Requested-With": "XMLHttpRequest",
+        };
+
+        if (cookieHeader) {
+          rowsHeaders["Cookie"] = cookieHeader;
+        }
+
         const rowsRes = await fetch(rowsUrl, {
-          headers: {
-            "User-Agent": DEFAULT_USER_AGENT,
-            Accept: "application/json, text/plain, */*",
-            "X-Requested-With": "XMLHttpRequest",
-          },
+          headers: rowsHeaders,
           cache: "no-store",
         });
 
@@ -125,13 +155,20 @@ export class NerdyTipsScraper {
   static async fetchLiveMatches(d: string = "0"): Promise<LiveScrapeResult> {
     try {
       const liveUrl = `${BASE_URL}/all-matches/live?d=${encodeURIComponent(d)}`;
+      const cookieHeader = await NerdyTipsAuthManager.getCookieHeader();
+
+      const headers: Record<string, string> = {
+        "User-Agent": DEFAULT_USER_AGENT,
+        Accept: "application/json, text/plain, */*",
+        "X-Requested-With": "XMLHttpRequest",
+      };
+
+      if (cookieHeader) {
+        headers["Cookie"] = cookieHeader;
+      }
 
       const res = await fetch(liveUrl, {
-        headers: {
-          "User-Agent": DEFAULT_USER_AGENT,
-          Accept: "application/json, text/plain, */*",
-          "X-Requested-With": "XMLHttpRequest",
-        },
+        headers,
         cache: "no-store",
       });
 
@@ -193,3 +230,4 @@ export class NerdyTipsScraper {
     }
   }
 }
+
