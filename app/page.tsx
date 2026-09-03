@@ -5,23 +5,12 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { MatchData } from "@/lib/scraper/types";
-import {
-  Zap,
-  Activity,
-  ArrowRight,
-  Star,
-  Sparkles,
-  CheckCircle2,
-  Clock3,
-  Trophy,
-  RefreshCw,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export default function HomePage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  // Authoritative live count from the server — not derived from stale match state
   const [liveCount, setLiveCount] = useState(0);
 
   const fetchMatches = useCallback(async () => {
@@ -39,21 +28,12 @@ export default function HomePage() {
     }
   }, []);
 
-  /**
-   * Fetches the authoritative live match count from the server.
-   * Uses data.count from /api/matches/live which calls store.getLiveMatches()
-   * — the single source of truth. Also patches isLive into local match state
-   * using data.liveUpdates so scores update too.
-   */
   const refreshLiveCount = useCallback(async () => {
     try {
       const res = await fetch("/api/matches/live?d=0");
       const data = await res.json();
       if (data.success) {
-        // data.count is the authoritative live match count from getLiveMatches()
         setLiveCount(typeof data.count === "number" ? data.count : 0);
-
-        // Also patch live scores into match state if updates exist
         if (data.liveUpdates && Object.keys(data.liveUpdates).length > 0) {
           setMatches((prev) =>
             prev.map((m) => {
@@ -80,11 +60,9 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchMatches();
-    // Call immediately on mount — don't wait 20s for first accurate count
     refreshLiveCount();
   }, [fetchMatches, refreshLiveCount]);
 
-  // Keep refreshing every 20s
   useEffect(() => {
     const interval = setInterval(refreshLiveCount, 20000);
     return () => clearInterval(interval);
@@ -103,55 +81,10 @@ export default function HomePage() {
     }
   };
 
-  /* ── Derived stats ── */
-  // liveCount state is authoritative — don't re-derive from stale match list
-  const liveMatches = useMemo(
-    () => matches.filter((m) => m.isLive || m.status === "live" || m.status === "In Progress"),
-    [matches]
-  );
-
-  const predictedMatches = useMemo(
-    () => matches.filter((m) => m.predictions.bestTip.pick),
-    [matches]
-  );
-
-  const upcomingMatches = useMemo(
-    () =>
-      matches.filter(
-        (m) =>
-          !m.isLive &&
-          m.status !== "live" &&
-          m.status !== "In Progress" &&
-          m.status !== "won" &&
-          m.status !== "fin" &&
-          m.elapsed !== "FT"
-      ),
-    [matches]
-  );
-
-  const wonMatches = useMemo(
-    () =>
-      matches.filter(
-        (m) => m.status === "won" || m.status === "fin" || m.elapsed === "FT"
-      ),
-    [matches]
-  );
-
-  const topPredictions = useMemo(
-    () =>
-      [...matches]
-        .filter((m) => parseFloat(m.confidence || "0") >= 7.0 && m.predictions.bestTip.pick)
-        .sort((a, b) => parseFloat(b.confidence || "0") - parseFloat(a.confidence || "0"))
-        .slice(0, 4),
-    [matches]
-  );
-
+  // Show up to 25 matches as preview groups, grouped by league
   const previewGroups = useMemo(() => {
-    const map: Record<
-      string,
-      { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }
-    > = {};
-    matches.slice(0, 25).forEach((m) => {
+    const map: Record<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }> = {};
+    matches.slice(0, 30).forEach((m) => {
       const key = `${m.country}_${m.leagueName}`;
       if (!map[key]) {
         map[key] = { leagueName: m.leagueName, country: m.country, flagUrl: m.flagUrl, matches: [] };
@@ -162,154 +95,56 @@ export default function HomePage() {
   }, [matches]);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#0b0f19", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#080d18", color: "#f8fafc" }}>
       <Navbar liveCount={liveCount} onSync={handleSync} isSyncing={isSyncing} />
 
-      <main style={{ flex: 1, maxWidth: 1280, width: "100%", margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
+      <main style={{ flex: 1, maxWidth: 1200, width: "100%", margin: "0 auto", padding: "24px 16px" }}>
 
-        {/* ── Hero Banner ── */}
-        <section style={{
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: 20,
-          background: "linear-gradient(135deg, #121826 0%, #0f1929 50%, #0b1520 100%)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          padding: "32px 32px 28px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
-        }}>
-          {/* bg glow */}
-          <div style={{
-            position: "absolute", top: -80, right: -60, width: 350, height: 350,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }} />
-
-          <div style={{ position: "relative", zIndex: 1 }}>
-            {/* Badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", color: "#10b981", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
-              <Sparkles style={{ width: 13, height: 13 }} />
-              Football Intelligence Engine
-            </div>
-
-            <h1 style={{ fontSize: "clamp(22px, 4vw, 38px)", fontWeight: 900, color: "#fff", lineHeight: 1.15, marginBottom: 10, letterSpacing: "-0.5px" }}>
-              AI Football Predictions<br />
-              <span style={{ color: "#10b981" }}>&amp; Real-Time Match Data</span>
-            </h1>
-
-            <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.65, maxWidth: 560, marginBottom: 22 }}>
-              Real-time match data pipeline — live odds, 1X2 predictions, Over/Under goal trends, and confidence scores synced from NerdyTips.
-            </p>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              <Link
-                href="/all-matches"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: "#10b981", color: "#000", fontWeight: 800, fontSize: 13, textDecoration: "none", boxShadow: "0 4px 16px rgba(16,185,129,0.3)", transition: "all 0.2s" }}
-              >
-                Browse All Predictions <ArrowRight style={{ width: 14, height: 14 }} />
-              </Link>
-
-              <Link
-                href="/live"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: "#182032", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
-              >
-                <Activity style={{ width: 14, height: 14, color: "#10b981" }} />
-                Live Matches ({liveCount})
-              </Link>
-            </div>
-          </div>
-
-          {/* ── Stat Cards Row ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginTop: 28, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* Predicted */}
-            <StatCard
-              icon={<Sparkles style={{ width: 16, height: 16, color: "#10b981" }} />}
-              label="Predicted"
-              value={predictedMatches.length}
-              accent="#10b981"
-              sublabel="with AI picks"
-            />
-            {/* Upcoming */}
-            <StatCard
-              icon={<Clock3 style={{ width: 16, height: 16, color: "#38bdf8" }} />}
-              label="Upcoming"
-              value={upcomingMatches.length}
-              accent="#38bdf8"
-              sublabel="not started yet"
-            />
-            {/* Won / Finished */}
-            <StatCard
-              icon={<CheckCircle2 style={{ width: 16, height: 16, color: "#a78bfa" }} />}
-              label="Won / Finished"
-              value={wonMatches.length}
-              accent="#a78bfa"
-              sublabel="completed today"
-            />
+        {/* ── Hero ── */}
+        <section style={{ marginBottom: 32, textAlign: "center", padding: "40px 20px 32px" }}>
+          <h1 style={{ fontSize: "clamp(24px, 4vw, 42px)", fontWeight: 900, color: "#fff", lineHeight: 1.2, marginBottom: 14 }}>
+            AI Football Predictions
+          </h1>
+          <p style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.7, maxWidth: 580, margin: "0 auto 24px" }}>
+            NerdyTips generates predictions with its own AI model for every football match played anywhere in the world — plus 7 free tips every single day.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link
+              href="#predictions"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "11px 24px", borderRadius: 6,
+                background: "#10b981", color: "#000",
+                fontWeight: 800, fontSize: 13, textDecoration: "none",
+              }}
+            >
+              See Free Predictions
+            </Link>
+            <Link
+              href="/all-matches"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "11px 24px", borderRadius: 6,
+                background: "transparent", color: "#e2e8f0",
+                border: "1px solid rgba(255,255,255,0.15)",
+                fontWeight: 700, fontSize: 13, textDecoration: "none",
+              }}
+            >
+              All Matches
+            </Link>
           </div>
         </section>
 
-        {/* ── High-Trust Predictions ── */}
-        {topPredictions.length > 0 && (
-          <section>
-            <SectionHeader
-              icon={<Star style={{ width: 16, height: 16, color: "#f59e0b", fill: "#f59e0b" }} />}
-              title="Top High-Trust Picks"
-              linkHref="/all-matches"
-              linkLabel="View All →"
-            />
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-              {topPredictions.map((match) => (
-                <div key={`top_${match.id}`} style={{
-                  background: "#121826",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 16,
-                  padding: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  transition: "border-color 0.2s",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{match.leagueName}</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", padding: "2px 8px", borderRadius: 6 }}>
-                      ★ {match.confidence}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#f1f5f9" }}>
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{match.homeTeam}</span>
-                      {match.homeScore !== null && <span>{match.homeScore}</span>}
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#f1f5f9" }}>
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{match.awayTeam}</span>
-                      {match.awayScore !== null && <span>{match.awayScore}</span>}
-                    </div>
-                  </div>
-
-                  {match.predictions.bestTip.pick && (
-                    <div style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.06em" }}>Best Pick</span>
-                      <span style={{ fontSize: 13, fontWeight: 900, color: "#6ee7b7" }}>
-                        {match.predictions.bestTip.pick} @{match.predictions.bestTip.odd}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Today's Matches Feed ── */}
-        <section>
-          <SectionHeader
-            icon={<Zap style={{ width: 16, height: 16, color: "#10b981" }} />}
-            title="Today's Match Predictions"
-            linkHref="/all-matches"
-            linkLabel="Open Full Table →"
-          />
+        {/* ── Today's Predictions (free preview) ── */}
+        <section id="predictions">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>
+              Today&apos;s Football Predictions
+            </h2>
+            <Link href="/all-matches" style={{ fontSize: 12, fontWeight: 700, color: "#10b981", textDecoration: "none" }}>
+              See All Predictions →
+            </Link>
+          </div>
 
           {loading ? (
             <div style={{ padding: "64px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "#64748b" }}>
@@ -317,9 +152,11 @@ export default function HomePage() {
               <span style={{ fontSize: 13, fontWeight: 600 }}>Loading match predictions...</span>
             </div>
           ) : previewGroups.length === 0 ? (
-            <div style={{ padding: "48px 0", textAlign: "center", color: "#475569", fontSize: 13 }}>No matches found for today.</div>
+            <div style={{ padding: "48px 0", textAlign: "center", color: "#475569", fontSize: 13 }}>
+              No matches found for today.
+            </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {previewGroups.map((group, idx) => (
                 <LeagueGroupCard
                   key={`home_${group.country}_${group.leagueName}_${idx}`}
@@ -331,61 +168,112 @@ export default function HomePage() {
               ))}
             </div>
           )}
+
+          {/* See All link */}
+          {!loading && matches.length > 30 && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <Link
+                href="/all-matches"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "10px 24px", borderRadius: 6,
+                  background: "#0d1220", border: "1px solid rgba(255,255,255,0.12)",
+                  color: "#e2e8f0", fontWeight: 700, fontSize: 13, textDecoration: "none",
+                }}
+              >
+                See All Predictions ({matches.length} matches) →
+              </Link>
+            </div>
+          )}
+        </section>
+
+        {/* ── Our Story ── */}
+        <section style={{ marginTop: 56, padding: "32px", background: "#0d1220", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, marginBottom: 32 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 12 }}>Our Story - Engineered to Win</h2>
+          <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.75, marginBottom: 8 }}>
+            We developed a proprietary AI football prediction model that uses machine learning to generate accurate, data-driven tips.
+            Our Java-based software combines Artificial Intelligence, Mathematical Modeling, and Machine Learning to deliver AI-driven football predictions with unmatched consistency.
+          </p>
+          <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.75 }}>
+            Complete transparency: We maintain full openness with our clients, inviting you to monitor our entire progress firsthand.
+          </p>
+        </section>
+
+        {/* ── Top Leagues ── */}
+        <section style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 14 }}>Top Leagues</h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[
+              { label: "Premier League", href: "/leagues" },
+              { label: "La Liga", href: "/leagues" },
+              { label: "Bundesliga", href: "/leagues" },
+              { label: "Serie A", href: "/leagues" },
+              { label: "Ligue 1", href: "/leagues" },
+              { label: "Champions League", href: "/leagues" },
+              { label: "Europa League", href: "/leagues" },
+              { label: "Conference League", href: "/leagues" },
+            ].map((league) => (
+              <Link
+                key={league.label}
+                href={league.href}
+                style={{
+                  padding: "7px 14px", borderRadius: 6,
+                  background: "#0d1220", border: "1px solid rgba(255,255,255,0.08)",
+                  fontSize: 12, fontWeight: 600, color: "#94a3b8", textDecoration: "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {league.label}
+              </Link>
+            ))}
+          </div>
         </section>
       </main>
 
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#0c101a", padding: "24px 20px", textAlign: "center" }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>FootyIntel AI Football Predictions &amp; Data Engine</p>
-        <p style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>PostgreSQL Persistence · Dynamic Scraper · Real-Time Live Stream</p>
+      {/* ── Footer ── */}
+      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "#0a0e18", padding: "32px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 40, justifyContent: "space-between", marginBottom: 24 }}>
+            <div style={{ maxWidth: 280 }}>
+              <p style={{ fontSize: 15, fontWeight: 900, color: "#fff", marginBottom: 8 }}>NERDYTIPS</p>
+              <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.65 }}>
+                Get the best football predictions powered by AI! NerdyTips analyzes 160+ leagues to deliver accurate betting tips and insights.
+              </p>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>Top Leagues</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {["Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1"].map((l) => (
+                  <Link key={l} href="/leagues" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>{l} Predictions</Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>Matches</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { label: "All Matches", href: "/all-matches" },
+                  { label: "Leagues", href: "/leagues" },
+                ].map((item) => (
+                  <Link key={item.label} href={item.href} style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>{item.label}</Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16, textAlign: "center" }}>
+            <p style={{ fontSize: 11, color: "#475569" }}>
+              © 2026 · AI Football Predictions · Powered by NT Apex AI
+            </p>
+          </div>
+        </div>
       </footer>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-    </div>
-  );
-}
-
-/* ── Sub-components ── */
-
-function StatCard({ icon, label, value, accent, sublabel }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  accent: string;
-  sublabel: string;
-}) {
-  return (
-    <div style={{
-      background: "rgba(255,255,255,0.03)",
-      border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 14,
-      padding: "14px 16px",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 11, fontWeight: 600, marginBottom: 8 }}>
-        {icon}
-        <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: accent, lineHeight: 1, marginBottom: 4 }}>{value}</div>
-      <div style={{ fontSize: 11, color: "#475569", fontWeight: 500 }}>{sublabel}</div>
-    </div>
-  );
-}
-
-function SectionHeader({ icon, title, linkHref, linkLabel }: {
-  icon: React.ReactNode;
-  title: string;
-  linkHref: string;
-  linkLabel: string;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-      <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, color: "#fff" }}>
-        {icon} {title}
-      </h2>
-      <Link href={linkHref} style={{ fontSize: 12, fontWeight: 700, color: "#10b981", textDecoration: "none" }}>
-        {linkLabel}
-      </Link>
     </div>
   );
 }

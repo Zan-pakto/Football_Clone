@@ -15,8 +15,12 @@ export async function GET(request: NextRequest) {
     // 1. Get stored matches from DB / Memory cache
     let data = await store.getMatches(d, { country, league, status, search });
 
-    // 2. If force sync or no matches stored yet for target date d, fetch fresh source data
-    if (sync || data.matches.length === 0) {
+    const isStale =
+      !data.lastScrapedAt ||
+      Date.now() - new Date(data.lastScrapedAt).getTime() > 3 * 60 * 1000;
+
+    // 2. If force sync, empty stored matches, or stale data (>3 mins), fetch fresh source data
+    if (sync || data.matches.length === 0 || isStale) {
       console.log(`Fetching fresh matches from NerdyTips for d=${d}...`);
       const scraped = await NerdyTipsScraper.fetchAllMatches(d);
       if (scraped.success) {

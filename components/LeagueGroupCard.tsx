@@ -17,75 +17,80 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
   return (
     <div style={{
-      background: "#0f1624",
+      background: "#101520",
       border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 16,
+      borderRadius: 8,
       overflow: "hidden",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
     }}>
-      {/* League Header */}
+      {/* League Header — matches NerdyTips style */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 18px",
-          background: "#182032",
-          borderBottom: isOpen ? "1px solid rgba(255,255,255,0.07)" : "none",
+          padding: "10px 16px",
+          background: "#141b2b",
+          borderBottom: isOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
           cursor: "pointer",
           userSelect: "none",
-          transition: "background 0.15s",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           {flagUrl ? (
             <img
               src={flagUrl}
               alt={country}
-              style={{ width: 22, height: 15, objectFit: "cover", borderRadius: 3, border: "1px solid rgba(255,255,255,0.12)", flexShrink: 0 }}
+              style={{ width: 20, height: 14, objectFit: "cover", borderRadius: 2, border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }}
               onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
             />
           ) : (
-            <Globe style={{ width: 15, height: 15, color: "#10b981", flexShrink: 0 }} />
+            <Globe style={{ width: 14, height: 14, color: "#64748b", flexShrink: 0 }} />
           )}
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {leagueName}
-          </h2>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>• {country}</span>
+          </span>
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0 }}>
+            {country}
+          </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{
-            padding: "2px 10px", borderRadius: 999,
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            fontSize: 11, fontWeight: 700, color: "#94a3b8",
+            fontSize: 11, fontWeight: 600, color: "#64748b",
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+            padding: "1px 8px", borderRadius: 999,
           }}>
-            {matches.length} {matches.length === 1 ? "match" : "matches"}
+            {matches.length}
           </span>
           {isOpen
-            ? <ChevronUp style={{ width: 15, height: 15, color: "#64748b" }} />
-            : <ChevronDown style={{ width: 15, height: 15, color: "#64748b" }} />
+            ? <ChevronUp style={{ width: 14, height: 14, color: "#475569" }} />
+            : <ChevronDown style={{ width: 14, height: 14, color: "#475569" }} />
           }
         </div>
       </div>
 
-      {/* Column Headers (desktop) */}
+      {/* Column Headers — NerdyTips exact columns */}
       {isOpen && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "72px 1fr 148px 220px 108px 64px",
-          padding: "7px 18px",
-          background: "#0a0d17",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          fontSize: 10, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.07em",
-        }} className="lg-only">
+        <div
+          className="lg-col-headers"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "68px 1fr 130px 240px 110px 56px 130px",
+            padding: "5px 16px",
+            background: "#0d1220",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            fontSize: 10, fontWeight: 700, color: "#475569",
+            textTransform: "uppercase", letterSpacing: "0.06em",
+          }}
+        >
           <div style={{ textAlign: "center" }}>Time</div>
-          <div style={{ paddingLeft: 8 }}>Match</div>
-          <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)", borderRight: "1px solid rgba(255,255,255,0.05)" }}>1 &nbsp; X &nbsp; 2</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ paddingLeft: 4 }}>Match</div>
+          <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)", paddingLeft: 4 }}>1 &nbsp; X &nbsp; 2</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
             <span>1X2</span><span>Goals</span><span>BTTS</span>
           </div>
-          <div style={{ textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.05)" }}>Best Tip</div>
+          <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)" }}>Best Tip</div>
           <div style={{ textAlign: "center" }}>Trust</div>
+          <div style={{ textAlign: "right", borderLeft: "1px solid rgba(255,255,255,0.05)", paddingRight: 4 }}>Result</div>
         </div>
       )}
 
@@ -93,7 +98,10 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       {isOpen && (
         <div>
           {matches.map((match, idx) => (
-            <div key={match.id} style={{ borderTop: idx > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+            <div
+              key={match.id}
+              style={{ borderTop: idx > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+            >
               <MatchRow match={match} />
             </div>
           ))}
@@ -101,8 +109,8 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       )}
 
       <style>{`
-        .lg-only { display: none; }
-        @media (min-width: 1024px) { .lg-only { display: grid; } }
+        .lg-col-headers { display: none; }
+        @media (min-width: 1024px) { .lg-col-headers { display: grid; } }
       `}</style>
     </div>
   );

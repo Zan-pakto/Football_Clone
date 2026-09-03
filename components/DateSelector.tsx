@@ -1,41 +1,58 @@
 "use client";
 
-import { Calendar } from "lucide-react";
-
 interface DateSelectorProps {
   currentD: string;
   onSelectD: (d: string) => void;
 }
 
-const dates = [
-  { label: "Yesterday", d: "-1" },
-  { label: "Today", d: "0" },
-  { label: "Tomorrow", d: "1" },
-  { label: "+2 Days", d: "2" },
-  { label: "+3 Days", d: "3" },
+function getDateLabel(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+// Build dates: -2, -1, 0(today), +1, +2, +3, +4
+// with "Yesterday", "Today", "Tomorrow" labels for -1, 0, +1
+const DATE_OPTIONS = [
+  { d: "-2", label: getDateLabel(-2) },
+  { d: "-1", label: "Yesterday" },
+  { d: "0", label: "Today" },
+  { d: "1", label: "Tomorrow" },
+  { d: "2", label: getDateLabel(2) },
+  { d: "3", label: getDateLabel(3) },
+  { d: "4", label: getDateLabel(4) },
 ];
 
 export default function DateSelector({ currentD, onSelectD }: DateSelectorProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#64748b", fontWeight: 600, flexShrink: 0 }}>
-        <Calendar style={{ width: 13, height: 13, color: "#10b981" }} />
-        <span>Date:</span>
-      </div>
-      {dates.map((item) => {
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      background: "#0d1220",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 8,
+      padding: "4px",
+      overflowX: "auto",
+    }}>
+      {DATE_OPTIONS.map((item) => {
         const isActive = currentD === item.d;
         return (
           <button
             key={item.d}
             onClick={() => onSelectD(item.d)}
             style={{
-              padding: "6px 14px", borderRadius: 9,
-              fontSize: 12, fontWeight: isActive ? 800 : 600,
-              color: isActive ? "#34d399" : "#64748b",
-              background: isActive ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.03)",
-              border: isActive ? "1px solid rgba(16,185,129,0.35)" : "1px solid rgba(255,255,255,0.07)",
-              cursor: "pointer", whiteSpace: "nowrap",
-              transition: "all 0.15s",
+              padding: "6px 14px",
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? "#fff" : "#64748b",
+              background: isActive ? "#1e2d44" : "transparent",
+              border: "none",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              transition: "all 0.12s",
               flexShrink: 0,
             }}
           >

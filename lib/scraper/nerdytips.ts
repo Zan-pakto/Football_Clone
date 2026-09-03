@@ -1,5 +1,5 @@
-import { extractLeagueGroups, parseMatchRowsHtml } from "./parser";
-import { LiveScrapeResult, ScrapeResult } from "./types";
+import { extractLeagueGroups, parseMatchRowsHtml, extractMainHtmlMatches } from "./parser";
+import { LiveScrapeResult, ScrapeResult, MatchData } from "./types";
 
 const BASE_URL = "https://nerdytips.com";
 const DEFAULT_USER_AGENT =
@@ -33,51 +33,65 @@ export class NerdyTipsScraper {
       const mainHtml = await pageRes.text();
       const leagues = extractLeagueGroups(mainHtml);
 
-      if (leagues.length === 0) {
-        return {
-          success: true,
+      // Parse matches pre-rendered directly inside mainHtml (e.g. featured, live, or first league groups)
+      const mainHtmlMatches = extractMainHtmlMatches(mainHtml);
+
+      let rowsMatches: MatchData[] = [];
+
+      if (leagues.length > 0) {
+        const groupKeys = leagues.map((l) => l.groupKey);
+        const leagueMap = Object.fromEntries(leagues.map((l) => [l.groupKey, l]));
+
+        // Request match rows using group keys
+        const rowsParams = new URLSearchParams({
+          g: groupKeys.join(","),
           d,
-          scrapedAt: new Date().toISOString(),
-          leagueCount: 0,
-          totalMatches: 0,
-          groupsFound: 0,
-          matches: [],
-          leagues: [],
-        };
+          ...extraParams,
+        });
+
+        const rowsUrl = `${BASE_URL}/all-matches/rows?${rowsParams.toString()}`;
+
+        const rowsRes = await fetch(rowsUrl, {
+          headers: {
+            "User-Agent": DEFAULT_USER_AGENT,
+            Accept: "application/json, text/plain, */*",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          cache: "no-store",
+        });
+
+        if (rowsRes.ok) {
+          const rowsJson = await rowsRes.json();
+          if (rowsJson.ok && rowsJson.groups) {
+            rowsMatches = parseMatchRowsHtml(rowsJson.groups, leagueMap);
+          }
+        }
       }
 
-      const groupKeys = leagues.map((l) => l.groupKey);
-      const leagueMap = Object.fromEntries(leagues.map((l) => [l.groupKey, l]));
-
-      // Request match rows using group keys
-      const rowsParams = new URLSearchParams({
-        g: groupKeys.join(","),
-        d,
-        ...extraParams,
-      });
-
-      const rowsUrl = `${BASE_URL}/all-matches/rows?${rowsParams.toString()}`;
-
-      const rowsRes = await fetch(rowsUrl, {
-        headers: {
-          "User-Agent": DEFAULT_USER_AGENT,
-          Accept: "application/json, text/plain, */*",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        cache: "no-store",
-      });
-
-      if (!rowsRes.ok) {
-        throw new Error(`Rows request failed with status ${rowsRes.status}`);
+      // Combine matches from mainHtml and rowsJson, eliminating duplicates by ID
+      const matchMap = new Map<string, MatchData>();
+      for (const m of mainHtmlMatches) {
+        matchMap.set(m.id, m);
+      }
+      for (const m of rowsMatches) {
+        // Rows data has structured groupKeys with mapped leagueInfo, so prefer it when available
+        // but preserve league name/country if mainHtml had a specific league and rows returned generic
+        const existing = matchMap.get(m.id);
+        if (existing) {
+          if (existing.leagueName !== "Football League" && existing.leagueName !== "Other Matches") {
+            m.leagueName = existing.leagueName;
+          }
+          if (existing.country !== "World") {
+            m.country = existing.country;
+          }
+          if (existing.flagUrl) {
+            m.flagUrl = existing.flagUrl;
+          }
+        }
+        matchMap.set(m.id, m);
       }
 
-      const rowsJson = await rowsRes.json();
-
-      if (!rowsJson.ok || !rowsJson.groups) {
-        throw new Error("Rows endpoint returned invalid JSON payload");
-      }
-
-      const matches = parseMatchRowsHtml(rowsJson.groups, leagueMap);
+      const matches = Array.from(matchMap.values());
 
       return {
         success: true,
@@ -85,7 +99,7 @@ export class NerdyTipsScraper {
         scrapedAt: new Date().toISOString(),
         leagueCount: leagues.length,
         totalMatches: matches.length,
-        groupsFound: groupKeys.length,
+        groupsFound: leagues.length,
         matches,
         leagues,
       };

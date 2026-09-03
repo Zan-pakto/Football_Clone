@@ -217,8 +217,21 @@ class MatchStore {
    */
   async applyLiveUpdates(updates: Record<string, LiveMatchUpdate>, d: string): Promise<void> {
     const targetDate = resolveDateString(d);
+
+    const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
+    const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
+
     for (const [id, live] of Object.entries(updates)) {
-      this.liveCache.set(id, live);
+      // If the update signals the game is over, REMOVE from liveCache so it stops showing as live
+      const isTerminal =
+        (live.status && TERMINAL_STATUS.test(live.status)) ||
+        (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
+
+      if (isTerminal) {
+        this.liveCache.delete(id);
+      } else {
+        this.liveCache.set(id, live);
+      }
     }
 
     // Apply to in-memory matches
@@ -232,7 +245,11 @@ class MatchStore {
           m.homeScore = String(live.homeScore);
         if (live.awayScore !== null && live.awayScore !== undefined)
           m.awayScore = String(live.awayScore);
-        m.isLive = true;
+        // Only mark isLive if still actively in progress
+        const isTerminal =
+          (live.status && TERMINAL_STATUS.test(live.status)) ||
+          (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
+        m.isLive = !isTerminal;
       }
     }
 
@@ -288,6 +305,15 @@ class MatchStore {
           );
 
           const live = this.liveCache.get(dm.externalId);
+          const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
+          const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
+          const liveIsTerminal = live && (
+            (live.status && TERMINAL_STATUS.test(live.status)) ||
+            (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()))
+          );
+          const computedIsLive = live && !liveIsTerminal
+            ? true
+            : dm.status === "live" || dm.status === "In Progress";
 
           return {
             id: dm.externalId,
@@ -304,7 +330,7 @@ class MatchStore {
             homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : dm.homeScore,
             awayScore: live?.awayScore !== undefined && live.awayScore !== null ? String(live.awayScore) : dm.awayScore,
             elapsed: live?.elapsed || dm.elapsed,
-            isLive: live ? true : dm.status === "live" || dm.status === "In Progress",
+            isLive: computedIsLive,
             odds: {
               home: dm.homeOdd,
               draw: dm.drawOdd,
@@ -367,12 +393,20 @@ class MatchStore {
    */
   async getLiveMatches(d: string = "0"): Promise<MatchData[]> {
     const { matches } = await this.getMatches(d);
+    const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
+    const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
+
     return matches.filter((m) => {
       const live = this.liveCache.get(m.id);
       if (live) {
-        return live.status === "In Progress" || live.status === "live" || (live.elapsed && live.elapsed !== "0" && live.elapsed !== "FT");
+        // Only live if cache entry is NOT terminal
+        const isTerminal =
+          (live.status && TERMINAL_STATUS.test(live.status)) ||
+          (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
+        return !isTerminal && (live.status === "In Progress" || live.status === "live");
       }
-      return m.isLive || m.status === "In Progress" || m.status === "live";
+      // Fall back to DB status — must be explicitly "live" or "In Progress", not just any non-FT status
+      return m.status === "live" || m.status === "In Progress";
     });
   }
 }
