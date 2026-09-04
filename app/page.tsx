@@ -53,13 +53,14 @@ export default function HomePage() {
             prev.map((m) => {
               const live = data.liveUpdates[m.id];
               if (live) {
+                const isStillLive = Boolean(live.isLive ?? (live.status === "In Progress" || (live.elapsed && /^\d+['′]/.test(live.elapsed))));
                 return {
                   ...m,
-                  status: live.status || m.status,
+                  status: live.status && m.status !== "won" ? live.status : m.status,
                   elapsed: live.elapsed || m.elapsed,
                   homeScore: live.homeScore !== null && live.homeScore !== undefined ? String(live.homeScore) : m.homeScore,
                   awayScore: live.awayScore !== null && live.awayScore !== undefined ? String(live.awayScore) : m.awayScore,
-                  isLive: true,
+                  isLive: isStillLive,
                 };
               }
               return m;
