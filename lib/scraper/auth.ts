@@ -57,35 +57,24 @@ export class NerdyTipsAuthManager {
   private static loginInProgress: Promise<string | null> | null = null;
 
   /**
-   * Get active cookie header (either from env, cache, or dynamic login)
+   * Get current auth status
+   */
+  static getStatus() {
+    const cookie = this.cachedCookie || process.env.NERDYTIPS_COOKIE || "";
+    const isLoggedIn = Boolean(cookie && cookie.trim().length > 0);
+    const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL || "";
+    return {
+      isLoggedIn,
+      hasCredentials: Boolean(username && process.env.NERDYTIPS_PASSWORD),
+      username: username || (isLoggedIn ? "Premium Member" : undefined),
+    };
+  }
+
+  /**
+   * Get active cookie header from cache or .env (auto-login disabled; manual trigger only)
    */
   static async getCookieHeader(): Promise<string | null> {
-    if (this.cachedCookie) {
-      return this.cachedCookie;
-    }
-
-    // Cooldown: do not spam login requests within 10 minutes if previous attempt failed/device limit hit
-    if (this.lastLoginAttempt && Date.now() - this.lastLoginAttempt < 10 * 60 * 1000) {
-      return process.env.NERDYTIPS_COOKIE || null;
-    }
-
-    const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL;
-    const password = process.env.NERDYTIPS_PASSWORD;
-
-    if (!username || !password) {
-      return process.env.NERDYTIPS_COOKIE || null;
-    }
-
-    // Deduplicate concurrent login requests
-    if (this.loginInProgress) {
-      return this.loginInProgress;
-    }
-
-    this.loginInProgress = this.performLogin(username, password).finally(() => {
-      this.loginInProgress = null;
-    });
-
-    return this.loginInProgress;
+    return this.cachedCookie || process.env.NERDYTIPS_COOKIE || null;
   }
 
   /**

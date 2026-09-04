@@ -40,24 +40,6 @@ export class NerdyTipsScraper {
 
       let mainHtml = await pageRes.text();
 
-      // Only attempt re-auth if initial page request returns completely locked prediction content
-      const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL;
-      const initialMatches = extractMainHtmlMatches(mainHtml);
-      const isCompletelyLocked = initialMatches.length > 0 && initialMatches.every(m => !m.predictions.bestTip.pick);
-
-      if (username && isCompletelyLocked && cookieHeader) {
-        console.warn("[NerdyTipsScraper] Detected locked predictions with existing cookie. Attempting re-authentication...");
-        NerdyTipsAuthManager.invalidate();
-        cookieHeader = await NerdyTipsAuthManager.getCookieHeader();
-        if (cookieHeader) {
-          headers["Cookie"] = cookieHeader;
-          pageRes = await fetch(mainPageUrl, { headers, cache: "no-store" });
-          if (pageRes.ok) {
-            mainHtml = await pageRes.text();
-          }
-        }
-      }
-
       const leagues = extractLeagueGroups(mainHtml);
 
       // Parse matches pre-rendered directly inside mainHtml (e.g. featured, live, or first league groups)
