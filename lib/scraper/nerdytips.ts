@@ -40,10 +40,13 @@ export class NerdyTipsScraper {
 
       let mainHtml = await pageRes.text();
 
-      // Check if session might have expired (e.g. data-locked="1" is present despite having auth credentials)
+      // Only attempt re-auth if initial page request returns completely locked prediction content
       const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL;
-      if (username && mainHtml.includes('data-locked="1"') && cookieHeader) {
-        console.warn("[NerdyTipsScraper] Detected locked predictions with existing cookie. Re-authenticating...");
+      const initialMatches = extractMainHtmlMatches(mainHtml);
+      const isCompletelyLocked = initialMatches.length > 0 && initialMatches.every(m => !m.predictions.bestTip.pick);
+
+      if (username && isCompletelyLocked && cookieHeader) {
+        console.warn("[NerdyTipsScraper] Detected locked predictions with existing cookie. Attempting re-authentication...");
         NerdyTipsAuthManager.invalidate();
         cookieHeader = await NerdyTipsAuthManager.getCookieHeader();
         if (cookieHeader) {
@@ -119,22 +122,39 @@ export class NerdyTipsScraper {
       for (const m of mainHtmlMatches) {
         matchMap.set(m.id, m);
       }
+
+      const isGenericLeague = (name: string) =>
+        !name ||
+        name === "Football League" ||
+        name === "Other Matches" ||
+        name === "Free AI Football Predictions";
+
+      const isGenericCountry = (c: string) =>
+        !c || c === "World" || c === "6" || !isNaN(Number(c));
+
       for (const m of rowsMatches) {
-        // Rows data has structured groupKeys with mapped leagueInfo, so prefer it when available
-        // but preserve league name/country if mainHtml had a specific league and rows returned generic
         const existing = matchMap.get(m.id);
         if (existing) {
-          if (existing.leagueName !== "Football League" && existing.leagueName !== "Other Matches") {
-            m.leagueName = existing.leagueName;
+          // If existing (from mainHtml) was generic/featured, overwrite with real structured row league info
+          if (!isGenericLeague(m.leagueName)) {
+            existing.leagueName = m.leagueName;
           }
-          if (existing.country !== "World") {
-            m.country = existing.country;
+          if (!isGenericCountry(m.country)) {
+            existing.country = m.country;
           }
-          if (existing.flagUrl) {
-            m.flagUrl = existing.flagUrl;
+          if (m.flagUrl) {
+            existing.flagUrl = m.flagUrl;
           }
+          // Merge predictions/odds if rows matches has them
+          matchMap.set(m.id, {
+            ...existing,
+            leagueName: !isGenericLeague(m.leagueName) ? m.leagueName : existing.leagueName,
+            country: !isGenericCountry(m.country) ? m.country : existing.country,
+            flagUrl: m.flagUrl || existing.flagUrl,
+          });
+        } else {
+          matchMap.set(m.id, m);
         }
-        matchMap.set(m.id, m);
       }
 
       const matches = Array.from(matchMap.values());

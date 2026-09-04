@@ -114,7 +114,7 @@ export function extractLeagueGroups(html: string): LeagueGroup[] {
  */
 export function parseMatchElement(
   $: cheerio.CheerioAPI,
-  el: cheerio.Element,
+  el: any,
   leagueInfo: Partial<LeagueGroup> = {}
 ): MatchData | null {
   try {

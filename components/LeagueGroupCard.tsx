@@ -17,80 +17,82 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
   return (
     <div style={{
-      background: "#101520",
-      border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 8,
+      background: "#0c1020",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12,
       overflow: "hidden",
+      marginBottom: 12,
     }}>
-      {/* League Header — matches NerdyTips style */}
+      {/* League Header — exact NerdyTips style */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 16px",
-          background: "#141b2b",
+          padding: "12px 16px",
+          background: "#13172e",
           borderBottom: isOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
           cursor: "pointer",
           userSelect: "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           {flagUrl ? (
             <img
               src={flagUrl}
               alt={country}
-              style={{ width: 20, height: 14, objectFit: "cover", borderRadius: 2, border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }}
+              style={{ width: 22, height: 16, objectFit: "cover", borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }}
               onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
             />
           ) : (
-            <Globe style={{ width: 14, height: 14, color: "#64748b", flexShrink: 0 }} />
+            <Globe style={{ width: 16, height: 16, color: "#64748b", flexShrink: 0 }} />
           )}
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {leagueName}
           </span>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap", flexShrink: 0 }}>
-            {country}
+          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+            • {country}
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{
-            fontSize: 11, fontWeight: 600, color: "#64748b",
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-            padding: "1px 8px", borderRadius: 999,
+            fontSize: 11, fontWeight: 700, color: "#94a3b8",
+            background: "#1c223d", border: "1px solid rgba(255,255,255,0.1)",
+            padding: "2px 9px", borderRadius: 999,
           }}>
             {matches.length}
           </span>
           {isOpen
-            ? <ChevronUp style={{ width: 14, height: 14, color: "#475569" }} />
-            : <ChevronDown style={{ width: 14, height: 14, color: "#475569" }} />
+            ? <ChevronUp style={{ width: 16, height: 16, color: "#94a3b8" }} />
+            : <ChevronDown style={{ width: 16, height: 16, color: "#94a3b8" }} />
           }
         </div>
       </div>
 
-      {/* Column Headers — NerdyTips exact columns */}
+      {/* Column Headers — exact NerdyTips columns */}
       {isOpen && (
         <div
           className="lg-col-headers"
           style={{
             display: "grid",
-            gridTemplateColumns: "68px 1fr 130px 240px 110px 56px 130px",
-            padding: "5px 16px",
-            background: "#0d1220",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-            fontSize: 10, fontWeight: 700, color: "#475569",
+            gridTemplateColumns: "52px 1fr 145px 65px 65px 65px 85px 65px",
+            padding: "8px 14px",
+            background: "#090d1b",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            fontSize: 10, fontWeight: 800, color: "#64748b",
             textTransform: "uppercase", letterSpacing: "0.06em",
           }}
         >
-          <div style={{ textAlign: "center" }}>Time</div>
-          <div style={{ paddingLeft: 4 }}>Match</div>
-          <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)", paddingLeft: 4 }}>1 &nbsp; X &nbsp; 2</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
-            <span>1X2</span><span>Goals</span><span>BTTS</span>
+          <div style={{ textAlign: "center" }}>HOUR</div>
+          <div style={{ paddingLeft: 6 }}>MATCHES</div>
+          <div style={{ textAlign: "center" }}>
+            <span style={{ display: "block", fontSize: 9, color: "#475569" }}>1 &nbsp;&nbsp; X &nbsp;&nbsp; 2</span>
           </div>
-          <div style={{ textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.05)" }}>Best Tip</div>
-          <div style={{ textAlign: "center" }}>Trust</div>
-          <div style={{ textAlign: "right", borderLeft: "1px solid rgba(255,255,255,0.05)", paddingRight: 4 }}>Result</div>
+          <div style={{ textAlign: "center" }}>1X2</div>
+          <div style={{ textAlign: "center" }}>O/U</div>
+          <div style={{ textAlign: "center" }}>BTTS</div>
+          <div style={{ textAlign: "center" }}>BEST TIP</div>
+          <div style={{ textAlign: "center" }}>CONFIDENCE</div>
         </div>
       )}
 
@@ -109,8 +111,8 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       )}
 
       <style>{`
-        .lg-col-headers { display: none; }
-        @media (min-width: 1024px) { .lg-col-headers { display: grid; } }
+        .lg-col-headers { display: none !important; }
+        @media (min-width: 768px) { .lg-col-headers { display: grid !important; } }
       `}</style>
     </div>
   );

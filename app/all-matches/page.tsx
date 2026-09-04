@@ -272,57 +272,49 @@ export default function AllMatchesPage() {
               />
             </div>
 
-            {/* ── Stats bar ── */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-              {([
-                { key: "all",       label: "All",       value: matches.length,        color: "#94a3b8", activeColor: "#fff" },
-                { key: "predicted", label: "Predicted", value: statCounts.predicted,  color: "#10b981", activeColor: "#10b981" },
-                { key: "upcoming",  label: "Upcoming",  value: statCounts.upcoming,   color: "#38bdf8", activeColor: "#38bdf8" },
-                { key: "live",      label: "Live",      value: statCounts.live,        color: "#f97316", activeColor: "#f97316" },
-                { key: "won",       label: "Won",       value: statCounts.won,         color: "#a78bfa", activeColor: "#a78bfa" },
-              ] as const).map(({ key, label, value, color, activeColor }) => {
-                const isActive = activeFilter === key;
+            {/* ── Exact NerdyTips Stat Cards Banner ── */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 12,
+              marginBottom: 16,
+            }}>
+              {[
+                { key: "all", label: "PREDICTED", value: matches.length,},
+                { key: "upcoming", label: "UPCOMING", value: statCounts.upcoming },
+                { key: "live", label: "LIVE", value: statCounts.live},
+                { key: "won", label: "WON MATCHES", value: statCounts.won},
+              ].map(({ key, label, value,}) => {
+                const isActive = activeFilter === key || (key === "all" && activeFilter === "predicted");
                 return (
                   <button
                     key={key}
-                    onClick={() => setActiveFilter(key)}
+                    onClick={() => setActiveFilter(key as any)}
                     style={{
+                      background: isActive ? "#151930" : "#0f1325",
+                      border: isActive ? "1.5px solid #6366f1" : "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 14,
+                      padding: "16px 20px",
                       display: "flex",
-                      alignItems: "center",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
                       gap: 8,
-                      padding: "7px 14px",
-                      borderRadius: 6,
-                      border: isActive
-                        ? `1px solid ${color}40`
-                        : "1px solid rgba(255,255,255,0.07)",
-                      background: isActive ? `${color}14` : "#0d1220",
                       cursor: "pointer",
-                      transition: "all 0.15s",
-                      flexShrink: 0,
+                      textAlign: "left",
+                      boxShadow: isActive ? "0 0 20px rgba(99,102,241,0.18)" : "none",
+                      transition: "all 0.15s ease",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
-                    {key === "live" && value > 0 && (
-                      <span style={{
-                        width: 6, height: 6, borderRadius: "50%",
-                        background: "#f97316",
-                        animation: "liveDot 1.4s infinite",
-                        flexShrink: 0,
-                      }} />
-                    )}
-                    <span style={{
-                      fontSize: 20,
-                      fontWeight: 800,
-                      color: isActive ? activeColor : "#e2e8f0",
-                      lineHeight: 1,
-                    }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#8a94b8", letterSpacing: "0.08em" }}>
+                        {label}
+                      </span>
+                     
+                    </div>
+                    <span style={{ fontSize: 30, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>
                       {loading ? "–" : value}
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: isActive ? activeColor : "#64748b",
-                    }}>
-                      {label}
                     </span>
                   </button>
                 );

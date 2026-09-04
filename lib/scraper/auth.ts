@@ -1,8 +1,55 @@
 import * as cheerio from "cheerio";
+import fs from "fs";
+import path from "path";
 
 const BASE_URL = "https://nerdytips.com";
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+
+/**
+ * Persist acquired session cookie into local .env file
+ */
+function updateEnvCookie(cookie: string) {
+  try {
+    const envPath = path.join(process.cwd(), ".env");
+    let content = "";
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, "utf-8");
+    }
+
+    if (/^NERDYTIPS_COOKIE=/m.test(content)) {
+      content = content.replace(/^NERDYTIPS_COOKIE=.*/m, `NERDYTIPS_COOKIE="${cookie}"`);
+    } else {
+      content = content.trim() + `\nNERDYTIPS_COOKIE="${cookie}"\n`;
+    }
+
+    fs.writeFileSync(envPath, content, "utf-8");
+    process.env.NERDYTIPS_COOKIE = cookie;
+    console.log("[NerdyTipsAuth] Automatically updated NERDYTIPS_COOKIE in .env file.");
+  } catch (err: any) {
+    console.warn("[NerdyTipsAuth] Failed to write to .env file:", err.message || err);
+  }
+}
+
+/**
+ * Clear session cookie from local .env file
+ */
+function clearEnvCookie() {
+  try {
+    const envPath = path.join(process.cwd(), ".env");
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, "utf-8");
+      if (/^NERDYTIPS_COOKIE=/m.test(content)) {
+        content = content.replace(/^NERDYTIPS_COOKIE=.*/m, `NERDYTIPS_COOKIE=""`);
+        fs.writeFileSync(envPath, content, "utf-8");
+      }
+    }
+    delete process.env.NERDYTIPS_COOKIE;
+    console.log("[NerdyTipsAuth] Cleared NERDYTIPS_COOKIE from .env file.");
+  } catch (err: any) {
+    console.warn("[NerdyTipsAuth] Failed to clear .env file:", err.message || err);
+  }
+}
 
 export class NerdyTipsAuthManager {
   private static cachedCookie: string | null = process.env.NERDYTIPS_COOKIE || null;
@@ -17,11 +64,16 @@ export class NerdyTipsAuthManager {
       return this.cachedCookie;
     }
 
+    // Cooldown: do not spam login requests within 10 minutes if previous attempt failed/device limit hit
+    if (this.lastLoginAttempt && Date.now() - this.lastLoginAttempt < 10 * 60 * 1000) {
+      return process.env.NERDYTIPS_COOKIE || null;
+    }
+
     const username = process.env.NERDYTIPS_USERNAME || process.env.NERDYTIPS_EMAIL;
     const password = process.env.NERDYTIPS_PASSWORD;
 
     if (!username || !password) {
-      return null;
+      return process.env.NERDYTIPS_COOKIE || null;
     }
 
     // Deduplicate concurrent login requests
@@ -134,6 +186,7 @@ export class NerdyTipsAuthManager {
           console.log(`[NerdyTipsAuth] Login successful. Session cookie acquired.`);
         }
         this.cachedCookie = finalCookieString;
+        updateEnvCookie(finalCookieString);
         return finalCookieString;
       }
 
@@ -149,12 +202,55 @@ export class NerdyTipsAuthManager {
    */
   static setCookie(cookie: string) {
     this.cachedCookie = cookie;
+    updateEnvCookie(cookie);
   }
 
   /**
-   * Invalidate cached session (e.g., if predictions return locked despite cookie)
+   * Invalidate cached session
    */
-  static invalidate() {
+  static async invalidate() {
     this.cachedCookie = null;
+  }
+
+  /**
+   * Perform CSRF-protected logout to release active device sessions on NerdyTips and clear .env
+   */
+  static async logout(): Promise<boolean> {
+    try {
+      console.log("[NerdyTipsAuth] Initiating session logout on NerdyTips...");
+      const pageRes = await fetch(`${BASE_URL}/login`, {
+        headers: { "User-Agent": DEFAULT_USER_AGENT },
+        cache: "no-store",
+      });
+      const html = await pageRes.text();
+      const $ = cheerio.load(html);
+      const csrfToken = $('input[name="_csrf"]').first().attr("value") || "";
+
+      const activeCookie = this.cachedCookie || process.env.NERDYTIPS_COOKIE || "";
+
+      const setCookies = pageRes.headers.getSetCookie?.() || [];
+      const cookieHeader = setCookies.map((c) => c.split(";")[0]).join("; ");
+
+      if (csrfToken) {
+        await fetch(`${BASE_URL}/logout`, {
+          method: "POST",
+          headers: {
+            "User-Agent": DEFAULT_USER_AGENT,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Cookie: activeCookie || cookieHeader,
+            Referer: `${BASE_URL}/login`,
+          },
+          body: new URLSearchParams({ _csrf: csrfToken }).toString(),
+        });
+      }
+
+      this.cachedCookie = null;
+      clearEnvCookie();
+      console.log("[NerdyTipsAuth] Session successfully logged out & removed from .env.");
+      return true;
+    } catch (err: any) {
+      console.warn("[NerdyTipsAuth] Logout failed:", err.message || err);
+      return false;
+    }
   }
 }
