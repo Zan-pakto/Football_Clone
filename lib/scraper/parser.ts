@@ -11,6 +11,29 @@ export function cleanValue(val: string | undefined | null): string | null {
 }
 
 /**
+ * Determine accurately if a match is live in-progress (not terminal, not upcoming)
+ */
+export function isMatchLive(status: string | null | undefined, elapsed: string | null | undefined): boolean {
+  if (!status && !elapsed) return false;
+  const s = (status || "").trim();
+  const e = (elapsed || "").trim();
+
+  // Terminal check: finished, won, lost, FT, AET, Pen, canceled, postponed, ended
+  if (/\b(fin|finished|won|lost|FT|AET|Pen|cancel|canceled|postpone|postponed|ended)\b/i.test(s)) return false;
+  if (/^(FT|AET|Pen|90\+|120|120\+)/i.test(e)) return false;
+
+  // Upcoming check
+  if (s.toLowerCase() === "upcoming") return false;
+  if (/^\d{1,2}:\d{2}$/.test(e)) return false;
+
+  // Live match indicators
+  if (/live|in progress|half|1st|2nd|ht|\d+['′]/i.test(s)) return true;
+  if (/live|in progress|half|1st|2nd|ht|\d+['′]/i.test(e)) return true;
+
+  return s.toLowerCase() === "live" || s.toLowerCase() === "in progress";
+}
+
+/**
  * Helper: Extract accurate team names from URL slug if HTML selectors are ambiguous
  * Example: /match-details/fc-halifax-town-vs-hartlepool-prediction-1299198
  */
@@ -150,12 +173,7 @@ export function parseMatchElement(
 
     // Elapsed / status label
     const elapsed = $m.find(".nt-time").text().trim() || null;
-    // A match is live ONLY when the source explicitly marks it as in-progress
-    // AND the elapsed time is NOT a terminal indicator.
-    const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
-    const isLive =
-      status === "live" ||
-      (status === "In Progress" && !(elapsed && TERMINAL_ELAPSED.test(elapsed.trim())));
+    const isLive = isMatchLive(status, elapsed);
 
     // 1X2 Odds
     const $oddsGroup = $m.find(".tb-cellgroup.nt-d").first();

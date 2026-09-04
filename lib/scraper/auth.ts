@@ -97,12 +97,30 @@ export class NerdyTipsAuthManager {
           "Content-Type": "application/x-www-form-urlencoded",
           Cookie: cookieHeaderValue,
           Referer: `${BASE_URL}/login`,
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "X-Requested-With": "XMLHttpRequest",
+          Accept: "application/json, text/plain, */*",
         },
         body: bodyParams.toString(),
-        redirect: "manual",
         cache: "no-store",
       });
+
+      const postText = await loginPostRes.text();
+      let postJson: any = null;
+      try {
+        postJson = JSON.parse(postText);
+      } catch {
+        // Not JSON
+      }
+
+      if (postJson) {
+        if (postJson.device_blocked || postJson.error?.includes("device limit")) {
+          console.warn(
+            `[NerdyTipsAuth] Account device limit reached! NerdyTips message: "${postJson.error}". Please log in on nerdy-tips website and reset devices or set NERDYTIPS_COOKIE in .env.`
+          );
+        } else if (postJson.ok === false) {
+          console.warn(`[NerdyTipsAuth] Login failed: ${postJson.error || "Unknown error"}`);
+        }
+      }
 
       const postSetCookies = loginPostRes.headers.getSetCookie?.() || [];
       parseCookies(postSetCookies);
@@ -112,7 +130,9 @@ export class NerdyTipsAuthManager {
         .join("; ");
 
       if (finalCookieString) {
-        console.log(`[NerdyTipsAuth] Login successful. Session cookie acquired.`);
+        if (postJson?.ok !== false) {
+          console.log(`[NerdyTipsAuth] Login successful. Session cookie acquired.`);
+        }
         this.cachedCookie = finalCookieString;
         return finalCookieString;
       }

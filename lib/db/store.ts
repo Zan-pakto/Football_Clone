@@ -1,4 +1,5 @@
 import { MatchData, ScrapeResult, LiveMatchUpdate } from "../scraper/types";
+import { isMatchLive } from "../scraper/parser";
 import { prisma } from "./prisma";
 
 export function resolveDateString(d: string): string {
@@ -218,16 +219,9 @@ class MatchStore {
   async applyLiveUpdates(updates: Record<string, LiveMatchUpdate>, d: string): Promise<void> {
     const targetDate = resolveDateString(d);
 
-    const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
-    const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
-
     for (const [id, live] of Object.entries(updates)) {
-      // If the update signals the game is over, REMOVE from liveCache so it stops showing as live
-      const isTerminal =
-        (live.status && TERMINAL_STATUS.test(live.status)) ||
-        (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
-
-      if (isTerminal) {
+      const activeLive = isMatchLive(live.status, live.elapsed);
+      if (!activeLive) {
         this.liveCache.delete(id);
       } else {
         this.liveCache.set(id, live);
@@ -245,11 +239,7 @@ class MatchStore {
           m.homeScore = String(live.homeScore);
         if (live.awayScore !== null && live.awayScore !== undefined)
           m.awayScore = String(live.awayScore);
-        // Only mark isLive if still actively in progress
-        const isTerminal =
-          (live.status && TERMINAL_STATUS.test(live.status)) ||
-          (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
-        m.isLive = !isTerminal;
+        m.isLive = isMatchLive(m.status, m.elapsed);
       }
     }
 
@@ -305,15 +295,9 @@ class MatchStore {
           );
 
           const live = this.liveCache.get(dm.externalId);
-          const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
-          const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
-          const liveIsTerminal = live && (
-            (live.status && TERMINAL_STATUS.test(live.status)) ||
-            (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()))
-          );
-          const computedIsLive = live && !liveIsTerminal
-            ? true
-            : dm.status === "live" || dm.status === "In Progress";
+          const activeStatus = live?.status || dm.status;
+          const activeElapsed = live?.elapsed || dm.elapsed;
+          const computedIsLive = isMatchLive(activeStatus, activeElapsed);
 
           return {
             id: dm.externalId,
@@ -326,10 +310,10 @@ class MatchStore {
             homeLogo: dm.homeTeam.logoUrl || null,
             awayLogo: dm.awayTeam.logoUrl || null,
             kickTime: dm.kickTime,
-            status: live?.status || dm.status,
+            status: activeStatus,
             homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : dm.homeScore,
             awayScore: live?.awayScore !== undefined && live.awayScore !== null ? String(live.awayScore) : dm.awayScore,
-            elapsed: live?.elapsed || dm.elapsed,
+            elapsed: activeElapsed,
             isLive: computedIsLive,
             odds: {
               home: dm.homeOdd,
@@ -393,21 +377,7 @@ class MatchStore {
    */
   async getLiveMatches(d: string = "0"): Promise<MatchData[]> {
     const { matches } = await this.getMatches(d);
-    const TERMINAL_STATUS = /^(fin|won|FT|AET|Pen|canceled|postponed|finished)$/i;
-    const TERMINAL_ELAPSED = /^(FT|AET|Pen|90\+|120|120\+)/i;
-
-    return matches.filter((m) => {
-      const live = this.liveCache.get(m.id);
-      if (live) {
-        // Only live if cache entry is NOT terminal
-        const isTerminal =
-          (live.status && TERMINAL_STATUS.test(live.status)) ||
-          (live.elapsed && TERMINAL_ELAPSED.test(live.elapsed.trim()));
-        return !isTerminal && (live.status === "In Progress" || live.status === "live");
-      }
-      // Fall back to DB status — must be explicitly "live" or "In Progress", not just any non-FT status
-      return m.status === "live" || m.status === "In Progress";
-    });
+    return matches.filter((m) => m.isLive || isMatchLive(m.status, m.elapsed));
   }
 }
 

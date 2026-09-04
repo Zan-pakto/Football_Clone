@@ -66,15 +66,6 @@ export class NerdyTipsScraper {
         const groupKeys = leagues.map((l) => l.groupKey);
         const leagueMap = Object.fromEntries(leagues.map((l) => [l.groupKey, l]));
 
-        // Request match rows using group keys
-        const rowsParams = new URLSearchParams({
-          g: groupKeys.join(","),
-          d,
-          ...extraParams,
-        });
-
-        const rowsUrl = `${BASE_URL}/all-matches/rows?${rowsParams.toString()}`;
-
         const rowsHeaders: Record<string, string> = {
           "User-Agent": DEFAULT_USER_AGENT,
           Accept: "application/json, text/plain, */*",
@@ -85,17 +76,42 @@ export class NerdyTipsScraper {
           rowsHeaders["Cookie"] = cookieHeader;
         }
 
-        const rowsRes = await fetch(rowsUrl, {
-          headers: rowsHeaders,
-          cache: "no-store",
-        });
+        // Chunk group keys in batches of 15 to prevent server response limits
+        const CHUNK_SIZE = 15;
+        const promises: Promise<MatchData[]>[] = [];
 
-        if (rowsRes.ok) {
-          const rowsJson = await rowsRes.json();
-          if (rowsJson.ok && rowsJson.groups) {
-            rowsMatches = parseMatchRowsHtml(rowsJson.groups, leagueMap);
-          }
+        for (let i = 0; i < groupKeys.length; i += CHUNK_SIZE) {
+          const chunk = groupKeys.slice(i, i + CHUNK_SIZE);
+          const rowsParams = new URLSearchParams({
+            g: chunk.join(","),
+            d,
+            ...extraParams,
+          });
+
+          const rowsUrl = `${BASE_URL}/all-matches/rows?${rowsParams.toString()}`;
+
+          promises.push(
+            fetch(rowsUrl, {
+              headers: rowsHeaders,
+              cache: "no-store",
+            })
+              .then(async (res) => {
+                if (!res.ok) return [];
+                const rowsJson = await res.json();
+                if (rowsJson.ok && rowsJson.groups) {
+                  return parseMatchRowsHtml(rowsJson.groups, leagueMap);
+                }
+                return [];
+              })
+              .catch((err) => {
+                console.error("Failed to fetch match rows chunk:", err);
+                return [];
+              })
+          );
         }
+
+        const chunkResults = await Promise.all(promises);
+        rowsMatches = chunkResults.flat();
       }
 
       // Combine matches from mainHtml and rowsJson, eliminating duplicates by ID
