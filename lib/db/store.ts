@@ -45,14 +45,22 @@ class MatchStore {
         },
       });
 
-      // 2. Upsert each match
-      for (const m of result.matches) {
-        await this.upsertSingleMatch(m, targetDate);
+      // In-memory caching for teams & leagues during this save run
+      const teamCache = new Map<string, string>();
+      const leagueCache = new Map<string, string>();
+
+      // 2. Upsert matches in concurrent batches of 20 to complete DB writes in ~2s
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < result.matches.length; i += BATCH_SIZE) {
+        const batch = result.matches.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map((m) => this.upsertSingleMatch(m, targetDate, teamCache, leagueCache))
+        );
       }
 
-      // 3. Purge obsolete matches for this date that were removed/not in current scrape
+      // 3. Purge obsolete matches for this date only if current scrape returned a healthy set (>= 20)
       const currentIds = result.matches.map((m) => m.id);
-      if (currentIds.length > 0) {
+      if (currentIds.length >= 20) {
         await prisma.match.deleteMany({
           where: {
             OR: [{ matchDate: targetDate }, { matchDate: d }],
@@ -68,65 +76,58 @@ class MatchStore {
   /**
    * Upsert a single match into PostgreSQL according to database rules
    */
-  private async upsertSingleMatch(m: MatchData, targetDate: string): Promise<void> {
+  private async upsertSingleMatch(
+    m: MatchData,
+    targetDate: string,
+    teamCache: Map<string, string>,
+    leagueCache: Map<string, string>
+  ): Promise<void> {
     // 1. Upsert Home Team
     const homeTeamExtId = `team_${m.homeTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    const homeTeam = await prisma.team.upsert({
-      where: { externalId: homeTeamExtId },
-      update: {
-        name: m.homeTeam,
-        logoUrl: m.homeLogo || undefined,
-        country: m.country,
-      },
-      create: {
-        externalId: homeTeamExtId,
-        name: m.homeTeam,
-        logoUrl: m.homeLogo,
-        country: m.country,
-      },
-    });
+    let homeTeamId = teamCache.get(homeTeamExtId);
+    if (!homeTeamId) {
+      const team = await prisma.team.upsert({
+        where: { externalId: homeTeamExtId },
+        update: { name: m.homeTeam, logoUrl: m.homeLogo || undefined, country: m.country },
+        create: { externalId: homeTeamExtId, name: m.homeTeam, logoUrl: m.homeLogo, country: m.country },
+      });
+      homeTeamId = team.id;
+      teamCache.set(homeTeamExtId, homeTeamId);
+    }
 
     // 2. Upsert Away Team
     const awayTeamExtId = `team_${m.awayTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    const awayTeam = await prisma.team.upsert({
-      where: { externalId: awayTeamExtId },
-      update: {
-        name: m.awayTeam,
-        logoUrl: m.awayLogo || undefined,
-        country: m.country,
-      },
-      create: {
-        externalId: awayTeamExtId,
-        name: m.awayTeam,
-        logoUrl: m.awayLogo,
-        country: m.country,
-      },
-    });
+    let awayTeamId = teamCache.get(awayTeamExtId);
+    if (!awayTeamId) {
+      const team = await prisma.team.upsert({
+        where: { externalId: awayTeamExtId },
+        update: { name: m.awayTeam, logoUrl: m.awayLogo || undefined, country: m.country },
+        create: { externalId: awayTeamExtId, name: m.awayTeam, logoUrl: m.awayLogo, country: m.country },
+      });
+      awayTeamId = team.id;
+      teamCache.set(awayTeamExtId, awayTeamId);
+    }
 
     // 3. Upsert League
     const leagueExtId = `league_${m.leagueName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${m.country.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    const league = await prisma.league.upsert({
-      where: { externalId: leagueExtId },
-      update: {
-        name: m.leagueName,
-        country: m.country,
-        logoUrl: m.flagUrl || undefined,
-      },
-      create: {
-        externalId: leagueExtId,
-        name: m.leagueName,
-        country: m.country,
-        logoUrl: m.flagUrl,
-      },
-    });
+    let leagueId = leagueCache.get(leagueExtId);
+    if (!leagueId) {
+      const league = await prisma.league.upsert({
+        where: { externalId: leagueExtId },
+        update: { name: m.leagueName, country: m.country, logoUrl: m.flagUrl || undefined },
+        create: { externalId: leagueExtId, name: m.leagueName, country: m.country, logoUrl: m.flagUrl },
+      });
+      leagueId = league.id;
+      leagueCache.set(leagueExtId, leagueId);
+    }
 
     // 4. Upsert Match
     const match = await prisma.match.upsert({
       where: { externalId: m.id },
       update: {
-        leagueId: league.id,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
+        leagueId,
+        homeTeamId,
+        awayTeamId,
         matchDate: targetDate,
         kickTime: m.kickTime,
         status: m.status,
@@ -141,9 +142,9 @@ class MatchStore {
       },
       create: {
         externalId: m.id,
-        leagueId: league.id,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
+        leagueId,
+        homeTeamId,
+        awayTeamId,
         matchDate: targetDate,
         kickTime: m.kickTime,
         status: m.status,
@@ -158,7 +159,7 @@ class MatchStore {
       },
     });
 
-    // 5. Upsert Predictions & save history
+    // 5. Direct Prediction Upsert
     const predList = [
       { type: "pickScore", cell: m.predictions.pickScore },
       { type: "goals", cell: m.predictions.goals },
@@ -168,48 +169,26 @@ class MatchStore {
 
     for (const p of predList) {
       if (!p.cell.pick) continue;
-
-      const existingPred = await prisma.prediction.findUnique({
+      await prisma.prediction.upsert({
         where: {
           matchId_predictionType: {
             matchId: match.id,
             predictionType: p.type,
           },
         },
+        update: {
+          prediction: p.cell.pick,
+          odd: p.cell.odd,
+          confidence: m.confidence,
+        },
+        create: {
+          matchId: match.id,
+          predictionType: p.type,
+          prediction: p.cell.pick,
+          odd: p.cell.odd,
+          confidence: m.confidence,
+        },
       });
-
-      if (!existingPred) {
-        await prisma.prediction.create({
-          data: {
-            matchId: match.id,
-            predictionType: p.type,
-            prediction: p.cell.pick,
-            odd: p.cell.odd,
-            confidence: m.confidence,
-          },
-        });
-      } else if (existingPred.prediction !== p.cell.pick || existingPred.odd !== p.cell.odd) {
-        // Record history of old prediction
-        await prisma.predictionHistory.create({
-          data: {
-            matchId: match.id,
-            predictionType: p.type,
-            prediction: existingPred.prediction,
-            odd: existingPred.odd,
-            confidence: existingPred.confidence,
-          },
-        });
-
-        // Update to new prediction
-        await prisma.prediction.update({
-          where: { id: existingPred.id },
-          data: {
-            prediction: p.cell.pick,
-            odd: p.cell.odd,
-            confidence: m.confidence,
-          },
-        });
-      }
     }
   }
 
@@ -233,7 +212,7 @@ class MatchStore {
     for (const m of cachedMatches) {
       const live = updates[m.id];
       if (live) {
-        if (live.status) m.status = live.status;
+        if (live.status && m.status !== "won") m.status = live.status;
         if (live.elapsed) m.elapsed = live.elapsed;
         if (live.homeScore !== null && live.homeScore !== undefined)
           m.homeScore = String(live.homeScore);
@@ -247,7 +226,10 @@ class MatchStore {
     try {
       for (const live of Object.values(updates)) {
         await prisma.match.updateMany({
-          where: { externalId: live.id },
+          where: {
+            externalId: live.id,
+            status: { not: "won" },
+          },
           data: {
             status: live.status,
             elapsed: live.elapsed,
@@ -295,7 +277,10 @@ class MatchStore {
           );
 
           const live = this.liveCache.get(dm.externalId);
-          const activeStatus = live?.status || dm.status;
+          let activeStatus = live?.status || dm.status;
+          if (dm.status === "won" && (activeStatus === "Match Finished" || activeStatus === "fin" || activeStatus === "FT")) {
+            activeStatus = "won";
+          }
           const activeElapsed = live?.elapsed || dm.elapsed;
           const computedIsLive = isMatchLive(activeStatus, activeElapsed);
 

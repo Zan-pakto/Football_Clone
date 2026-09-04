@@ -1,4 +1,4 @@
-import { extractLeagueGroups, parseMatchRowsHtml, extractMainHtmlMatches } from "./parser";
+import { extractLeagueGroups, parseMatchRowsHtml, extractMainHtmlMatches, isMatchLive } from "./parser";
 import { LiveScrapeResult, ScrapeResult, MatchData } from "./types";
 import { NerdyTipsAuthManager } from "./auth";
 
@@ -219,6 +219,7 @@ export class NerdyTipsScraper {
 
       const liveUpdates: Record<string, any> = {};
       for (const [id, raw] of Object.entries<any>(json.matches)) {
+        const isLive = isMatchLive(raw.status, raw.elapsed);
         liveUpdates[id] = {
           id,
           status: raw.status || "In Progress",
@@ -227,13 +228,16 @@ export class NerdyTipsScraper {
           awayScore: typeof raw.ga === "number" ? raw.ga : null,
           redCardsHome: typeof raw.rh === "number" ? raw.rh : null,
           redCardsAway: typeof raw.ra === "number" ? raw.ra : null,
+          isLive,
         };
       }
+
+      const activeLiveCount = Object.values(liveUpdates).filter((m) => m.isLive).length;
 
       return {
         success: true,
         d,
-        updatedCount: Object.keys(liveUpdates).length,
+        updatedCount: activeLiveCount,
         matches: liveUpdates,
       };
     } catch (err: any) {

@@ -23,37 +23,62 @@ export function checkPredictionWon(
 
   const pick = pickText.trim();
 
-  // 1X2 & Double Chance
-  if (pick === "1") return h > a;
-  if (pick === "X") return h === a;
-  if (pick === "2") return h < a;
-  if (pick === "1X" || pick === "1/X") return h >= a;
-  if (pick === "X2" || pick === "X/2") return a >= h;
-  if (pick === "12" || pick === "1/2") return h !== a;
+  // If pick contains multiple combined conditions split by '&' or 'and'
+  if (pick.includes("&") || pick.toLowerCase().includes(" and ")) {
+    const parts = pick.split(/&| and /i).map((p) => p.trim());
+    const results = parts.map((part) => checkSinglePredictionWon(part, h, a));
+    if (results.some((r) => r === false)) return false;
+    if (results.every((r) => r === true)) return true;
+    return null;
+  }
 
-  // Goals Over / Under
-  const overMatch = pick.match(/^(?:O|Over)\s*([0-9.]+)/i);
+  return checkSinglePredictionWon(pick, h, a);
+}
+
+function checkSinglePredictionWon(pick: string, h: number, a: number): boolean | null {
+  const p = pick.trim();
+
+  // Exact Score e.g. "2-1", "1:0", "3-0"
+  const scoreMatch = p.match(/^(\d+)[:\-]\s*(\d+)$/);
+  if (scoreMatch) {
+    return h === parseInt(scoreMatch[1], 10) && a === parseInt(scoreMatch[2], 10);
+  }
+
+  // 1X2 & Double Chance
+  if (p === "1") return h > a;
+  if (p === "X" || p === "x") return h === a;
+  if (p === "2") return h < a;
+  if (p === "1X" || p === "1/X" || p === "1x") return h >= a;
+  if (p === "X2" || p === "X/2" || p === "x2") return a >= h;
+  if (p === "12" || p === "1/2") return h !== a;
+
+  // Goals Over / Under (handles "Over 1.5", "O 1.5", "+1.5", "O1.5", "Over 2.5 Goals")
+  const overMatch = p.match(/^(?:O|Over|\+)\s*([0-9.]+)/i);
   if (overMatch) {
     const line = parseFloat(overMatch[1]);
     return (h + a) > line;
   }
 
-  const underMatch = pick.match(/^(?:U|Under)\s*([0-9.]+)/i);
+  const underMatch = p.match(/^(?:U|Under|\-)\s*([0-9.]+)/i);
   if (underMatch) {
     const line = parseFloat(underMatch[1]);
     return (h + a) < line;
   }
 
-  // BTTS
-  if (/^(Yes|GG)$/i.test(pick)) return h > 0 && a > 0;
-  if (/^(No|NG)$/i.test(pick)) return h === 0 || a === 0;
+  // BTTS / GG / NG
+  if (/^(Yes|GG|Both Teams To Score|BTTS Yes)$/i.test(p)) return h > 0 && a > 0;
+  if (/^(No|NG|BTTS No|No BTTS|Both Teams Not To Score)$/i.test(p)) return h === 0 || a === 0;
+
+  // Handicaps (H1, H2, AH 1, AH 2, 1 (-0.5), 2 (+0.5))
+  if (/^(H1|AH1|AH 1|1 \(-0\.5\))$/i.test(p)) return h > a;
+  if (/^(H2|AH2|AH 2|2 \(-0\.5\))$/i.test(p)) return h < a;
 
   return null;
 }
 
 export default function MatchRow({ match }: MatchRowProps) {
-  const isFinished = match.status === "won" || match.status === "lost" || match.status === "fin" || match.elapsed === "FT";
-  const isLive = match.isLive || match.status === "live" || match.status === "In Progress";
+  const isFinished = match.status === "won" || match.status === "lost" || match.status === "fin" || match.elapsed === "FT" || Boolean(match.homeScore && match.awayScore);
+  const isLive = match.isLive || match.status === "live" || match.status === "In Progress" || Boolean(match.elapsed && /^\d+['′]/.test(match.elapsed));
   const hasScores = match.homeScore !== null && match.awayScore !== null && match.homeScore !== "" && match.awayScore !== "";
 
   // Calculate best tip win status

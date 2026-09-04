@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import DateSelector from "@/components/DateSelector";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
+import { checkPredictionWon } from "@/components/MatchRow";
 import { MatchData } from "@/lib/scraper/types";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 
@@ -23,7 +24,21 @@ export default function AllMatchesPage() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
-        setMatches(data.matches);
+        setMatches((prev) => {
+          if (prev.length === 0) return data.matches;
+          const prevMap = new Map(prev.map((m) => [m.id, m]));
+          return data.matches.map((fresh: MatchData) => {
+            const existing = prevMap.get(fresh.id);
+            if (existing && existing.predictions?.bestTip?.pick && !fresh.predictions?.bestTip?.pick) {
+              return {
+                ...fresh,
+                predictions: existing.predictions,
+                confidence: existing.confidence || fresh.confidence,
+              };
+            }
+            return fresh;
+          });
+        });
       }
     } catch (err) {
       console.error("Failed to load matches:", err);
@@ -83,9 +98,10 @@ export default function AllMatchesPage() {
   const statCounts = useMemo(() => {
     let predicted = 0, upcoming = 0, live = 0, won = 0;
     matches.forEach((m) => {
-      const isLiveM = m.isLive || m.status === "live" || m.status === "In Progress";
-      const isWon   = m.status === "won";
-      const isFin   = isWon || m.status === "lost" || m.status === "fin" || m.elapsed === "FT";
+      const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
+      const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
+      const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+      const isWon   = m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
       const isUp    = !isLiveM && !isFin;
 
       if (m.predictions?.bestTip?.pick || m.confidence) predicted++;
@@ -114,15 +130,18 @@ export default function AllMatchesPage() {
 
   const filteredMatches = useMemo(() => {
     return matches.filter((m) => {
+      const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
+      const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
+      const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+
       // Status filter
       if (activeFilter === "predicted" && (!m.predictions?.bestTip?.pick && !m.confidence)) return false;
-      if (activeFilter === "live" && !(m.isLive || m.status === "live" || m.status === "In Progress")) return false;
-      if (activeFilter === "upcoming") {
-        const isLiveM = m.isLive || m.status === "live" || m.status === "In Progress";
-        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT";
-        if (isLiveM || isFin) return false;
+      if (activeFilter === "live" && !isLiveM) return false;
+      if (activeFilter === "upcoming" && (isLiveM || isFin)) return false;
+      if (activeFilter === "won") {
+        const isWon = m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
+        if (!isWon) return false;
       }
-      if (activeFilter === "won" && m.status !== "won") return false;
       // Country filter
       if (selectedCountry !== "all" && m.country.toLowerCase() !== selectedCountry.toLowerCase()) return false;
       // Search

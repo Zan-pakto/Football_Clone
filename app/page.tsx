@@ -19,7 +19,21 @@ export default function HomePage() {
       const res = await fetch("/api/matches?d=0");
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
-        setMatches(data.matches);
+        setMatches((prev) => {
+          if (prev.length === 0) return data.matches;
+          const prevMap = new Map(prev.map((m) => [m.id, m]));
+          return data.matches.map((fresh: MatchData) => {
+            const existing = prevMap.get(fresh.id);
+            if (existing && existing.predictions?.bestTip?.pick && !fresh.predictions?.bestTip?.pick) {
+              return {
+                ...fresh,
+                predictions: existing.predictions,
+                confidence: existing.confidence || fresh.confidence,
+              };
+            }
+            return fresh;
+          });
+        });
       }
     } catch (err) {
       console.error("Failed to load home matches:", err);

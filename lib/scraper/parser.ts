@@ -7,7 +7,8 @@ import { LeagueGroup, MatchData } from "./types";
 export function cleanValue(val: string | undefined | null): string | null {
   if (!val) return null;
   const cleaned = val.replace(/[▴▾✓\n\r\t]/g, "").trim();
-  return cleaned || null;
+  if (!cleaned || /^[\.\-\*\s•\u2022]+$/.test(cleaned) || cleaned === "..." || cleaned === "•••") return null;
+  return cleaned;
 }
 
 /**
