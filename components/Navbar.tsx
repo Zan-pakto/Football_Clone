@@ -228,7 +228,7 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
           </Link>
 
           {/* Nav Links - Exact NerdyTips List */}
-          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto" }}>
+          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (

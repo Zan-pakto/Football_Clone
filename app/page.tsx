@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { MatchData } from "@/lib/scraper/types";
-import { RefreshCw, ChevronDown, ArrowRight, ShieldCheck, Zap, BarChart3, Trophy, Sparkles, BrainCircuit, Activity, Cpu } from "lucide-react";
+import { RefreshCw, ChevronDown, ArrowRight, Trophy, Sparkles } from "lucide-react";
 
 export default function HomePage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -110,193 +110,74 @@ export default function HomePage() {
   }, [matches]);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#060814", color: "#f8fafc", overflowX: "hidden" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#070b18", color: "#f8fafc", overflowX: "hidden" }}>
       <Navbar liveCount={liveCount} onSync={handleSync} isSyncing={isSyncing} />
 
-      {/* ── ULTRA-MODERN AI HERO SECTION ── */}
+      {/* ── EXACT FULL-HEIGHT NERDYTIPS HERO SECTION ── */}
       <section style={{
         position: "relative",
         overflow: "hidden",
-        paddingTop: "60px",
-        paddingBottom: "80px",
-        background: "radial-gradient(ellipse 90% 70% at 50% 30%, #0e1638 0%, #060814 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        minHeight: "calc(100vh - 60px)",
+        paddingTop: "40px",
+        paddingBottom: "60px",
+        backgroundColor: "#070b18",
+        backgroundImage: "url('https://cdn.nerdytips.com/public/img/st/header-bg-st.webp')",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        boxSizing: "border-box",
       }}>
-        {/* Ambient Glows */}
+        {/* Seamless bottom vignette to gently fade feet into the background */}
         <div style={{
           position: "absolute",
-          top: "30%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "680px",
-          height: "420px",
-          background: "radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(45, 212, 191, 0.16) 40%, rgba(6, 8, 20, 0) 75%)",
-          filter: "blur(60px)",
+          inset: 0,
+          background: "radial-gradient(ellipse 80% 70% at 50% 40%, rgba(7, 11, 24, 0) 30%, rgba(7, 11, 24, 0.3) 70%, #070b18 100%), linear-gradient(to bottom, transparent 80%, #070b18 100%)",
           pointerEvents: "none",
           zIndex: 1,
-        }} />
-
-        {/* Cyber Holographic AI Football Sphere & Orbitals */}
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -52%)",
-          width: "500px",
-          height: "500px",
-          pointerEvents: "none",
-          zIndex: 2,
-          opacity: 0.35,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}>
-          <svg viewBox="0 0 400 400" width="480" height="480" fill="none" xmlns="http://www.w3.org/2000/svg" className="hero-orb-svg">
-            <defs>
-              <linearGradient id="aiGlow1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.9" />
-                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.7" />
-                <stop offset="100%" stopColor="#a855f7" stopOpacity="0.3" />
-              </linearGradient>
-              <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0" />
-                <stop offset="50%" stopColor="#818cf8" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0" />
-              </linearGradient>
-              <radialGradient id="coreLight" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.35" />
-                <stop offset="60%" stopColor="#6366f1" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#060814" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-
-            {/* Core Neural Glow */}
-            <circle cx="200" cy="200" r="140" fill="url(#coreLight)" />
-
-            {/* Rotating Orbital Track 1 */}
-            <ellipse cx="200" cy="200" rx="170" ry="60" stroke="url(#orbitGrad)" strokeWidth="1.5" strokeDasharray="8 6" className="orbit-spin-1" transform="rotate(-25 200 200)" />
-            {/* Rotating Orbital Track 2 */}
-            <ellipse cx="200" cy="200" rx="170" ry="60" stroke="url(#orbitGrad)" strokeWidth="1.5" strokeDasharray="12 8" className="orbit-spin-2" transform="rotate(35 200 200)" />
-
-            {/* High-Tech Futuristic Football Mesh */}
-            {/* Outer Sphere Rim */}
-            <circle cx="200" cy="200" r="110" stroke="url(#aiGlow1)" strokeWidth="2" strokeDasharray="5 3" opacity="0.85" />
-            <circle cx="200" cy="200" r="112" stroke="#6366f1" strokeWidth="1" opacity="0.3" />
-
-            {/* Hexagonal Pentagons & Vertex Connections */}
-            {/* Center Pentagon */}
-            <polygon points="200,165 230,185 220,220 180,220 170,185" fill="#090d22" stroke="#2dd4bf" strokeWidth="1.6" />
-            <circle cx="200" cy="165" r="3" fill="#2dd4bf" />
-            <circle cx="230" cy="185" r="3" fill="#2dd4bf" />
-            <circle cx="220" cy="220" r="3" fill="#2dd4bf" />
-            <circle cx="180" cy="220" r="3" fill="#2dd4bf" />
-            <circle cx="170" cy="185" r="3" fill="#2dd4bf" />
-
-            {/* Radiating AI Neural Rays */}
-            <line x1="200" y1="165" x2="200" y2="105" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
-            <line x1="230" y1="185" x2="285" y2="160" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
-            <line x1="220" y1="220" x2="270" y2="265" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
-            <line x1="180" y1="220" x2="130" y2="265" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
-            <line x1="170" y1="185" x2="115" y2="160" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
-
-            {/* Top Outer Polygon */}
-            <polygon points="200,105 160,118 170,155 200,165 230,155 240,118" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
-            {/* Right Outer Polygon */}
-            <polygon points="230,185 285,160 300,195 275,230 220,220" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
-            {/* Left Outer Polygon */}
-            <polygon points="170,185 115,160 100,195 125,230 180,220" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
-            {/* Bottom Outer Polygon */}
-            <polygon points="180,220 220,220 235,260 200,290 165,260" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
-
-            {/* Latitude / Curvature Matrix Lines */}
-            <path d="M95 180 Q200 230 305 180" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.35" />
-            <path d="M105 220 Q200 270 295 220" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.25" />
-            <path d="M180 95 Q230 200 180 305" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.3" />
-            <path d="M220 95 Q170 200 220 305" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.3" />
-
-            {/* Glowing Data Nodes */}
-            <circle cx="200" cy="105" r="4" fill="#6366f1" className="node-pulse" />
-            <circle cx="285" cy="160" r="4" fill="#2dd4bf" className="node-pulse" />
-            <circle cx="270" cy="265" r="4" fill="#a855f7" className="node-pulse" />
-            <circle cx="130" cy="265" r="4" fill="#2dd4bf" className="node-pulse" />
-            <circle cx="115" cy="160" r="4" fill="#6366f1" className="node-pulse" />
-          </svg>
-        </div>
-
-        {/* Perspective Pitch Grid on Bottom */}
-        <div style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "120px",
-          background: "linear-gradient(to top, rgba(99, 102, 241, 0.08) 0%, transparent 100%)",
-          maskImage: "linear-gradient(to top, black 30%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to top, black 30%, transparent 100%)",
-          pointerEvents: "none",
         }} />
 
         {/* Hero Content */}
         <div style={{
           position: "relative",
           zIndex: 5,
-          maxWidth: 860,
+          maxWidth: 780,
           margin: "0 auto",
           padding: "0 20px",
           textAlign: "center",
         }}>
-          {/* Top AI Badge */}
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 16px",
-            background: "rgba(99, 102, 241, 0.12)",
-            border: "1px solid rgba(99, 102, 241, 0.3)",
-            borderRadius: 999,
-            marginBottom: 20,
-            backdropFilter: "blur(10px)",
-          }}>
-            <span style={{ position: "relative", display: "flex", width: 7, height: 7 }}>
-              <span style={{
-                position: "absolute", inset: 0, borderRadius: "50%",
-                background: "#2dd4bf", opacity: 0.75,
-                animation: "ping 1.4s cubic-bezier(0,0,0.2,1) infinite",
-              }} />
-              <span style={{ position: "relative", width: 7, height: 7, borderRadius: "50%", background: "#2dd4bf" }} />
-            </span>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#cbd5e1", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              Next-Gen AI Match Forecasting • 160+ Leagues
-            </span>
-          </div>
-
           {/* Main Title */}
           <h1 style={{
-            fontSize: "clamp(34px, 5.5vw, 62px)",
+            fontSize: "clamp(34px, 4.6vw, 50px)",
             fontWeight: 900,
             color: "#ffffff",
-            letterSpacing: "-1px",
-            lineHeight: 1.12,
-            marginBottom: 18,
-            textShadow: "0 4px 30px rgba(0,0,0,0.9)",
+            letterSpacing: "-0.6px",
+            lineHeight: 1.15,
+            marginBottom: 16,
+            textShadow: "0 4px 24px rgba(0,0,0,0.9)",
           }}>
             AI Football Predictions
           </h1>
 
           {/* Subtitle */}
           <p style={{
-            fontSize: "clamp(13px, 2vw, 15px)",
+            fontSize: "clamp(13px, 1.8vw, 14.5px)",
             color: "#94a3b8",
-            lineHeight: 1.75,
-            maxWidth: 640,
-            margin: "0 auto 32px",
+            lineHeight: 1.7,
+            maxWidth: 560,
+            margin: "0 auto 28px",
             fontWeight: 400,
+            textShadow: "0 2px 10px rgba(0,0,0,0.9)",
           }}>
             NerdyTips generates predictions with its own AI model for every football match played anywhere in the world — plus 7 free tips every single day.
           </p>
 
           {/* CTA Buttons */}
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 36 }}>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
             {/* Primary Button */}
             <a
               href="#predictions"
@@ -304,27 +185,27 @@ export default function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "13px 32px",
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)",
+                padding: "11px 26px",
+                borderRadius: 8,
+                background: "#6366f1",
                 color: "#ffffff",
-                fontWeight: 800,
-                fontSize: 14,
+                fontWeight: 700,
+                fontSize: 13.5,
                 textDecoration: "none",
-                boxShadow: "0 6px 25px rgba(124, 58, 237, 0.4)",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                boxShadow: "0 4px 20px rgba(99, 102, 241, 0.45)",
+                transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 8px 32px rgba(124, 58, 237, 0.55)";
+                e.currentTarget.style.background = "#4f46e5";
+                e.currentTarget.style.boxShadow = "0 6px 26px rgba(99, 102, 241, 0.65)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 6px 25px rgba(124, 58, 237, 0.4)";
+                e.currentTarget.style.background = "#6366f1";
+                e.currentTarget.style.boxShadow = "0 4px 20px rgba(99, 102, 241, 0.45)";
               }}
             >
               <span>See Free Predictions</span>
-              <ChevronDown style={{ width: 16, height: 16 }} />
+              <ChevronDown style={{ width: 15, height: 15 }} />
             </a>
 
             {/* Secondary Button */}
@@ -334,130 +215,34 @@ export default function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "13px 32px",
-                borderRadius: 10,
-                background: "rgba(255, 255, 255, 0.04)",
-                color: "#f1f5f9",
-                border: "1px solid rgba(255, 255, 255, 0.16)",
-                fontWeight: 700,
-                fontSize: 14,
+                padding: "11px 26px",
+                borderRadius: 8,
+                background: "rgba(0, 0, 0, 0.25)",
+                color: "#ffffff",
+                border: "1px solid rgba(255, 255, 255, 0.18)",
+                fontWeight: 600,
+                fontSize: 13.5,
                 textDecoration: "none",
-                backdropFilter: "blur(10px)",
-                transition: "background 0.15s ease, border-color 0.15s ease",
+                backdropFilter: "blur(8px)",
+                transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
                 e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.35)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.16)";
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.25)";
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.18)";
               }}
             >
               All Matches
             </Link>
           </div>
-
-          {/* Floating High-Tech Feature Chips */}
-          <div style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 16,
-            flexWrap: "wrap",
-          }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "7px 14px",
-              borderRadius: 8,
-              background: "rgba(13, 19, 44, 0.7)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              backdropFilter: "blur(6px)",
-              fontSize: 12,
-              color: "#cbd5e1",
-            }}>
-              <Activity style={{ width: 14, height: 14, color: "#10b981" }} />
-              <span style={{ fontWeight: 700 }}>Poisson & ML Probability Models</span>
-            </div>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "7px 14px",
-              borderRadius: 8,
-              background: "rgba(13, 19, 44, 0.7)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              backdropFilter: "blur(6px)",
-              fontSize: 12,
-              color: "#cbd5e1",
-            }}>
-              <Cpu style={{ width: 14, height: 14, color: "#6366f1" }} />
-              <span style={{ fontWeight: 700 }}>Real-Time Live Odds Tracking</span>
-            </div>
-          </div>
         </div>
       </section>
 
       {/* ── MAIN CONTENT ── */}
-      <main style={{ flex: 1, maxWidth: 1240, width: "100%", margin: "0 auto", padding: "32px 16px" }}>
-
-        {/* Quick Highlights Bar */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: 14,
-          marginBottom: 36,
-        }}>
-          {[
-            {
-              icon: <BrainCircuit style={{ width: 20, height: 20, color: "#a855f7" }} />,
-              title: "AI Prediction Engine",
-              desc: "160+ leagues processed with continuous machine learning algorithms",
-            },
-            {
-              icon: <Zap style={{ width: 20, height: 20, color: "#10b981" }} />,
-              title: "Real-Time Live Insights",
-              desc: "Instant live odds shifts, score changes, and in-play calculations",
-            },
-            {
-              icon: <ShieldCheck style={{ width: 20, height: 20, color: "#38bdf8" }} />,
-              title: "7 Free Daily Tips",
-              desc: "Highest probability selections provided free every single day",
-            },
-          ].map((feature, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#0c1022",
-                border: "1px solid rgba(255, 255, 255, 0.07)",
-                borderRadius: 12,
-                padding: "16px 20px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
-              }}
-            >
-              <div style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                padding: 10,
-                borderRadius: 10,
-                flexShrink: 0,
-              }}>
-                {feature.icon}
-              </div>
-              <div>
-                <h4 style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", marginBottom: 3 }}>
-                  {feature.title}
-                </h4>
-                <p style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
-                  {feature.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+      <main style={{ flex: 1, maxWidth: 1240, width: "100%", margin: "0 auto", padding: "40px 16px 40px" }}>
 
         {/* ── Predictions Section ── */}
         <section id="predictions" style={{ scrollMarginTop: 80 }}>
@@ -688,30 +473,6 @@ export default function HomePage() {
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-        @keyframes orbitRotate1 {
-          0% { transform: rotate(-25deg); }
-          100% { transform: rotate(335deg); }
-        }
-        @keyframes orbitRotate2 {
-          0% { transform: rotate(35deg); }
-          100% { transform: rotate(-325deg); }
-        }
-        @keyframes nodePulseGlow {
-          0%, 100% { opacity: 0.9; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.3); }
-        }
-        .orbit-spin-1 {
-          transform-origin: 200px 200px;
-          animation: orbitRotate1 24s linear infinite;
-        }
-        .orbit-spin-2 {
-          transform-origin: 200px 200px;
-          animation: orbitRotate2 30s linear infinite;
-        }
-        .node-pulse {
-          animation: nodePulseGlow 3s ease-in-out infinite;
-        }
       `}</style>
     </div>
   );
