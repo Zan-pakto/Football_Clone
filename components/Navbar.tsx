@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RefreshCw, Crown, LogOut, LogIn, X, Key, Check, AlertCircle, User, Lock } from "lucide-react";
+import { RefreshCw, Crown, LogOut, LogIn, X, Key, Check, AlertCircle, User, Lock, Search, ChevronDown } from "lucide-react";
 
 interface NavbarProps {
   liveCount?: number;
@@ -12,9 +12,14 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { href: "/", label: "Home" },
+  { href: "/all-matches?filter=predicted", label: "Bet of the day" },
   { href: "/all-matches", label: "All Matches" },
+  { href: "/all-matches", label: "Bet Builder" },
   { href: "/leagues", label: "Leagues" },
+  { href: "/all-matches?filter=won", label: "Progress" },
+  { href: "/all-matches?filter=won", label: "Hit&Win" },
+  { href: "/#story", label: "How it works" },
+  { href: "/#story", label: "Blog" },
 ];
 
 export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: NavbarProps) {
@@ -22,9 +27,11 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
 
   // Premium Auth State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>("");
+  const [username, setUsername] = useState<string>("Don");
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"credentials" | "cookie">("credentials");
 
   // Form states
@@ -55,6 +62,18 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
+
+  // Keyboard shortcut for Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearchModal((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Handle Login via Credentials
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -157,51 +176,79 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
         position: "sticky",
         top: 0,
         zIndex: 50,
-        background: "#0d1220",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 1px 12px rgba(0,0,0,0.4)",
+        background: "#080915",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "0 2px 16px rgba(0,0,0,0.5)",
       }}>
         <div style={{
-          maxWidth: 1200,
+          maxWidth: 1320,
           margin: "0 auto",
-          padding: "0 20px",
+          padding: "0 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          height: 58,
+          height: 60,
+          gap: 16,
         }}>
-          {/* Brand */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-            <span style={{
-              fontSize: 18,
-              fontWeight: 900,
-              color: "#fff",
-              letterSpacing: "-0.5px",
+          {/* Brand Logo - Exact NerdyTips Style */}
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: 6,
+              background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+              boxShadow: "0 0 12px rgba(239,68,68,0.4)",
+              transform: "skew(-8deg)",
             }}>
-              NERDYTIPS
+              <span style={{
+                color: "#ffffff",
+                fontWeight: 900,
+                fontSize: 16,
+                fontStyle: "italic",
+                letterSpacing: "-1px",
+                transform: "skew(8deg)",
+                userSelect: "none",
+              }}>
+                NT
+              </span>
+            </div>
+            <span style={{
+              fontSize: 17,
+              fontWeight: 900,
+              color: "#ffffff",
+              letterSpacing: "0.5px",
+              fontFamily: "inherit",
+              textTransform: "uppercase",
+            }}>
+              NERDY<span style={{ color: "#ffffff", fontWeight: 800 }}>TIPS</span>
             </span>
           </Link>
 
-          {/* Nav Links */}
-          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+          {/* Nav Links - Exact NerdyTips List */}
+          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 2, overflowX: "auto" }}>
             {navLinks.map((link) => {
-              const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+              const isActive = pathname === link.href;
               return (
                 <Link
-                  key={link.href}
+                  key={link.label}
                   href={link.href}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    padding: "8px 16px",
+                    padding: "6px 12px",
                     fontSize: 13,
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? "#fff" : "#94a3b8",
+                    color: isActive ? "#ffffff" : "#94a3b8",
                     textDecoration: "none",
-                    borderBottom: isActive ? "2px solid #10b981" : "2px solid transparent",
-                    transition: "all 0.15s",
-                    height: 58,
+                    whiteSpace: "nowrap",
+                    borderRadius: 6,
+                    transition: "color 0.15s, background 0.15s",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? "#ffffff" : "#94a3b8"; }}
                 >
                   {link.label}
                 </Link>
@@ -209,107 +256,258 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
             })}
           </div>
 
-          {/* Right Controls: Live + Sync + Premium Login/Logout */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Right Controls: Flag + Search + User Avatar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            {/* Live Matches Pill */}
             {liveCount > 0 && (
               <Link
-                href="/live"
+                href="/all-matches?filter=live"
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  fontSize: 12, fontWeight: 700, color: "#10b981",
-                  background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)",
-                  padding: "5px 11px", borderRadius: 999, textDecoration: "none",
+                  fontSize: 11, fontWeight: 800, color: "#10b981",
+                  background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)",
+                  padding: "4px 10px", borderRadius: 999, textDecoration: "none",
                 }}
               >
-                <span style={{ position: "relative", display: "flex", width: 7, height: 7 }}>
+                <span style={{ position: "relative", display: "flex", width: 6, height: 6 }}>
                   <span style={{
                     position: "absolute", inset: 0, borderRadius: "50%",
                     background: "#10b981", opacity: 0.75,
                     animation: "ping 1.2s cubic-bezier(0,0,0.2,1) infinite",
                   }} />
-                  <span style={{ position: "relative", width: 7, height: 7, borderRadius: "50%", background: "#10b981" }} />
+                  <span style={{ position: "relative", width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
                 </span>
                 LIVE {liveCount}
               </Link>
             )}
 
+            {/* Sync button */}
             {onSync && (
               <button
                 onClick={onSync}
                 disabled={isSyncing}
+                title="Sync latest odds and predictions"
                 style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  background: "transparent", color: "#64748b",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 6,
+                  display: "flex", alignItems: "center", gap: 4,
+                  background: "rgba(255,255,255,0.04)", color: "#94a3b8",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 6,
                   cursor: isSyncing ? "not-allowed" : "pointer",
                   opacity: isSyncing ? 0.6 : 1,
                   transition: "all 0.15s",
                 }}
               >
-                <RefreshCw style={{ width: 12, height: 12, animation: isSyncing ? "spin 1s linear infinite" : "none" }} />
-                {isSyncing ? "Syncing..." : "Sync"}
+                <RefreshCw style={{ width: 11, height: 11, animation: isSyncing ? "spin 1s linear infinite" : "none" }} />
+                <span className="sync-text">{isSyncing ? "Syncing" : "Sync"}</span>
               </button>
             )}
 
-            {/* Premium Login / Logout Controls */}
+            {/* Country / Language Dropdown Pill (UK Flag) */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              padding: "4px 8px",
+              borderRadius: 8,
+              cursor: "pointer",
+            }}>
+              <span style={{ fontSize: 14 }}>🇬🇧</span>
+              <ChevronDown style={{ width: 12, height: 12, color: "#64748b" }} />
+            </div>
+
+            {/* Search Pill (Search ⌘K) */}
+            <button
+              onClick={() => setShowSearchModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 8,
+                padding: "5px 12px",
+                color: "#94a3b8",
+                fontSize: 12,
+                cursor: "pointer",
+                transition: "border-color 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+            >
+              <Search style={{ width: 13, height: 13, color: "#64748b" }} />
+              <span className="search-label">Search</span>
+              <span style={{
+                background: "rgba(255,255,255,0.07)",
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#64748b",
+                padding: "1px 5px",
+                borderRadius: 4,
+                fontFamily: "monospace",
+              }}>
+                ⌘K
+              </span>
+            </button>
+
+            {/* User Profile Avatar Pill (Don / Premium) */}
             {!loadingAuth && (
               isLoggedIn ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "rgba(99, 102, 241, 0.12)",
+                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  borderRadius: 999,
+                  padding: "3px 10px 3px 4px",
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowModal(true)}
+                >
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: "rgba(245, 158, 11, 0.12)",
-                    border: "1px solid rgba(245, 158, 11, 0.3)",
-                    color: "#fbbf24",
-                    fontSize: 11, fontWeight: 700,
-                    padding: "5px 10px", borderRadius: 6,
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontWeight: 800,
+                    fontSize: 11,
                   }}>
-                    <Crown style={{ width: 13, height: 13, color: "#f59e0b" }} />
-                    <span>Premium</span>
+                    {username ? username.charAt(0).toUpperCase() : "D"}
                   </div>
-
-                  <button
-                    onClick={handleLogout}
-                    disabled={isSubmitting}
-                    title="Logout Premium Session"
-                    style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      background: "rgba(239, 68, 68, 0.1)",
-                      border: "1px solid rgba(239, 68, 68, 0.25)",
-                      color: "#f87171",
-                      fontSize: 11, fontWeight: 700,
-                      padding: "5px 11px", borderRadius: 6,
-                      cursor: isSubmitting ? "wait" : "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <LogOut style={{ width: 12, height: 12 }} />
-                    {isSubmitting ? "Logging out..." : "Logout"}
-                  </button>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>
+                    {username || "Don"}
+                  </span>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowModal(true)}
+                <div
                   style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "#000",
-                    border: "none",
-                    fontSize: 11, fontWeight: 800,
-                    padding: "6px 14px", borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "rgba(99, 102, 241, 0.12)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    borderRadius: 999,
+                    padding: "3px 12px 3px 4px",
                     cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(16,185,129,0.25)",
-                    transition: "all 0.15s",
                   }}
+                  onClick={() => setShowModal(true)}
                 >
-                  <Crown style={{ width: 13, height: 13 }} />
-                  <span>Login (Premium)</span>
-                </button>
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontWeight: 800,
+                    fontSize: 11,
+                  }}>
+                    D
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>
+                    Don
+                  </span>
+                </div>
               )
             )}
           </div>
         </div>
       </nav>
+
+      {/* ── Search Modal ── */}
+      {showSearchModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 110,
+          background: "rgba(0, 0, 0, 0.8)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          padding: "80px 16px 16px",
+        }}
+        onClick={() => setShowSearchModal(false)}
+        >
+          <div
+            style={{
+              background: "#0d1220",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 14,
+              maxWidth: 540,
+              width: "100%",
+              overflow: "hidden",
+              boxShadow: "0 25px 50px rgba(0,0,0,0.7)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <Search style={{ width: 16, height: 16, color: "#94a3b8", marginRight: 10 }} />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search matches, leagues, teams or countries..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQuery.trim()) {
+                    window.location.href = `/all-matches?q=${encodeURIComponent(searchQuery.trim())}`;
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+              <button
+                onClick={() => setShowSearchModal(false)}
+                style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer" }}
+              >
+                <X style={{ width: 16, height: 16 }} />
+              </button>
+            </div>
+            <div style={{ padding: "12px 16px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#64748b", width: "100%", marginBottom: 4 }}>Quick Navigation:</span>
+              {[
+                { label: "Premier League", href: "/all-matches?q=Premier%20League" },
+                { label: "La Liga", href: "/all-matches?q=La%20Liga" },
+                { label: "Champions League", href: "/all-matches?q=Champions" },
+                { label: "Live Matches", href: "/all-matches?filter=live" },
+                { label: "All Leagues Directory", href: "/leagues" },
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setShowSearchModal(false)}
+                  style={{
+                    fontSize: 12,
+                    color: "#94a3b8",
+                    background: "#13172e",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    padding: "5px 10px",
+                    borderRadius: 6,
+                    textDecoration: "none",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Premium Auth Modal ── */}
       {showModal && (
@@ -325,9 +523,9 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
           padding: 16,
         }}>
           <div style={{
-            background: "#0f172a",
+            background: "#0d1220",
             border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 12,
+            borderRadius: 14,
             maxWidth: 440,
             width: "100%",
             padding: 24,
@@ -360,18 +558,18 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 8,
-                background: "rgba(245, 158, 11, 0.15)",
-                border: "1px solid rgba(245, 158, 11, 0.3)",
+                background: "rgba(99, 102, 241, 0.15)",
+                border: "1px solid rgba(99, 102, 241, 0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <Crown style={{ width: 20, height: 20, color: "#f59e0b" }} />
+                <Crown style={{ width: 20, height: 20, color: "#6366f1" }} />
               </div>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0 }}>
-                  NerdyTips Premium Auth
+                  NerdyTips Account & Auth
                 </h3>
                 <p style={{ fontSize: 12, color: "#94a3b8", margin: "2px 0 0" }}>
-                  Manage session authentication & unlock full AI predictions
+                  Manage Premium session and unlock all AI match predictions
                 </p>
               </div>
             </div>
@@ -379,7 +577,7 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
             {/* Tabs */}
             <div style={{
               display: "flex",
-              background: "#080d18",
+              background: "#080915",
               borderRadius: 8,
               padding: 3,
               marginBottom: 18,
@@ -462,12 +660,12 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
                     <input
                       type="text"
                       required
-                      placeholder="e.g. user@example.com"
+                      placeholder="e.g. don@nerdytips.com"
                       value={formUsername}
                       onChange={(e) => setFormUsername(e.target.value)}
                       style={{
                         width: "100%",
-                        background: "#080d18",
+                        background: "#080915",
                         border: "1px solid rgba(255,255,255,0.12)",
                         borderRadius: 6,
                         padding: "9px 12px 9px 36px",
@@ -493,7 +691,7 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
                       onChange={(e) => setFormPassword(e.target.value)}
                       style={{
                         width: "100%",
-                        background: "#080d18",
+                        background: "#080915",
                         border: "1px solid rgba(255,255,255,0.12)",
                         borderRadius: 6,
                         padding: "9px 12px 9px 36px",
@@ -512,8 +710,8 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
                     marginTop: 6,
                     width: "100%",
                     padding: "10px",
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "#000",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    color: "#fff",
                     border: "none",
                     borderRadius: 6,
                     fontWeight: 800,
@@ -556,7 +754,7 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
                     onChange={(e) => setFormCookie(e.target.value)}
                     style={{
                       width: "100%",
-                      background: "#080d18",
+                      background: "#080915",
                       border: "1px solid rgba(255,255,255,0.12)",
                       borderRadius: 6,
                       padding: "10px 12px",
@@ -606,6 +804,33 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
                 </button>
               </form>
             )}
+
+            {isLoggedIn && (
+              <div style={{ marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14 }}>
+                <button
+                  onClick={handleLogout}
+                  disabled={isSubmitting}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    background: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid rgba(239, 68, 68, 0.25)",
+                    borderRadius: 6,
+                    color: "#f87171",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <LogOut style={{ width: 14, height: 14 }} />
+                  <span>Logout Current Session</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -613,6 +838,13 @@ export default function Navbar({ liveCount = 0, onSync, isSyncing = false }: Nav
       <style>{`
         @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 1024px) {
+          .nav-links-container { display: none !important; }
+          .search-label { display: none; }
+        }
+        @media (max-width: 640px) {
+          .sync-text { display: none; }
+        }
       `}</style>
     </>
   );
