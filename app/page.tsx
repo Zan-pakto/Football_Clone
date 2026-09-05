@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { MatchData } from "@/lib/scraper/types";
-import { RefreshCw, ChevronDown, ArrowRight, ShieldCheck, Zap, BarChart3, Trophy, Sparkles, BrainCircuit } from "lucide-react";
+import { RefreshCw, ChevronDown, ArrowRight, ShieldCheck, Zap, BarChart3, Trophy, Sparkles, BrainCircuit, Activity, Cpu } from "lucide-react";
 
 export default function HomePage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -113,85 +113,172 @@ export default function HomePage() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#060814", color: "#f8fafc", overflowX: "hidden" }}>
       <Navbar liveCount={liveCount} onSync={handleSync} isSyncing={isSyncing} />
 
-      {/* ── HERO SECTION (Exact NerdyTips Replica) ── */}
+      {/* ── ULTRA-MODERN AI HERO SECTION ── */}
       <section style={{
         position: "relative",
         overflow: "hidden",
-        paddingTop: "70px",
+        paddingTop: "60px",
         paddingBottom: "80px",
-        background: "radial-gradient(ellipse 80% 60% at 50% 40%, #0d1330 0%, #060814 100%)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        background: "radial-gradient(ellipse 90% 70% at 50% 30%, #0e1638 0%, #060814 100%)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
-        {/* Glow & Aura behind Player Silhouette */}
+        {/* Ambient Glows */}
         <div style={{
           position: "absolute",
-          top: "45%",
+          top: "30%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "550px",
-          height: "480px",
-          background: "radial-gradient(circle, rgba(20, 184, 166, 0.28) 0%, rgba(99, 102, 241, 0.18) 45%, rgba(6, 8, 20, 0) 75%)",
-          filter: "blur(40px)",
+          width: "680px",
+          height: "420px",
+          background: "radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(45, 212, 191, 0.16) 40%, rgba(6, 8, 20, 0) 75%)",
+          filter: "blur(60px)",
           pointerEvents: "none",
           zIndex: 1,
         }} />
 
-        {/* Player Silhouette Graphic Backdrop */}
+        {/* Cyber Holographic AI Football Sphere & Orbitals */}
         <div style={{
           position: "absolute",
-          top: "10%",
+          top: "50%",
           left: "50%",
-          transform: "translateX(-50%)",
-          width: "360px",
-          height: "460px",
+          transform: "translate(-50%, -52%)",
+          width: "500px",
+          height: "500px",
           pointerEvents: "none",
           zIndex: 2,
-          opacity: 0.42,
+          opacity: 0.35,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          filter: "drop-shadow(0 0 25px rgba(45, 212, 191, 0.6))",
         }}>
-          <svg viewBox="0 0 200 260" width="340" height="440" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 400 400" width="480" height="480" fill="none" xmlns="http://www.w3.org/2000/svg" className="hero-orb-svg">
             <defs>
-              <linearGradient id="playerEdgeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.8" />
-                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#060814" stopOpacity="0.9" />
+              <linearGradient id="aiGlow1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.9" />
+                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#a855f7" stopOpacity="0.3" />
               </linearGradient>
+              <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0" />
+                <stop offset="50%" stopColor="#818cf8" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0" />
+              </linearGradient>
+              <radialGradient id="coreLight" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.35" />
+                <stop offset="60%" stopColor="#6366f1" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#060814" stopOpacity="0" />
+              </radialGradient>
             </defs>
-            {/* Silhouette Head */}
-            <circle cx="100" cy="38" r="20" fill="#070a16" stroke="url(#playerEdgeGlow)" strokeWidth="1.8" />
-            {/* Silhouette Body / Jersey */}
-            <path d="M68 66 C78 60, 122 60, 132 66 L154 94 L138 108 L130 92 L130 160 L70 160 L70 92 L62 108 L46 94 Z" fill="#070a16" stroke="url(#playerEdgeGlow)" strokeWidth="2" />
-            {/* Jersey Stripes / AI detail */}
-            <path d="M92 70 L92 160" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3" />
-            <path d="M108 70 L108 160" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3" />
-            {/* Silhouette Shorts & Legs */}
-            <path d="M72 160 L128 160 L134 200 L110 200 L103 175 L97 175 L90 200 L66 200 Z" fill="#060914" stroke="url(#playerEdgeGlow)" strokeWidth="1.8" />
-            <path d="M74 200 L84 250 L70 254 L68 200 Z" fill="#050711" stroke="url(#playerEdgeGlow)" strokeWidth="1.5" />
-            <path d="M116 200 L126 250 L140 254 L132 200 Z" fill="#050711" stroke="url(#playerEdgeGlow)" strokeWidth="1.5" />
+
+            {/* Core Neural Glow */}
+            <circle cx="200" cy="200" r="140" fill="url(#coreLight)" />
+
+            {/* Rotating Orbital Track 1 */}
+            <ellipse cx="200" cy="200" rx="170" ry="60" stroke="url(#orbitGrad)" strokeWidth="1.5" strokeDasharray="8 6" className="orbit-spin-1" transform="rotate(-25 200 200)" />
+            {/* Rotating Orbital Track 2 */}
+            <ellipse cx="200" cy="200" rx="170" ry="60" stroke="url(#orbitGrad)" strokeWidth="1.5" strokeDasharray="12 8" className="orbit-spin-2" transform="rotate(35 200 200)" />
+
+            {/* High-Tech Futuristic Football Mesh */}
+            {/* Outer Sphere Rim */}
+            <circle cx="200" cy="200" r="110" stroke="url(#aiGlow1)" strokeWidth="2" strokeDasharray="5 3" opacity="0.85" />
+            <circle cx="200" cy="200" r="112" stroke="#6366f1" strokeWidth="1" opacity="0.3" />
+
+            {/* Hexagonal Pentagons & Vertex Connections */}
+            {/* Center Pentagon */}
+            <polygon points="200,165 230,185 220,220 180,220 170,185" fill="#090d22" stroke="#2dd4bf" strokeWidth="1.6" />
+            <circle cx="200" cy="165" r="3" fill="#2dd4bf" />
+            <circle cx="230" cy="185" r="3" fill="#2dd4bf" />
+            <circle cx="220" cy="220" r="3" fill="#2dd4bf" />
+            <circle cx="180" cy="220" r="3" fill="#2dd4bf" />
+            <circle cx="170" cy="185" r="3" fill="#2dd4bf" />
+
+            {/* Radiating AI Neural Rays */}
+            <line x1="200" y1="165" x2="200" y2="105" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
+            <line x1="230" y1="185" x2="285" y2="160" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
+            <line x1="220" y1="220" x2="270" y2="265" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
+            <line x1="180" y1="220" x2="130" y2="265" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
+            <line x1="170" y1="185" x2="115" y2="160" stroke="#818cf8" strokeWidth="1.4" strokeDasharray="3 3" />
+
+            {/* Top Outer Polygon */}
+            <polygon points="200,105 160,118 170,155 200,165 230,155 240,118" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
+            {/* Right Outer Polygon */}
+            <polygon points="230,185 285,160 300,195 275,230 220,220" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
+            {/* Left Outer Polygon */}
+            <polygon points="170,185 115,160 100,195 125,230 180,220" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
+            {/* Bottom Outer Polygon */}
+            <polygon points="180,220 220,220 235,260 200,290 165,260" fill="none" stroke="#6366f1" strokeWidth="1.2" opacity="0.7" />
+
+            {/* Latitude / Curvature Matrix Lines */}
+            <path d="M95 180 Q200 230 305 180" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.35" />
+            <path d="M105 220 Q200 270 295 220" stroke="#2dd4bf" strokeWidth="1" strokeOpacity="0.25" />
+            <path d="M180 95 Q230 200 180 305" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.3" />
+            <path d="M220 95 Q170 200 220 305" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.3" />
+
+            {/* Glowing Data Nodes */}
+            <circle cx="200" cy="105" r="4" fill="#6366f1" className="node-pulse" />
+            <circle cx="285" cy="160" r="4" fill="#2dd4bf" className="node-pulse" />
+            <circle cx="270" cy="265" r="4" fill="#a855f7" className="node-pulse" />
+            <circle cx="130" cy="265" r="4" fill="#2dd4bf" className="node-pulse" />
+            <circle cx="115" cy="160" r="4" fill="#6366f1" className="node-pulse" />
           </svg>
         </div>
+
+        {/* Perspective Pitch Grid on Bottom */}
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "120px",
+          background: "linear-gradient(to top, rgba(99, 102, 241, 0.08) 0%, transparent 100%)",
+          maskImage: "linear-gradient(to top, black 30%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to top, black 30%, transparent 100%)",
+          pointerEvents: "none",
+        }} />
 
         {/* Hero Content */}
         <div style={{
           position: "relative",
           zIndex: 5,
-          maxWidth: 820,
+          maxWidth: 860,
           margin: "0 auto",
           padding: "0 20px",
           textAlign: "center",
         }}>
+          {/* Top AI Badge */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 16px",
+            background: "rgba(99, 102, 241, 0.12)",
+            border: "1px solid rgba(99, 102, 241, 0.3)",
+            borderRadius: 999,
+            marginBottom: 20,
+            backdropFilter: "blur(10px)",
+          }}>
+            <span style={{ position: "relative", display: "flex", width: 7, height: 7 }}>
+              <span style={{
+                position: "absolute", inset: 0, borderRadius: "50%",
+                background: "#2dd4bf", opacity: 0.75,
+                animation: "ping 1.4s cubic-bezier(0,0,0.2,1) infinite",
+              }} />
+              <span style={{ position: "relative", width: 7, height: 7, borderRadius: "50%", background: "#2dd4bf" }} />
+            </span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#cbd5e1", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              Next-Gen AI Match Forecasting • 160+ Leagues
+            </span>
+          </div>
+
           {/* Main Title */}
           <h1 style={{
-            fontSize: "clamp(34px, 5.5vw, 60px)",
+            fontSize: "clamp(34px, 5.5vw, 62px)",
             fontWeight: 900,
             color: "#ffffff",
-            letterSpacing: "-0.8px",
-            lineHeight: 1.15,
+            letterSpacing: "-1px",
+            lineHeight: 1.12,
             marginBottom: 18,
-            textShadow: "0 4px 24px rgba(0,0,0,0.8)",
+            textShadow: "0 4px 30px rgba(0,0,0,0.9)",
           }}>
             AI Football Predictions
           </h1>
@@ -209,7 +296,7 @@ export default function HomePage() {
           </p>
 
           {/* CTA Buttons */}
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center", flexWrap: "wrap", marginBottom: 36 }}>
             {/* Primary Button */}
             <a
               href="#predictions"
@@ -217,23 +304,23 @@ export default function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "13px 30px",
+                padding: "13px 32px",
                 borderRadius: 10,
                 background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)",
                 color: "#ffffff",
                 fontWeight: 800,
                 fontSize: 14,
                 textDecoration: "none",
-                boxShadow: "0 6px 24px rgba(124, 58, 237, 0.35)",
+                boxShadow: "0 6px 25px rgba(124, 58, 237, 0.4)",
                 transition: "transform 0.15s ease, box-shadow 0.15s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 8px 30px rgba(124, 58, 237, 0.5)";
+                e.currentTarget.style.boxShadow = "0 8px 32px rgba(124, 58, 237, 0.55)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 6px 24px rgba(124, 58, 237, 0.35)";
+                e.currentTarget.style.boxShadow = "0 6px 25px rgba(124, 58, 237, 0.4)";
               }}
             >
               <span>See Free Predictions</span>
@@ -247,7 +334,7 @@ export default function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "13px 30px",
+                padding: "13px 32px",
                 borderRadius: 10,
                 background: "rgba(255, 255, 255, 0.04)",
                 color: "#f1f5f9",
@@ -255,12 +342,12 @@ export default function HomePage() {
                 fontWeight: 700,
                 fontSize: 14,
                 textDecoration: "none",
-                backdropFilter: "blur(8px)",
+                backdropFilter: "blur(10px)",
                 transition: "background 0.15s ease, border-color 0.15s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.35)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
@@ -269,6 +356,46 @@ export default function HomePage() {
             >
               All Matches
             </Link>
+          </div>
+
+          {/* Floating High-Tech Feature Chips */}
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 14px",
+              borderRadius: 8,
+              background: "rgba(13, 19, 44, 0.7)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(6px)",
+              fontSize: 12,
+              color: "#cbd5e1",
+            }}>
+              <Activity style={{ width: 14, height: 14, color: "#10b981" }} />
+              <span style={{ fontWeight: 700 }}>Poisson & ML Probability Models</span>
+            </div>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 14px",
+              borderRadius: 8,
+              background: "rgba(13, 19, 44, 0.7)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(6px)",
+              fontSize: 12,
+              color: "#cbd5e1",
+            }}>
+              <Cpu style={{ width: 14, height: 14, color: "#6366f1" }} />
+              <span style={{ fontWeight: 700 }}>Real-Time Live Odds Tracking</span>
+            </div>
           </div>
         </div>
       </section>
@@ -561,6 +688,30 @@ export default function HomePage() {
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+        @keyframes orbitRotate1 {
+          0% { transform: rotate(-25deg); }
+          100% { transform: rotate(335deg); }
+        }
+        @keyframes orbitRotate2 {
+          0% { transform: rotate(35deg); }
+          100% { transform: rotate(-325deg); }
+        }
+        @keyframes nodePulseGlow {
+          0%, 100% { opacity: 0.9; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.3); }
+        }
+        .orbit-spin-1 {
+          transform-origin: 200px 200px;
+          animation: orbitRotate1 24s linear infinite;
+        }
+        .orbit-spin-2 {
+          transform-origin: 200px 200px;
+          animation: orbitRotate2 30s linear infinite;
+        }
+        .node-pulse {
+          animation: nodePulseGlow 3s ease-in-out infinite;
+        }
       `}</style>
     </div>
   );
