@@ -2,43 +2,46 @@ import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import HowItWorks from "@/components/HowItWorks";
-import { fixtureService } from "@/lib/football/fixture-service";
-import { authService } from "@/lib/auth/auth-service";
-import { accessControlService } from "@/lib/subscriptions/access-service";
 import { cookies } from "next/headers";
 import { Zap, Trophy, Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react";
 import Link from "next/link";
 
 export const revalidate = 120; // 2 min ISR for instant sub-0.8s LCP on pre-login pages
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+
 export default async function HomePage() {
-  let user = null;
+  let groups: any[] = [];
+  let liveMatches: any[] = [];
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
-    if (token) {
-      user = await authService.getCurrentUser(token);
-    }
+    const headers: Record<string, string> = token ? { Cookie: `auth_token=${token}` } : {};
+
+    const [fixturesRes, liveRes] = await Promise.all([
+      fetch(`${BACKEND_URL}/api/fixtures?d=0`, {
+        headers,
+        next: { revalidate: 120 },
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${BACKEND_URL}/api/fixtures/live`, {
+        headers,
+        cache: "no-store",
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+
+    groups = fixturesRes?.groups || [];
+    liveMatches = liveRes?.matches || [];
   } catch {
-    // Static / ISR pre-render mode
+    // Backend offline / ISR fallback
   }
 
-  // Fetch today's grouped fixtures via service
-  const groupsRaw = await fixtureService.getGroupedFixtures("0");
-  const liveMatches = await fixtureService.getLiveFixtures();
-
-  // Apply server-side paywall
-  const groups = groupsRaw.map((g) => ({
-    ...g,
-    fixtures: accessControlService.filterFixturesList(g.fixtures, user),
-  }));
-
   // Map to format expected by LeagueGroupCard
-  const mappedGroups = groups.map((g) => ({
+  const mappedGroups = groups.map((g: any) => ({
     leagueName: g.league.name,
     country: g.country.name,
     flagUrl: g.country.flag || null,
-    matches: g.fixtures.map((f) => ({
+    matches: (g.fixtures || []).map((f: any) => ({
       id: f.id,
       url: `/match/${f.id}`,
       leagueName: g.league.name,
@@ -60,11 +63,11 @@ export default async function HomePage() {
         away: f.odds?.away ? String(f.odds.away) : "4.20",
       },
       predictions: (() => {
-        const p1x2 = f.predictions?.find((p) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
-        const pGoals = f.predictions?.find((p) => p.market === "OVER_UNDER");
-        const pBtts = f.predictions?.find((p) => p.market === "BTTS");
+        const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
+        const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
+        const pBtts = f.predictions?.find((p: any) => p.market === "BTTS");
         const pBest = f.predictions && f.predictions.length > 0
-          ? [...f.predictions].sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0]
+          ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
           : null;
 
         return {
@@ -76,7 +79,7 @@ export default async function HomePage() {
       })(),
       confidence: (() => {
         const top = f.predictions && f.predictions.length > 0
-          ? Math.max(...f.predictions.map((p) => p.confidence || 80))
+          ? Math.max(...f.predictions.map((p: any) => p.confidence || 80))
           : 84;
         return `${top}%`;
       })(),

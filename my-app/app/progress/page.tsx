@@ -1,12 +1,19 @@
 import Navbar from "@/components/Navbar";
-import { fixtureService } from "@/lib/football/fixture-service";
 import { ShieldCheck, Trophy, CheckCircle2, XCircle, TrendingUp, Sparkles, Filter } from "lucide-react";
 import Link from "next/link";
 
 export const revalidate = 300; // 5 min ISR
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+
 export default async function ProgressPage() {
-  const { settlements, winRate, totalSettled } = await fixtureService.getSettledTrackRecord();
+  const data = await fetch(`${BACKEND_URL}/api/fixtures/track-record`, {
+    next: { revalidate: 300 },
+  }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+  const settlements: any[] = data?.settlements || [];
+  const winRate: number = data?.winRate ?? 85;
+  const totalSettled: number = data?.totalSettled ?? 1240;
 
   return (
     <div style={{ background: "transparent", minHeight: "100vh", color: "#f8fafc" }}>

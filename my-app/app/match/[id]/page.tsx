@@ -1,7 +1,4 @@
 import Navbar from "@/components/Navbar";
-import { fixtureService } from "@/lib/football/fixture-service";
-import { authService } from "@/lib/auth/auth-service";
-import { accessControlService } from "@/lib/subscriptions/access-service";
 import { cookies } from "next/headers";
 import {
   Trophy,
@@ -18,18 +15,23 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+
 export default async function MatchDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  const user = await authService.getCurrentUser(token);
+  const headers: Record<string, string> = token ? { Cookie: `auth_token=${token}` } : {};
 
-  const fixtureRaw = await fixtureService.getFixtureById(params.id);
-  if (!fixtureRaw) {
+  const res = await fetch(`${BACKEND_URL}/api/fixtures/${params.id}`, {
+    headers,
+    next: { revalidate: 30 },
+  }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+
+  const fixture = res?.fixture;
+  if (!fixture) {
     notFound();
   }
-
-  const fixture = accessControlService.filterFixtureForUser(fixtureRaw, user, 0);
 
   const isLive = fixture.status === "LIVE";
   const isFinished = fixture.status === "FINISHED";
@@ -178,7 +180,7 @@ export default async function MatchDetailPage(props: { params: Promise<{ id: str
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-            {(fixture.predictions || []).map((p, idx) => {
+            {(fixture.predictions || []).map((p: any, idx: number) => {
               if (p.isLocked) {
                 return (
                   <div
@@ -266,7 +268,7 @@ export default async function MatchDetailPage(props: { params: Promise<{ id: str
                   {fixture.homeTeam.name} ({fixture.lineups.home?.formation || "4-3-3"})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {(fixture.lineups.home?.startingXl || []).map((p, i) => (
+                  {(fixture.lineups.home?.startingXl || []).map((p: any, i: number) => (
                     <div key={i} style={{ fontSize: 12, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ color: "#64748b", fontFamily: "monospace", width: 18 }}>#{p.number}</span>
                       <span>{p.name} ({p.position})</span>
@@ -280,7 +282,7 @@ export default async function MatchDetailPage(props: { params: Promise<{ id: str
                   {fixture.awayTeam.name} ({fixture.lineups.away?.formation || "4-2-3-1"})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {(fixture.lineups.away?.startingXl || []).map((p, i) => (
+                  {(fixture.lineups.away?.startingXl || []).map((p: any, i: number) => (
                     <div key={i} style={{ fontSize: 12, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ color: "#64748b", fontFamily: "monospace", width: 18 }}>#{p.number}</span>
                       <span>{p.name} ({p.position})</span>

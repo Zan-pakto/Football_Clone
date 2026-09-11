@@ -30,6 +30,19 @@ router.get("/live", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/fixtures/track-record
+router.get("/track-record", async (_req: Request, res: Response) => {
+  try {
+    const data = await fixtureService.getSettledTrackRecord();
+    return res.json({
+      success: true,
+      ...data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /api/fixtures
 router.get("/", async (req: Request, res: Response) => {
   try {
