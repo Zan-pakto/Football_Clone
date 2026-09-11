@@ -11,7 +11,7 @@ export default function GlobalLoading() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(9, 9, 15, 0.92)",
+        background: "var(--surface-overlay)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
       }}
@@ -23,12 +23,22 @@ export default function GlobalLoading() {
           top: 0,
           left: 0,
           right: 0,
-          height: 2,
-          background: "linear-gradient(90deg, transparent 0%, #c9a84c 40%, #e2c475 60%, #c9a84c 80%, transparent 100%)",
-          backgroundSize: "200% 100%",
-          animation: "goldSlide 1.6s ease-in-out infinite",
+          height: 3,
+          background: "var(--border)",
+          overflow: "hidden",
+          zIndex: 1000000,
         }}
-      />
+      >
+        <div
+          style={{
+            height: "100%",
+            width: "100%",
+            background: "var(--gold-gradient)",
+            boxShadow: "0 0 12px var(--gold-glow)",
+            animation: "goldSlide 1.6s ease-in-out infinite",
+          }}
+        />
+      </div>
 
       {/* Central card */}
       <div
@@ -37,13 +47,13 @@ export default function GlobalLoading() {
           flexDirection: "column",
           alignItems: "center",
           gap: 20,
-          padding: "40px 48px",
-          background: "rgba(15, 15, 26, 0.96)",
-          border: "1px solid rgba(201, 168, 76, 0.18)",
-          borderRadius: 18,
-          boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.05)",
+          padding: "36px 44px",
+          background: "var(--surface)",
+          border: "1px solid var(--gold-border)",
+          borderRadius: 20,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px var(--gold-border)",
           textAlign: "center",
-          maxWidth: 360,
+          maxWidth: 380,
           margin: "0 20px",
         }}
       >
@@ -51,8 +61,8 @@ export default function GlobalLoading() {
         <div
           style={{
             position: "relative",
-            width: 60,
-            height: 60,
+            width: 54,
+            height: 54,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -65,18 +75,18 @@ export default function GlobalLoading() {
               inset: -4,
               borderRadius: "50%",
               border: "1.5px solid transparent",
-              borderTopColor: "#c9a84c",
-              borderRightColor: "rgba(201,168,76,0.3)",
+              borderTopColor: "var(--gold)",
+              borderRightColor: "var(--gold-border)",
               animation: "spinSlow 1.4s linear infinite",
             }}
           />
           <div
             style={{
-              width: 48,
-              height: 48,
+              width: 42,
+              height: 42,
               borderRadius: 12,
-              background: "rgba(201,168,76,0.08)",
-              border: "1px solid rgba(201,168,76,0.25)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -84,11 +94,11 @@ export default function GlobalLoading() {
           >
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
-                color: "#c9a84c",
+                fontFamily: "var(--font-display)",
+                color: "var(--gold)",
                 fontWeight: 800,
-                fontSize: 20,
-                letterSpacing: "-1px",
+                fontSize: 17,
+                letterSpacing: "-0.5px",
               }}
             >
               JT
@@ -106,28 +116,28 @@ export default function GlobalLoading() {
               gap: 6,
             }}
           >
-            <Trophy style={{ width: 13, height: 13, color: "#c9a84c" }} />
+            <Trophy style={{ width: 14, height: 14, color: "var(--gold)" }} />
             <span
               style={{
                 fontSize: 15,
-                fontWeight: 700,
-                color: "#f5f3ee",
-                letterSpacing: "0.04em",
+                fontWeight: 800,
+                color: "var(--text-primary)",
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-sans)",
               }}
             >
-              JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
+              JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
             </span>
           </div>
           <p
             style={{
               fontSize: 12,
-              fontWeight: 400,
-              color: "#484858",
+              fontWeight: 500,
+              color: "var(--text-secondary)",
               margin: 0,
               lineHeight: 1.5,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-sans)",
             }}
           >
             Loading match intelligence...
@@ -143,7 +153,7 @@ export default function GlobalLoading() {
                 width: 5,
                 height: 5,
                 borderRadius: "50%",
-                background: "#c9a84c",
+                background: "var(--gold)",
                 animation: `pulseDot 1.2s ease-in-out ${delay}s infinite`,
               }}
             />

@@ -81,9 +81,9 @@ function NavigationLoaderContent() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: isLight ? "rgba(244, 246, 250, 0.94)" : "rgba(6, 6, 12, 0.94)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
+        background: "var(--surface-overlay)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         transition: "opacity 0.25s ease-out",
         opacity: isNavigating ? 1 : 0,
       }}
@@ -95,8 +95,8 @@ function NavigationLoaderContent() {
           top: 0,
           left: 0,
           right: 0,
-          height: 2.5,
-          background: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
+          height: 3,
+          background: "var(--border)",
           overflow: "hidden",
           zIndex: 1000000,
         }}
@@ -105,64 +105,56 @@ function NavigationLoaderContent() {
           style={{
             height: "100%",
             width: `${progress}%`,
-            background: isLight
-              ? "linear-gradient(90deg, #92670e, #b48214, #d4af37, #b48214)"
-              : "linear-gradient(90deg, #9a7c36, #c9a84c, #f3db98, #c9a84c)",
-            boxShadow: isLight
-              ? "0 0 12px rgba(180,130,20,0.5)"
-              : "0 0 12px rgba(201,168,76,0.8)",
+            background: "var(--gold-gradient)",
+            boxShadow: "0 0 12px var(--gold-glow)",
             transition: "width 0.18s ease-out",
           }}
         />
       </div>
 
-      {/* Central Luxury Card */}
+      {/* Central Unified Luxury Card */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 20,
-          padding: "38px 46px",
-          background: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(13, 14, 22, 0.98)",
-          border: isLight
-            ? "1px solid rgba(180, 130, 20, 0.35)"
-            : "1px solid rgba(201, 168, 76, 0.28)",
+          padding: "36px 44px",
+          background: "var(--surface)",
+          border: "1px solid var(--gold-border)",
           borderRadius: 20,
-          boxShadow: isLight
-            ? "0 28px 70px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(180, 130, 20, 0.15)"
-            : "0 28px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(201,168,76,0.12)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px var(--gold-border)",
           textAlign: "center",
           maxWidth: 380,
           margin: "0 20px",
         }}
       >
         {/* Gold emblem */}
-        <div style={{ position: "relative", width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ position: "relative", width: 54, height: 54, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div
             style={{
               position: "absolute",
-              inset: -5,
+              inset: -4,
               borderRadius: "50%",
               border: "1.5px solid transparent",
-              borderTopColor: isLight ? "#b48214" : "#c9a84c",
-              borderRightColor: isLight ? "rgba(180,130,20,0.25)" : "rgba(201,168,76,0.35)",
+              borderTopColor: "var(--gold)",
+              borderRightColor: "var(--gold-border)",
               animation: "spinSlow 1.4s linear infinite",
             }}
           />
           <div
             style={{
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               borderRadius: 12,
-              background: isLight ? "rgba(180, 130, 20, 0.08)" : "rgba(201, 168, 76, 0.12)",
-              border: isLight ? "1.5px solid rgba(180, 130, 20, 0.3)" : "1.5px solid rgba(201, 168, 76, 0.35)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <span style={{ fontFamily: "var(--font-display)", color: isLight ? "#b48214" : "#c9a84c", fontWeight: 800, fontSize: 18, letterSpacing: "-0.5px" }}>
+            <span style={{ fontFamily: "var(--font-display)", color: "var(--gold)", fontWeight: 800, fontSize: 17, letterSpacing: "-0.5px" }}>
               JT
             </span>
           </div>
@@ -170,10 +162,10 @@ function NavigationLoaderContent() {
 
         {/* Brand text */}
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: isLight ? "#0f172a" : "#ffffff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-            JOLLOF<span style={{ color: isLight ? "#b48214" : "#c9a84c" }}>TIPS</span>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
           </div>
-          <p style={{ fontSize: 12, fontWeight: 500, color: isLight ? "#475569" : "#cbd5e1", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {LOADING_TIPS[tipIndex]}
           </p>
         </div>
@@ -187,7 +179,7 @@ function NavigationLoaderContent() {
                 width: 5,
                 height: 5,
                 borderRadius: "50%",
-                background: isLight ? "#b48214" : "#c9a84c",
+                background: "var(--gold)",
                 animation: `dotBounce 0.8s ease-in-out ${delay}s infinite`,
               }}
             />
