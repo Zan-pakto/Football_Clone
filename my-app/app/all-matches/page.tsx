@@ -6,7 +6,7 @@ import DateSelector from "@/components/DateSelector";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { checkPredictionWon } from "@/components/MatchRow";
 import { MatchData } from "@/lib/types";
-import { RefreshCw, Search, Globe, ShieldCheck, Flame, Radio } from "lucide-react";
+import { RefreshCw, Search, Globe, ShieldCheck, Flame, Radio, Filter, CheckCircle2, ChevronRight } from "lucide-react";
 
 export default function AllMatchesPage() {
   const [d, setD] = useState("0");
@@ -16,6 +16,7 @@ export default function AllMatchesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showMobileRegions, setShowMobileRegions] = useState(false);
 
   const fetchMatches = useCallback(async (dayVal: string, forceSync = false) => {
     try {
@@ -183,8 +184,8 @@ export default function AllMatchesPage() {
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
       <Navbar liveCount={statCounts.live} />
 
-      <main style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px 80px" }}>
-        {/* ── Top Header & Date Selector ── */}
+      <main style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 20px 80px" }}>
+        {/* ── Top Header & Date Controls ── */}
         <div
           style={{
             display: "flex",
@@ -192,27 +193,106 @@ export default function AllMatchesPage() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 16,
-            marginBottom: 24,
+            marginBottom: 28,
           }}
         >
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              Today&apos;s Football Predictions
+            <div className="gold-badge" style={{ marginBottom: 8 }}>
+              <Flame size={12} />
+              <span>AI Match Intelligence Feed</span>
+            </div>
+            <h1 style={{ fontSize: "clamp(22px, 2.5vw, 28px)", fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.025em" }}>
+              Global Football Match Predictions
             </h1>
             <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
-              High-accuracy statistical algorithmic match tips across global football leagues.
+              Algorithmic value odds, 1X2 market consensus, and live in-play metrics across 160+ leagues.
             </p>
           </div>
-          <DateSelector currentD={d} onSelectD={(newD) => { setD(newD); setSelectedCountry("all"); }} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <DateSelector currentD={d} onSelectD={(newD) => { setD(newD); setSelectedCountry("all"); }} />
+            
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              title="Sync latest live odds and matches"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 8,
+                background: "var(--surface)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <RefreshCw size={13} className={isSyncing ? "animate-spin text-gold" : ""} />
+              <span className="hidden sm:inline">{isSyncing ? "Syncing..." : "Refresh"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Mobile Horizontal Region Filter Bar ── */}
+        <div className="mobile-region-bar" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6 }}>
+            <button
+              onClick={() => setSelectedCountry("all")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: selectedCountry === "all" ? "var(--gold)" : "var(--surface)",
+                color: selectedCountry === "all" ? "var(--gold-btn-text)" : "var(--text-secondary)",
+                border: selectedCountry === "all" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                fontSize: 12,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+              }}
+            >
+              <Globe size={13} />
+              <span>All ({matches.length})</span>
+            </button>
+            {countries.slice(0, 10).map((c) => (
+              <button
+                key={c}
+                onClick={() => setSelectedCountry(c)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  background: selectedCountry === c ? "var(--gold)" : "var(--surface)",
+                  color: selectedCountry === c ? "var(--gold-btn-text)" : "var(--text-secondary)",
+                  border: selectedCountry === c ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                }}
+              >
+                <span>{c}</span>
+                <span style={{ fontSize: 10, opacity: 0.8 }}>({countryCounts[c]})</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Two-Column Layout (Sidebar + Match Feed) ── */}
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-          {/* Country Sidebar */}
+        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+          {/* Desktop Country Sidebar */}
           <div
             className="country-sidebar luxury-card"
             style={{
-              width: 220,
+              width: 230,
               flexShrink: 0,
               overflow: "hidden",
               maxHeight: "calc(100vh - 120px)",
@@ -221,6 +301,26 @@ export default function AllMatchesPage() {
               top: 84,
             }}
           >
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "12px 16px",
+                background: "var(--surface-raised)",
+                borderBottom: "1px solid var(--border-color)",
+                fontSize: 11,
+                fontWeight: 800,
+                color: "var(--text-gold)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              <Globe size={13} />
+              <span>Browse Regions</span>
+            </div>
+
             {/* All Countries Button */}
             <button
               onClick={() => setSelectedCountry("all")}
@@ -229,28 +329,26 @@ export default function AllMatchesPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "12px 16px",
-                fontSize: 12,
+                padding: "11px 16px",
+                fontSize: 12.5,
                 fontWeight: selectedCountry === "all" ? 800 : 500,
                 color: selectedCountry === "all" ? "var(--gold)" : "var(--text-secondary)",
                 background: selectedCountry === "all" ? "var(--gold-bg)" : "transparent",
                 border: "none",
-                borderBottom: "1px solid var(--border-color)",
+                borderBottom: "1px solid var(--border-subtle)",
                 borderLeft: selectedCountry === "all" ? "3px solid var(--gold)" : "3px solid transparent",
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.15s ease",
               }}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Globe size={14} />
-                All Countries
-              </span>
+              <span>All Countries</span>
               <span
+                className="tabular-nums"
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  padding: "2px 6px",
+                  padding: "1px 6px",
                   borderRadius: 6,
                   background: selectedCountry === "all" ? "var(--gold)" : "var(--surface-raised)",
                   color: selectedCountry === "all" ? "var(--gold-btn-text)" : "var(--text-dim)",
@@ -270,8 +368,8 @@ export default function AllMatchesPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "10px 16px",
-                  fontSize: 12,
+                  padding: "9px 16px",
+                  fontSize: 12.5,
                   fontWeight: selectedCountry === country ? 800 : 500,
                   color: selectedCountry === country ? "var(--gold)" : "var(--text-secondary)",
                   background: selectedCountry === country ? "var(--gold-bg)" : "transparent",
@@ -287,10 +385,11 @@ export default function AllMatchesPage() {
                   {country}
                 </span>
                 <span
+                  className="tabular-nums"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    padding: "2px 6px",
+                    padding: "1px 6px",
                     borderRadius: 6,
                     background: selectedCountry === country ? "var(--gold)" : "var(--surface-raised)",
                     color: selectedCountry === country ? "var(--gold-btn-text)" : "var(--text-dim)",
@@ -303,7 +402,7 @@ export default function AllMatchesPage() {
           </div>
 
           {/* Right Feed Area */}
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
             {/* Search Input Bar */}
             <div
               style={{
@@ -332,9 +431,17 @@ export default function AllMatchesPage() {
                   color: "var(--text-primary)",
                 }}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
-            {/* 4 Stat Filter Cards */}
+            {/* 4 Interactive Stat Filter Cards */}
             <div
               style={{
                 display: "grid",
@@ -355,9 +462,9 @@ export default function AllMatchesPage() {
                 }}
               >
                 <p style={{ fontSize: 10, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-                  PREDICTED
+                  AI PREDICTIONS
                 </p>
-                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
                   {statCounts.predicted}
                 </p>
               </button>
@@ -377,7 +484,7 @@ export default function AllMatchesPage() {
                 <p style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
                   UPCOMING
                 </p>
-                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
                   {statCounts.upcoming}
                 </p>
               </button>
@@ -395,9 +502,9 @@ export default function AllMatchesPage() {
                 }}
               >
                 <p style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                  <Radio size={12} className="animate-pulse" /> LIVE
+                  <Radio size={12} className="live-pulse" /> LIVE NOW
                 </p>
-                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
                   {statCounts.live}
                 </p>
               </button>
@@ -415,9 +522,9 @@ export default function AllMatchesPage() {
                 }}
               >
                 <p style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-                  WON MATCHES
+                  WON PICKS
                 </p>
-                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                <p className="tabular-nums" style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
                   {statCounts.won}
                 </p>
               </button>
@@ -427,7 +534,7 @@ export default function AllMatchesPage() {
             {loading ? (
               <div className="luxury-card" style={{ padding: "60px 20px", textAlign: "center" }}>
                 <RefreshCw size={28} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--gold)" }} />
-                <p style={{ color: "var(--text-secondary)" }}>Loading algorithmic match data...</p>
+                <p style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Loading quantitative match intelligence...</p>
               </div>
             ) : groupedByLeague.length === 0 ? (
               <div className="luxury-card" style={{ padding: "60px 20px", textAlign: "center" }}>
@@ -435,7 +542,7 @@ export default function AllMatchesPage() {
                   No matches found for this filter
                 </p>
                 <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                  Try selecting another country or date.
+                  Try resetting your search query, selecting another region, or choosing a different date.
                 </p>
               </div>
             ) : (
@@ -452,6 +559,23 @@ export default function AllMatchesPage() {
           </div>
         </div>
       </main>
+
+      <style>{`
+        .mobile-region-bar {
+          display: flex;
+        }
+        .country-sidebar {
+          display: none;
+        }
+        @media (min-width: 1024px) {
+          .mobile-region-bar {
+            display: none !important;
+          }
+          .country-sidebar {
+            display: block !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
