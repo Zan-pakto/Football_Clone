@@ -26,7 +26,6 @@ export default function SessionsPage() {
       if (data.success && Array.isArray(data.sessions)) {
         setSessions(data.sessions);
       } else {
-        // Mock fallback if unauthenticated
         setSessions([
           {
             id: "sess_curr_1",
@@ -35,14 +34,6 @@ export default function SessionsPage() {
             ipAddress: "192.168.1.104",
             lastUsedAt: new Date().toISOString(),
             createdAt: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: "sess_mobile_2",
-            deviceName: "Mobile Device (iPhone / Safari)",
-            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5) Mobile/15E148",
-            ipAddress: "172.56.21.9",
-            lastUsedAt: new Date(Date.now() - 86400000).toISOString(),
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
           },
         ]);
       }
@@ -74,27 +65,24 @@ export default function SessionsPage() {
   };
 
   return (
-    <div style={{ background: "transparent", minHeight: "100vh", color: "#f8fafc" }}>
+    <div style={{ background: "var(--background)", minHeight: "100vh" }}>
       <Navbar />
 
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "84px 16px 80px" }}>
+      <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px 80px" }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <Shield style={{ width: 22, height: 22, color: "#6366f1" }} />
-            <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, color: "#fff" }}>
+            <Shield size={22} color="var(--gold)" />
+            <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, color: "var(--text-primary)" }}>
               Active Device Sessions
             </h1>
           </div>
-          <p style={{ color: "#94a3b8", fontSize: 14, margin: 0 }}>
-            Manage your logged-in devices. Your account supports up to <strong>5 concurrent device sessions</strong>. If you exceed 5, the oldest inactive session will be automatically disconnected.
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, margin: 0 }}>
+            Manage your logged-in devices. Your account supports up to <strong>5 concurrent device sessions</strong>.
           </p>
         </div>
 
         {/* Device Quota Card */}
-        <div style={{
-          background: "#0d1222",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 12,
+        <div className="luxury-card" style={{
           padding: "16px 20px",
           display: "flex",
           alignItems: "center",
@@ -102,97 +90,100 @@ export default function SessionsPage() {
           marginBottom: 24,
         }}>
           <div>
-            <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 2 }}>Device Slot Usage</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>
-              {sessions.length} / 5 Active Devices
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase" }}>
+              Session Slots Used
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", marginTop: 2 }}>
+              {sessions.length} / 5 Devices Active
             </div>
           </div>
-          <div style={{
-            padding: "4px 12px",
-            borderRadius: 999,
-            background: sessions.length <= 5 ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-            color: sessions.length <= 5 ? "#10b981" : "#ef4444",
-            fontSize: 12,
-            fontWeight: 800,
-          }}>
-            {sessions.length <= 5 ? "Quota Normal" : "Limit Reached"}
-          </div>
+          <span className="status-pill-won">Safe & Active</span>
         </div>
 
         {/* Sessions List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {sessions.map((s, idx) => {
-            const isMobile = s.userAgent?.toLowerCase().includes("mobile") || s.deviceName?.toLowerCase().includes("mobile");
-            return (
-              <div
-                key={s.id}
-                style={{
-                  background: "#0d1222",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 12,
-                  padding: "18px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 16,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{
-                    width: 42,
-                    height: 42,
+        <div className="luxury-card" style={{ padding: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {loading ? (
+              <div style={{ textAlign: "center", padding: 40, color: "var(--text-secondary)" }}>
+                <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 10px", color: "var(--gold)" }} />
+                Loading sessions...
+              </div>
+            ) : sessions.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40, color: "var(--text-secondary)" }}>
+                No active sessions found.
+              </div>
+            ) : (
+              sessions.map((s, idx) => (
+                <div
+                  key={s.id}
+                  style={{
+                    padding: "16px",
                     borderRadius: 10,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border-color)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    color: "#818cf8",
-                  }}>
-                    {isMobile ? <Smartphone style={{ width: 20, height: 20 }} /> : <Laptop style={{ width: 20, height: 20 }} />}
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>
-                        {s.deviceName || (isMobile ? "Mobile Device" : "Desktop Workstation")}
-                      </span>
-                      {idx === 0 && (
-                        <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 4, background: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
-                          Current Session
-                        </span>
+                    justifyContent: "space-between",
+                    gap: 16,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: "var(--gold-bg)",
+                        border: "1px solid var(--gold-border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "var(--gold)",
+                      }}
+                    >
+                      {s.deviceName?.toLowerCase().includes("phone") || s.userAgent?.toLowerCase().includes("mobile") ? (
+                        <Smartphone size={18} />
+                      ) : (
+                        <Laptop size={18} />
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>
-                      IP: {s.ipAddress || "127.0.0.1"} • Last active: {new Date(s.lastUsedAt).toLocaleString()}
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
+                        {s.deviceName || "Desktop Browser"}
+                        {idx === 0 && (
+                          <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 4, background: "var(--gold-bg)", color: "var(--gold)" }}>
+                            Current Device
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>
+                        IP: {s.ipAddress || "Unknown"} · Last active: {new Date(s.lastUsedAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {idx !== 0 && (
-                  <button
-                    onClick={() => handleRevoke(s.id)}
-                    disabled={revokingId === s.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      background: "rgba(239, 68, 68, 0.1)",
-                      border: "1px solid rgba(239, 68, 68, 0.25)",
-                      color: "#f87171",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <LogOut style={{ width: 13, height: 13 }} />
-                    <span>{revokingId === s.id ? "Revoking..." : "Revoke"}</span>
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                  {idx !== 0 && (
+                    <button
+                      onClick={() => handleRevoke(s.id)}
+                      disabled={revokingId === s.id}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 6,
+                        background: "var(--accent-red-bg)",
+                        border: "1px solid var(--accent-red-border)",
+                        color: "var(--accent-red)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {revokingId === s.id ? "Revoking..." : "Revoke"}
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </main>
     </div>

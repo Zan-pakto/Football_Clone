@@ -98,67 +98,42 @@ export default async function HomePage() {
       <HeroLanding totalMatches={totalMatches} />
 
       {/* Below-The-Fold Match Predictions Feed */}
-      <main id="matches-feed" className="scroll-mt-8" style={{ maxWidth: 1320, margin: "0 auto", padding: "40px 16px 80px" }}>
+      <main id="matches-feed" className="scroll-mt-8" style={{ maxWidth: 1360, margin: "0 auto", padding: "40px 20px 80px" }}>
 
         {/* Bet of the Day / Featured AI Pick Hero */}
-        <div style={{
-          background: "rgba(15,15,26,0.9)",
-          border: "1px solid rgba(201,168,76,0.2)",
-          borderRadius: "12px",
-          padding: "24px",
+        <div className="luxury-card" style={{
+          padding: "24px 28px",
           marginBottom: 32,
           position: "relative",
           overflow: "hidden",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.05)",
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "rgba(201,168,76,0.08)",
-                border: "1px solid rgba(201,168,76,0.22)",
-                color: "#c9a84c",
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "4px 12px",
-                borderRadius: 999,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: 10,
-              }}>
-                <Flame style={{ width: 13, height: 13 }} />
+              <div className="gold-badge" style={{ marginBottom: 10 }}>
+                <Flame size={13} />
                 AI BET OF THE DAY • {featuredMatch?.confidence || "89%"} CONFIDENCE
               </div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f5f3ee", margin: "0 0 6px", letterSpacing: "-0.02em", fontFamily: "var(--font-sans)" }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
                 {featuredMatch ? `${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} — ${featuredMatch.leagueName}` : "Featured Match Analysis"}
               </h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: 0, fontWeight: 400 }}
-              >
+              <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: 0 }}>
                 High-confidence AI consensus for{" "}
-                <strong style={{ color: "var(--gold)", fontWeight: 600 }}>{featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}</strong>
+                <strong style={{ color: "var(--gold)", fontWeight: 700 }}>{featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}</strong>
               </p>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Link
                 href={featuredMatch ? featuredMatch.url : "/all-matches"}
-                className="gold-cta-btn"
+                className="gold-btn"
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
                   padding: "10px 20px",
-                  borderRadius: 8,
-                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: "none",
-                  transition: "all 0.18s ease",
                 }}
               >
                 <span>View Full Analysis</span>
-                <ArrowRight style={{ width: 14, height: 14 }} />
+                <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -178,14 +153,13 @@ export default async function HomePage() {
               href="/all-matches?d=-1"
               style={{
                 padding: "8px 16px",
-                borderRadius: 7,
-                background: "rgba(15,15,26,0.8)",
-                border: "1px solid var(--border)",
+                borderRadius: 8,
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border-color)",
                 color: "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 500,
+                fontWeight: 600,
                 textDecoration: "none",
-                transition: "all 0.15s ease",
               }}
             >
               Yesterday
@@ -194,12 +168,12 @@ export default async function HomePage() {
               href="/all-matches?d=0"
               style={{
                 padding: "8px 18px",
-                borderRadius: 7,
-                background: "rgba(201,168,76,0.1)",
-                border: "1px solid rgba(201,168,76,0.35)",
-                color: "#c9a84c",
+                borderRadius: 8,
+                background: "var(--gold-bg)",
+                border: "1px solid var(--gold-border)",
+                color: "var(--gold)",
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 800,
                 textDecoration: "none",
               }}
             >
@@ -209,14 +183,13 @@ export default async function HomePage() {
               href="/all-matches?d=1"
               style={{
                 padding: "8px 16px",
-                borderRadius: 7,
-                background: "rgba(15,15,26,0.8)",
-                border: "1px solid var(--border)",
+                borderRadius: 8,
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border-color)",
                 color: "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 500,
+                fontWeight: 600,
                 textDecoration: "none",
-                transition: "all 0.15s ease",
               }}
             >
               Tomorrow
@@ -232,11 +205,11 @@ export default async function HomePage() {
                 gap: 6,
                 color: "var(--gold)",
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 700,
                 textDecoration: "none",
               }}
             >
-              <ShieldCheck style={{ width: 16, height: 16, color: "#818cf8" }} />
+              <ShieldCheck size={16} color="var(--accent-green)" />
               <span>Verified 85% Win-Rate Track Record</span>
             </Link>
           </div>
