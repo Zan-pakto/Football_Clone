@@ -14,15 +14,12 @@ import {
   Eye,
   EyeOff,
   Target,
-  TrendingUp,
   Globe,
   RefreshCw,
   LogOut,
-  Crown,
-  ArrowRight,
   Shield,
+  Check,
   X,
-  Scale,
 } from "lucide-react";
 
 function AuthContent() {
@@ -36,17 +33,13 @@ function AuthContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(true);
 
-  // Form Fields
+  // Form Fields (Unified email across both tabs)
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loginIdentifier, setLoginIdentifier] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -62,7 +55,7 @@ function AuthContent() {
   useEffect(() => {
     async function checkUser() {
       try {
-        const res = await fetch("/api/auth");
+        const res = await fetch("/api/auth", { credentials: "include" });
         const data = await res.json();
         if (data.success && data.isLoggedIn && data.user) {
           setCurrentUser(data.user);
@@ -87,34 +80,38 @@ function AuthContent() {
     setError(null);
     setSuccess(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password;
+
+    if (!cleanEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    if (!cleanPassword) {
+      setError("Please enter your password.");
+      return;
+    }
+
     if (mode === "register") {
       if (!name.trim()) {
         setError("Please enter your full name.");
         return;
       }
-      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
         setError("Please enter a valid email address.");
         return;
       }
-      if (password.length < 6) {
+      if (cleanPassword.length < 6) {
         setError("Password must be at least 6 characters long.");
         return;
       }
-      if (password !== confirmPassword) {
-        setError("Passwords do not match.");
+      if (cleanPassword !== confirmPassword) {
+        setError("Passwords do not match. Please re-check your confirm password.");
         return;
       }
       if (!acceptTerms) {
         setError("You must accept the Terms of Service to create an account.");
-        return;
-      }
-    } else {
-      if (!loginIdentifier.trim()) {
-        setError("Please enter your email or username.");
-        return;
-      }
-      if (!password) {
-        setError("Please enter your password.");
         return;
       }
     }
@@ -122,18 +119,16 @@ function AuthContent() {
     setLoading(true);
 
     try {
-      const authEmail = mode === "register" ? email.trim().toLowerCase() : loginIdentifier.trim().toLowerCase();
-
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: mode,
           name: mode === "register" ? name.trim() : undefined,
-          email: authEmail,
-          username: mode === "register" ? username.trim().toLowerCase() : undefined,
-          loginIdentifier: loginIdentifier.trim(),
-          password,
+          email: cleanEmail,
+          loginIdentifier: cleanEmail,
+          password: cleanPassword,
         }),
       });
 
@@ -144,10 +139,10 @@ function AuthContent() {
         return;
       }
 
-      setSuccess(mode === "register" ? "Account created successfully! Redirecting..." : "Welcome back! Redirecting...");
+      setSuccess(mode === "register" ? "Account registered successfully! Redirecting..." : "Welcome back! Redirecting...");
       setTimeout(() => {
         window.location.href = redirectUrl;
-      }, 1000);
+      }, 800);
     } catch {
       setError("An unexpected network error occurred. Please try again.");
     } finally {
@@ -161,6 +156,7 @@ function AuthContent() {
       await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "logout" }),
       });
       setCurrentUser(null);
@@ -172,8 +168,11 @@ function AuthContent() {
     }
   };
 
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   return (
-    <div style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--background)" }}>
+    <div style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--background)", color: "var(--foreground)" }}>
       <Navbar />
 
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px 80px", zIndex: 1 }}>
@@ -202,7 +201,7 @@ function AuthContent() {
             <div>
               <div className="gold-badge" style={{ marginBottom: 20 }}>
                 <Sparkles size={12} />
-                <span>AI-Powered Predictions</span>
+                <span>AI FOOTBALL INTELLIGENCE</span>
               </div>
 
               <h1
@@ -215,27 +214,27 @@ function AuthContent() {
                   margin: "0 0 16px",
                 }}
               >
-                AI Predictions That <br />
-                Give You The <span style={{ color: "var(--gold)" }}>Edge</span>.
+                Predict Smarter. <br />
+                Win With <span style={{ color: "var(--gold)" }}>Data</span>.
               </h1>
 
               <p
                 style={{
                   color: "var(--text-secondary)",
                   fontSize: "14px",
-                  lineHeight: 1.6,
+                  lineHeight: 1.65,
                   margin: "0 0 28px",
                 }}
               >
-                Our proprietary AI evaluates every match across 160+ leagues daily — delivering predictions, banker picks, and value edges trusted by smart bettors.
+                Instant access to 10,000-scenario Monte Carlo simulations, xG model telemetry, and verified 89.4% banker picks across 700+ worldwide leagues.
               </p>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 36,
+                      height: 36,
                       borderRadius: 10,
                       background: "var(--gold-bg)",
                       border: "1px solid var(--gold-border)",
@@ -249,15 +248,15 @@ function AuthContent() {
                     <Sparkles size={16} />
                   </div>
                   <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    100,000 Monte Carlo Simulations Per Game
+                    10,000 Monte Carlo Simulations Per Game
                   </span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 36,
+                      height: 36,
                       borderRadius: 10,
                       background: "var(--gold-bg)",
                       border: "1px solid var(--gold-border)",
@@ -271,15 +270,15 @@ function AuthContent() {
                     <Target size={16} />
                   </div>
                   <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    Confidence Ratings from 70% to 95%
+                    Calibrated Banker Confidence (85%–95%)
                   </span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 36,
+                      height: 36,
                       borderRadius: 10,
                       background: "var(--gold-bg)",
                       border: "1px solid var(--gold-border)",
@@ -293,7 +292,7 @@ function AuthContent() {
                     <Globe size={16} />
                   </div>
                   <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    Real-Time In-Play Tracking
+                    Real-Time Live Odds & In-Play Tracking
                   </span>
                 </div>
               </div>
@@ -301,7 +300,7 @@ function AuthContent() {
 
             <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 20, marginTop: 28, display: "flex", alignItems: "center", gap: 10 }}>
               <span className="status-pill-won">100% Audited</span>
-              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Permanent blockchain-grade record</span>
+              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Permanent verifiable track record</span>
             </div>
           </div>
 
@@ -372,6 +371,7 @@ function AuthContent() {
                   }}
                 >
                   <button
+                    type="button"
                     onClick={() => switchMode("login")}
                     style={{
                       flex: 1,
@@ -389,6 +389,7 @@ function AuthContent() {
                     Sign In
                   </button>
                   <button
+                    type="button"
                     onClick={() => switchMode("register")}
                     style={{
                       flex: 1,
@@ -451,77 +452,23 @@ function AuthContent() {
                 {/* Form */}
                 <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {mode === "register" && (
-                    <>
-                      <div>
-                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                          Full Name
-                        </label>
-                        <div style={{ position: "relative" }}>
-                          <User size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
-                          <input
-                            type="text"
-                            required
-                            placeholder="John Doe"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "10px 14px 10px 40px",
-                              borderRadius: 8,
-                              background: "var(--surface-raised)",
-                              border: "1px solid var(--border-color)",
-                              color: "var(--text-primary)",
-                              fontSize: 13,
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                          Email Address
-                        </label>
-                        <div style={{ position: "relative" }}>
-                          <Mail size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
-                          <input
-                            type="email"
-                            required
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "10px 14px 10px 40px",
-                              borderRadius: 8,
-                              background: "var(--surface-raised)",
-                              border: "1px solid var(--border-color)",
-                              color: "var(--text-primary)",
-                              fontSize: 13,
-                              outline: "none",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {mode === "login" && (
                     <div>
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                        Email or Username
+                      <label htmlFor="reg-name" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                        Full Name
                       </label>
                       <div style={{ position: "relative" }}>
-                        <Mail size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                        <User size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
                         <input
+                          id="reg-name"
+                          name="name"
                           type="text"
                           required
-                          placeholder="you@example.com"
-                          value={loginIdentifier}
-                          onChange={(e) => setLoginIdentifier(e.target.value)}
+                          placeholder="John Doe"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
                           style={{
                             width: "100%",
-                            padding: "10px 14px 10px 40px",
+                            padding: "11px 14px 11px 40px",
                             borderRadius: 8,
                             background: "var(--surface-raised)",
                             border: "1px solid var(--border-color)",
@@ -534,22 +481,55 @@ function AuthContent() {
                     </div>
                   )}
 
+                  {/* Email Input (Shared between login and register) */}
+                  <div>
+                    <label htmlFor="auth-email" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                      Email Address
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <Mail size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                      <input
+                        id="auth-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "11px 14px 11px 40px",
+                          borderRadius: 8,
+                          background: "var(--surface-raised)",
+                          border: "1px solid var(--border-color)",
+                          color: "var(--text-primary)",
+                          fontSize: 13,
+                          outline: "none",
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   {/* Password Field */}
                   <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                    <label htmlFor="auth-password" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
                       Password
                     </label>
                     <div style={{ position: "relative" }}>
                       <Lock size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
                       <input
+                        id="auth-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete={mode === "register" ? "new-password" : "current-password"}
                         required
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "10px 40px 10px 40px",
+                          padding: "11px 40px 11px 40px",
                           borderRadius: 8,
                           background: "var(--surface-raised)",
                           border: "1px solid var(--border-color)",
@@ -562,32 +542,49 @@ function AuthContent() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
+                        aria-label="Toggle password visibility"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Confirm Password on Register */}
+                  {/* Confirm Password Field on Register */}
                   {mode === "register" && (
                     <div>
-                      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                        Confirm Password
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <label htmlFor="reg-confirm-password" style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>
+                          Confirm Password
+                        </label>
+                        {passwordsMatch && (
+                          <span style={{ fontSize: 11, color: "var(--accent-green)", fontWeight: 700, display: "flex", alignItems: "center", gap: 3 }}>
+                            <Check size={12} /> Passwords match
+                          </span>
+                        )}
+                        {passwordsMismatch && (
+                          <span style={{ fontSize: 11, color: "var(--accent-red)", fontWeight: 700, display: "flex", alignItems: "center", gap: 3 }}>
+                            <X size={12} /> Mismatch
+                          </span>
+                        )}
+                      </div>
+
                       <div style={{ position: "relative" }}>
                         <Lock size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
                         <input
+                          id="reg-confirm-password"
+                          name="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
+                          autoComplete="new-password"
                           required
                           placeholder="••••••••"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           style={{
                             width: "100%",
-                            padding: "10px 40px 10px 40px",
+                            padding: "11px 40px 11px 40px",
                             borderRadius: 8,
                             background: "var(--surface-raised)",
-                            border: "1px solid var(--border-color)",
+                            border: `1px solid ${passwordsMismatch ? "var(--accent-red-border)" : passwordsMatch ? "var(--accent-green-border)" : "var(--border-color)"}`,
                             color: "var(--text-primary)",
                             fontSize: 13,
                             outline: "none",
@@ -597,6 +594,7 @@ function AuthContent() {
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
+                          aria-label="Toggle confirm password visibility"
                         >
                           {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -626,16 +624,18 @@ function AuthContent() {
                     className="gold-btn"
                     style={{
                       width: "100%",
-                      padding: "12px",
+                      padding: "13px",
                       fontSize: 14,
+                      fontWeight: 700,
                       marginTop: 8,
                       opacity: loading ? 0.7 : 1,
+                      cursor: "pointer",
                     }}
                   >
                     {loading ? (
                       <RefreshCw size={16} className="animate-spin" />
                     ) : (
-                      <span>{mode === "login" ? "Sign In to JT" : "Create Account"}</span>
+                      <span>{mode === "login" ? "Sign In to JollofTips" : "Create My Free Account"}</span>
                     )}
                   </button>
                 </form>
