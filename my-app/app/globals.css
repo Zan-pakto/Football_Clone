@@ -230,3 +230,117 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* ════════════════════════════════════════════════
+   GLOBAL LUXURY OVERRIDES
+   Force obsidian+gold across all remaining page
+   elements that haven't been hand-edited yet.
+   These override old purple/navy inline styles.
+   ════════════════════════════════════════════════ */
+
+/* Page section headings */
+h1, h2, h3 {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+/* Any page wrapper backgrounds that use old navy */
+.bg-navy, [style*="background: \"#0f1226\""], [style*="background: \"#151a38\""] {
+  background: var(--background) !important;
+}
+
+/* Form inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  background: rgba(15,15,26,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: rgba(201,168,76,0.4) !important;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.08) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-dim) !important;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th {
+  background: rgba(9,9,15,0.9);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+tr:hover td {
+  background: rgba(20,20,32,0.8);
+}
+
+/* Badge / pill overrides */
+.badge-purple, [class*="purple-badge"] {
+  background: rgba(201,168,76,0.08) !important;
+  border: 1px solid rgba(201,168,76,0.22) !important;
+  color: #c9a84c !important;
+}
+
+/* Card overrides */
+.card, [class*="card-"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Button overrides */
+button[class*="primary"], button[class*="violet"], button[class*="indigo"] {
+  background: transparent !important;
+  color: var(--gold) !important;
+  border: 1px solid rgba(201,168,76,0.4) !important;
+}
+button[class*="primary"]:hover {
+  background: var(--gold) !important;
+  color: #09090f !important;
+}
+
+/* Section glow ambients — replace purple with subtle gold */
+[style*="rgba(99, 102, 241"], [style*="rgba(139, 92, 246"], [style*="rgba(168, 85, 247"] {
+  /* Browsers ignore this, we handle via JS — left for intent documentation */
+}
+
+/* Loading skeleton / shimmer */
+@keyframes skeletonShimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 800px 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Select dropdown option styling */
+option {
+  background: #0f0f1a;
+  color: #f5f3ee;
+}

@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useTransition, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Sparkles, Activity } from "lucide-react";
 
 const LOADING_TIPS = [
   "Analyzing match odds & Poisson probabilities...",
   "Calibrating quantitative prediction engine...",
   "Syncing live match statistics and form records...",
   "Running head-to-head algorithm models...",
-  "Loading verified high-confidence tips...",
+  "Loading high-confidence tips...",
 ];
 
 function NavigationLoaderContent() {
@@ -19,7 +18,6 @@ function NavigationLoaderContent() {
   const [tipIndex, setTipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
 
-  // Track route changes to finish loading
   useEffect(() => {
     if (isNavigating) {
       setProgress(100);
@@ -31,19 +29,13 @@ function NavigationLoaderContent() {
     }
   }, [pathname, searchParams]);
 
-  // Click listener for all internal navigation links
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
-      // Find closest anchor tag
       const target = e.target as HTMLElement | null;
       const anchor = target?.closest("a") as HTMLAnchorElement | null;
-
       if (!anchor) return;
-
       const href = anchor.getAttribute("href");
       if (!href) return;
-
-      // Ignore external links, downloads, new tabs, mailto, tel, or purely anchor hash links
       if (
         anchor.target === "_blank" ||
         anchor.hasAttribute("download") ||
@@ -51,55 +43,26 @@ function NavigationLoaderContent() {
         href.startsWith("tel:") ||
         href.startsWith("javascript:") ||
         href.startsWith("#") ||
-        e.ctrlKey ||
-        e.metaKey ||
-        e.shiftKey ||
-        e.altKey
-      ) {
-        return;
-      }
-
-      // Check if internal link
+        e.ctrlKey || e.metaKey || e.shiftKey || e.altKey
+      ) return;
       try {
         const url = new URL(href, window.location.href);
         if (url.origin !== window.location.origin) return;
-
-        // If it's literally the current full URL including hash, don't trigger loader
-        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
-          return;
-        }
-
-        // Trigger loading state immediately
+        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
         setTipIndex(Math.floor(Math.random() * LOADING_TIPS.length));
         setProgress(15);
         setIsNavigating(true);
-
-        // Increment progress gradually
         const interval = setInterval(() => {
           setProgress((prev) => {
-            if (prev >= 85) {
-              clearInterval(interval);
-              return 85;
-            }
+            if (prev >= 85) { clearInterval(interval); return 85; }
             return prev + Math.floor(Math.random() * 20) + 10;
           });
         }, 120);
-
-        // Safety timeout to avoid getting stuck if navigation cancelled
-        setTimeout(() => {
-          clearInterval(interval);
-          setIsNavigating(false);
-          setProgress(0);
-        }, 6000);
-      } catch {
-        // Invalid URL, ignore
-      }
+        setTimeout(() => { clearInterval(interval); setIsNavigating(false); setProgress(0); }, 6000);
+      } catch { /* ignore */ }
     };
-
     document.addEventListener("click", handleDocumentClick, true);
-    return () => {
-      document.removeEventListener("click", handleDocumentClick, true);
-    };
+    return () => document.removeEventListener("click", handleDocumentClick, true);
   }, []);
 
   if (!isNavigating && progress === 0) return null;
@@ -115,22 +78,22 @@ function NavigationLoaderContent() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(6, 8, 20, 0.78)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
+        background: "rgba(9, 9, 15, 0.84)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         transition: "opacity 0.25s ease-out",
         opacity: isNavigating ? 1 : 0,
       }}
     >
-      {/* Top Rainbow Progress Bar */}
+      {/* Gold progress bar */}
       <div
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           right: 0,
-          height: 3,
-          background: "rgba(255,255,255,0.05)",
+          height: 2,
+          background: "rgba(255,255,255,0.04)",
           overflow: "hidden",
           zIndex: 1000000,
         }}
@@ -139,119 +102,90 @@ function NavigationLoaderContent() {
           style={{
             height: "100%",
             width: `${progress}%`,
-            background: "linear-gradient(90deg, #f97316 0%, #a855f7 50%, #38bdf8 100%)",
-            boxShadow: "0 0 16px rgba(168, 85, 247, 0.9), 0 0 8px rgba(56, 189, 248, 0.8)",
+            background: "linear-gradient(90deg, #9a7c36, #c9a84c, #e2c475, #c9a84c)",
             transition: "width 0.18s ease-out",
           }}
         />
       </div>
 
-      {/* Central Glass Card */}
+      {/* Central card */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 16,
+          gap: 20,
           padding: "36px 44px",
-          background: "linear-gradient(135deg, rgba(20, 25, 58, 0.92) 0%, rgba(12, 16, 40, 0.96) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.35)",
-          borderRadius: 22,
-          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 35px rgba(139, 92, 246, 0.25)",
+          background: "rgba(15, 15, 26, 0.96)",
+          border: "1px solid rgba(201, 168, 76, 0.18)",
+          borderRadius: 18,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.05)",
           textAlign: "center",
-          maxWidth: 420,
+          maxWidth: 380,
           margin: "0 20px",
-          animation: "cardPulse 2s ease-in-out infinite alternate",
         }}
       >
-        {/* Animated Brand Emblem */}
-        <div style={{ position: "relative", width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Gold emblem */}
+        <div style={{ position: "relative", width: 52, height: 52, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div
             style={{
               position: "absolute",
-              inset: -8,
+              inset: -4,
               borderRadius: "50%",
-              background: "conic-gradient(from 0deg, #f97316, #a855f7, #38bdf8, #f97316)",
-              animation: "spinSlow 1.8s linear infinite",
-              filter: "blur(6px)",
-              opacity: 0.7,
+              border: "1.5px solid transparent",
+              borderTopColor: "#c9a84c",
+              borderRightColor: "rgba(201,168,76,0.2)",
+              animation: "spinSlow 1.4s linear infinite",
             }}
           />
           <div
             style={{
-              position: "relative",
-              width: 52,
-              height: 52,
-              borderRadius: 12,
-              background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "rgba(201,168,76,0.08)",
+              border: "1px solid rgba(201,168,76,0.22)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(249, 115, 22, 0.5)",
-              transform: "skew(-4deg)",
             }}
           >
-            <span
-              style={{
-                color: "#ffffff",
-                fontWeight: 900,
-                fontSize: 22,
-                fontStyle: "italic",
-                transform: "skew(4deg)",
-                letterSpacing: "-1px",
-              }}
-            >
+            <span style={{ fontFamily: "'Playfair Display', serif", color: "#c9a84c", fontWeight: 800, fontSize: 16, letterSpacing: "-0.5px" }}>
               JT
             </span>
           </div>
         </div>
 
-        {/* Brand Text & Status */}
+        {/* Brand text */}
         <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 4 }}>
-            <Sparkles style={{ width: 15, height: 15, color: "#c084fc", animation: "spinSlow 3s linear infinite" }} />
-            <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff", letterSpacing: "-0.01em" }}>
-              Jollof<span style={{ color: "#a855f7" }}>Tips</span> AI
-            </span>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#f5f3ee", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+            JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
           </div>
-          <p
-            style={{
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "#94a3b8",
-              margin: 0,
-              lineHeight: 1.4,
-              minHeight: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <p style={{ fontSize: 12, fontWeight: 400, color: "#484858", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {LOADING_TIPS[tipIndex]}
           </p>
         </div>
 
-        {/* Pulse Loading Indicator */}
+        {/* Gold dots */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#f97316", animation: "dotBounce 0.8s ease-in-out infinite 0s" }} />
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#a855f7", animation: "dotBounce 0.8s ease-in-out infinite 0.16s" }} />
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#38bdf8", animation: "dotBounce 0.8s ease-in-out infinite 0.32s" }} />
+          {[0, 0.18, 0.36].map((delay, i) => (
+            <div
+              key={i}
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: "#c9a84c",
+                animation: `dotBounce 0.8s ease-in-out ${delay}s infinite`,
+              }}
+            />
+          ))}
         </div>
       </div>
 
       <style>{`
-        @keyframes spinSlow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes dotBounce {
-          0%, 100% { transform: translateY(0); opacity: 0.4; }
-          50% { transform: translateY(-5px); opacity: 1; }
-        }
-        @keyframes cardPulse {
-          0% { transform: scale(0.98); }
-          100% { transform: scale(1.01); }
-        }
+        @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes dotBounce { 0%, 100% { transform: translateY(0); opacity: 0.3; } 50% { transform: translateY(-5px); opacity: 1; } }
       `}</style>
     </div>
   );

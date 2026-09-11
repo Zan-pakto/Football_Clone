@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Globe, Filter } from "lucide-react";
+import { Search, Globe } from "lucide-react";
 
 interface MatchFilterBarProps {
   activeTab: string;
@@ -25,37 +25,43 @@ export default function MatchFilterBar({
   return (
     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
       {/* ── Country Sidebar ── */}
-      <div style={{
-        width: 190,
-        flexShrink: 0,
-        background: "rgba(20, 25, 56, 0.92)",
-        border: "1px solid rgba(168, 85, 247, 0.24)",
-        borderRadius: 12,
-        overflow: "hidden",
-        maxHeight: "calc(100vh - 180px)",
-        overflowY: "auto",
-        position: "sticky",
-        top: 74,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.4), 0 0 16px rgba(139, 92, 246, 0.08)",
-      }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "10px 14px",
-          background: "linear-gradient(135deg, rgba(28, 34, 76, 0.98) 0%, rgba(20, 25, 58, 0.98) 100%)",
-          borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
-          fontSize: 11,
-          fontWeight: 800,
-          color: "#c084fc",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-        }}>
-          <Globe style={{ width: 13, height: 13 }} />
+      <div
+        style={{
+          width: 188,
+          flexShrink: 0,
+          background: "rgba(15,15,26,0.97)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: 10,
+          overflow: "hidden",
+          maxHeight: "calc(100vh - 180px)",
+          overflowY: "auto",
+          position: "sticky",
+          top: 74,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}
+      >
+        {/* Sidebar header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "10px 14px",
+            background: "rgba(9,9,15,0.9)",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            fontSize: 10,
+            fontWeight: 700,
+            color: "#c9a84c",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <Globe style={{ width: 12, height: 12 }} />
           <span>Regions</span>
         </div>
 
-        {/* All Countries */}
+        {/* All button */}
         <button
           onClick={() => onCountryChange("all")}
           style={{
@@ -65,29 +71,35 @@ export default function MatchFilterBar({
             alignItems: "center",
             padding: "9px 14px",
             fontSize: 12,
-            fontWeight: selectedCountry === "all" ? 800 : 500,
-            color: selectedCountry === "all" ? "#ffffff" : "#94a3b8",
-            background: selectedCountry === "all" ? "rgba(99, 102, 241, 0.15)" : "transparent",
+            fontWeight: selectedCountry === "all" ? 600 : 400,
+            color: selectedCountry === "all" ? "#f5f3ee" : "#484858",
+            background: selectedCountry === "all" ? "rgba(201,168,76,0.08)" : "transparent",
             border: "none",
             cursor: "pointer",
             textAlign: "left",
-            borderBottom: "1px solid rgba(255,255,255,0.04)",
-            transition: "background 0.12s",
+            borderBottom: "1px solid rgba(255,255,255,0.03)",
+            borderLeft: selectedCountry === "all" ? "2px solid #c9a84c" : "2px solid transparent",
+            transition: "all 0.12s",
+            fontFamily: "'Inter', sans-serif",
           }}
         >
           <span>All Regions</span>
-          <span style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: selectedCountry === "all" ? "#34d399" : "#64748b",
-            background: selectedCountry === "all" ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.05)",
-            padding: "1px 6px",
-            borderRadius: 4,
-          }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: selectedCountry === "all" ? "#c9a84c" : "#2a2a3d",
+              background: selectedCountry === "all" ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.04)",
+              padding: "1px 6px",
+              borderRadius: 4,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
             {totalCount}
           </span>
         </button>
 
+        {/* Country list */}
         {countries.map((country) => (
           <button
             key={country}
@@ -99,27 +111,34 @@ export default function MatchFilterBar({
               alignItems: "center",
               padding: "8px 14px",
               fontSize: 12,
-              fontWeight: selectedCountry === country ? 800 : 400,
-              color: selectedCountry === country ? "#ffffff" : "#94a3b8",
-              background: selectedCountry === country ? "rgba(99, 102, 241, 0.15)" : "transparent",
+              fontWeight: selectedCountry === country ? 600 : 400,
+              color: selectedCountry === country ? "#f5f3ee" : "#484858",
+              background: selectedCountry === country ? "rgba(201,168,76,0.06)" : "transparent",
               border: "none",
-              borderBottom: "1px solid rgba(255,255,255,0.03)",
+              borderBottom: "1px solid rgba(255,255,255,0.02)",
+              borderLeft: selectedCountry === country ? "2px solid #c9a84c" : "2px solid transparent",
               cursor: "pointer",
               textAlign: "left",
-              transition: "background 0.12s",
+              transition: "all 0.12s",
+              fontFamily: "'Inter', sans-serif",
             }}
           >
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 115 }}>{country}</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 115 }}>
+              {country}
+            </span>
             {countryCounts[country] !== undefined && (
-              <span style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: selectedCountry === country ? "#34d399" : "#64748b",
-                flexShrink: 0,
-                background: selectedCountry === country ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.04)",
-                padding: "1px 6px",
-                borderRadius: 4,
-              }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: selectedCountry === country ? "#c9a84c" : "#2a2a3d",
+                  flexShrink: 0,
+                  background: selectedCountry === country ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.03)",
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
                 {countryCounts[country]}
               </span>
             )}
@@ -127,21 +146,23 @@ export default function MatchFilterBar({
         ))}
       </div>
 
-      {/* ── Main Content Toolbar ── */}
+      {/* ── Main toolbar ── */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-          {/* Search Box with Search icon */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 14px",
-            background: "rgba(12, 15, 36, 0.9)",
-            border: "1px solid rgba(99, 102, 241, 0.2)",
-            borderRadius: 8,
-            width: 260,
-          }}>
-            <Search style={{ width: 14, height: 14, color: "#818cf8" }} />
+          {/* Search */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 14px",
+              background: "rgba(15,15,26,0.95)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 8,
+              width: 260,
+            }}
+          >
+            <Search style={{ width: 13, height: 13, color: "#484858" }} />
             <input
               type="text"
               placeholder="Search teams, leagues..."
@@ -151,9 +172,10 @@ export default function MatchFilterBar({
                 background: "transparent",
                 border: "none",
                 fontSize: 12,
-                color: "#f8fafc",
+                color: "#f5f3ee",
                 outline: "none",
                 width: "100%",
+                fontFamily: "'Inter', sans-serif",
               }}
             />
           </div>

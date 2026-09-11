@@ -23,7 +23,7 @@ export default function HowItWorks() {
       style={{
         position: "relative",
         padding: "80px 16px 100px",
-        background: "radial-gradient(ellipse at 50% 30%, rgba(99, 102, 241, 0.08) 0%, rgba(15, 18, 38, 0.6) 50%, transparent 80%)",
+        background: "transparent",
         overflow: "hidden",
       }}
     >
@@ -87,8 +87,8 @@ export default function HowItWorks() {
         }
 
         @keyframes neuralNodePulse1 {
-          0%, 100% { fill: #6366f1; r: 4; }
-          25% { fill: #a5b4fc; r: 5.5; }
+          0%, 100% { fill: #c9a84c; r: 4; }
+          25% { fill: #e2c475; r: 5.5; }
         }
 
         @keyframes neuralNodePulse2 {
@@ -143,7 +143,7 @@ export default function HowItWorks() {
       `}} />
 
       {/* Decorative top ambient glow */}
-      <div 
+      <div
         style={{
           position: "absolute",
           top: "10%",
@@ -151,10 +151,10 @@ export default function HowItWorks() {
           transform: "translateX(-50%)",
           width: "800px",
           height: "350px",
-          background: "radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.05) 45%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)",
           filter: "blur(80px)",
           pointerEvents: "none",
-        }} 
+        }}
       />
 
       <div style={{ maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 2 }}>
@@ -166,20 +166,19 @@ export default function HowItWorks() {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              fontSize: 12,
-              fontWeight: 800,
+              fontSize: 11,
+              fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.12em",
-              color: "#818cf8",
-              background: "rgba(99, 102, 241, 0.1)",
-              border: "1px solid rgba(99, 102, 241, 0.25)",
+              color: "#c9a84c",
+              background: "rgba(201,168,76,0.07)",
+              border: "1px solid rgba(201,168,76,0.2)",
               padding: "6px 16px",
               borderRadius: 999,
               marginBottom: 16,
-              boxShadow: "0 0 20px rgba(99, 102, 241, 0.15)",
             }}
           >
-            <Sparkles style={{ width: 14, height: 14, color: "#818cf8" }} />
+            <Sparkles style={{ width: 13, height: 13, color: "#c9a84c" }} />
             <span>BEHIND THE AI PREDICTIONS</span>
           </div>
 
@@ -224,17 +223,17 @@ export default function HowItWorks() {
             onMouseEnter={() => setHoveredCard(1)}
             onMouseLeave={() => setHoveredCard(null)}
             style={{
-              background: "linear-gradient(180deg, rgba(21, 26, 56, 0.85) 0%, rgba(14, 17, 39, 0.95) 100%)",
-              border: hoveredCard === 1 
-                ? "1px solid rgba(139, 92, 246, 0.55)" 
-                : "1px solid rgba(99, 102, 241, 0.2)",
-              borderRadius: 18,
+              background: "rgba(15,15,26,0.95)",
+              border: hoveredCard === 1
+                ? "1px solid rgba(201,168,76,0.35)"
+                : "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 16,
               padding: "28px 24px",
               display: "flex",
               flexDirection: "column",
-              boxShadow: hoveredCard === 1 
-                ? "0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.2)" 
-                : "0 10px 30px rgba(0, 0, 0, 0.4)",
+              boxShadow: hoveredCard === 1
+                ? "0 16px 40px rgba(0,0,0,0.6), 0 0 24px rgba(201,168,76,0.1)"
+                : "0 8px 24px rgba(0,0,0,0.4)",
               transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
               transform: hoveredCard === 1 ? "translateY(-4px)" : "translateY(0)",
               position: "relative",
@@ -246,14 +245,14 @@ export default function HowItWorks() {
               <span 
                 style={{
                   display: "inline-block",
-                  padding: "5px 12px",
-                  borderRadius: 6,
-                  background: "linear-gradient(135deg, #7065f0 0%, #5d50e6 100%)",
-                  color: "#ffffff",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.06em",
-                  boxShadow: "0 2px 10px rgba(112, 101, 240, 0.35)",
+                  padding: "4px 12px",
+                  borderRadius: 5,
+                  background: "rgba(201,168,76,0.1)",
+                  border: "1px solid rgba(201,168,76,0.25)",
+                  color: "#c9a84c",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
                 }}
               >
                 STEP 01

@@ -10,7 +10,7 @@ interface DateSelectorProps {
 function getDateLabel(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
@@ -26,19 +26,21 @@ const DATE_OPTIONS = [
 
 export default function DateSelector({ currentD, onSelectD }: DateSelectorProps) {
   return (
-    <div style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      background: "rgba(20, 25, 56, 0.92)",
-      border: "1px solid rgba(168, 85, 247, 0.24)",
-      borderRadius: 10,
-      padding: "4px",
-      overflowX: "auto",
-      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4), 0 0 16px rgba(139, 92, 246, 0.06)",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "0 6px", color: "#c084fc" }}>
-        <Calendar style={{ width: 14, height: 14 }} />
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        background: "rgba(15,15,26,0.95)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 9,
+        padding: "3px",
+        overflowX: "auto",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", padding: "0 8px", color: "#484858" }}>
+        <Calendar style={{ width: 13, height: 13 }} />
       </div>
       {DATE_OPTIONS.map((item) => {
         const isActive = currentD === item.d;
@@ -48,17 +50,18 @@ export default function DateSelector({ currentD, onSelectD }: DateSelectorProps)
             onClick={() => onSelectD(item.d)}
             style={{
               padding: "6px 14px",
-              borderRadius: 8,
+              borderRadius: 7,
               fontSize: 12,
-              fontWeight: isActive ? 800 : 600,
-              color: isActive ? "#ffffff" : "#a5b4fc",
-              background: isActive ? "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)" : "transparent",
-              border: isActive ? "1px solid rgba(255, 255, 255, 0.25)" : "1px solid transparent",
-              boxShadow: isActive ? "0 2px 12px rgba(139, 92, 246, 0.4)" : "none",
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? "#09090f" : "#8a8a9a",
+              background: isActive ? "#c9a84c" : "transparent",
+              border: isActive ? "1px solid #c9a84c" : "1px solid transparent",
+              boxShadow: isActive ? "0 2px 12px rgba(201,168,76,0.3)" : "none",
               cursor: "pointer",
               whiteSpace: "nowrap",
               transition: "all 0.15s ease",
               flexShrink: 0,
+              fontFamily: "'Inter', sans-serif",
             }}
           >
             {item.label}
