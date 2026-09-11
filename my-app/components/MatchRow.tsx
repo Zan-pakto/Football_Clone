@@ -142,25 +142,25 @@ export default function MatchRow({ match }: MatchRowProps) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="match-row-item block text-inherit no-underline transition-all duration-150"
+      className="match-row-item block text-inherit no-underline transition-all duration-200"
       style={{
         position: "relative",
         background: isLive
           ? "var(--accent-green-bg)"
           : "var(--bg-card)",
-        borderLeft: `3px solid ${accentColor}`,
+        borderLeft: isLive ? "2px solid var(--accent-green)" : isOverallWon ? "2px solid var(--accent-green)" : isOverallLost ? "2px solid var(--accent-red)" : "2px solid transparent",
         borderBottom: "none",
       }}
     >
       {/* ── Desktop Row Grid ── */}
       <div
-        className="match-desktop"
+        className="match-desktop tabular-nums"
         style={{
           display: "grid",
-          gridTemplateColumns: "60px minmax(200px, 1.3fr) 140px 88px 92px 76px 110px 76px",
+          gridTemplateColumns: "64px minmax(200px, 1.3fr) 140px 88px 92px 76px 110px 76px",
           alignItems: "center",
           padding: "10px 18px",
-          minHeight: 60,
+          minHeight: 62,
           gap: 0,
         }}
       >

@@ -149,7 +149,7 @@ html.dark,
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GLOBAL BASE STYLES
+   GLOBAL BASE STYLES & BROWSER SURFACES (Impeccable Craft Floor)
    ══════════════════════════════════════════════════════════════ */
 
 * {
@@ -171,12 +171,13 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
+  line-height: 1.6;
   letter-spacing: -0.01em;
   overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Custom Scrollbars ── */
+/* ── Custom Themed Scrollbars ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -187,20 +188,34 @@ html, body {
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 999px;
+  transition: background 0.15s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gold);
 }
 
+/* ── Themed Browser Selection & Caret ── */
+::selection {
+  background-color: var(--gold-bg);
+  color: var(--text-gold);
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 /* ── Typography Defaults ── */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--foreground);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
 }
 
 p {
   color: var(--text-secondary);
+  line-height: 1.65;
 }
 
 a {
@@ -213,26 +228,30 @@ button, input, select, textarea {
   color: inherit;
 }
 
-/* ── Selection Color ── */
-::selection {
-  background-color: var(--gold-bg);
-  color: var(--gold);
+/* ── Tabular Numerals for Financial/Sports Accuracy ── */
+.tabular-nums,
+table,
+.match-row-item,
+[data-odds],
+.stat-number {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   COMMON UTILITY CLASSES
+   COMMON LUXURY UTILITY CLASSES
    ══════════════════════════════════════════════════════════════ */
 
 .luxury-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: var(--shadow-card);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .luxury-card:hover {
   border-color: var(--gold-border);
+  box-shadow: var(--shadow-card), 0 0 20px var(--gold-glow);
 }
 
 .gold-btn {
@@ -246,33 +265,46 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-glow);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px var(--gold-glow);
+  letter-spacing: -0.01em;
 }
 
 .gold-btn:hover {
   transform: translateY(-1px);
-  filter: brightness(1.08);
+  box-shadow: 0 6px 24px var(--gold-glow);
+  filter: brightness(1.06);
+}
+
+.gold-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .gold-outline-btn {
   background: var(--gold-bg);
   color: var(--gold);
   border: 1px solid var(--gold-border);
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: -0.01em;
 }
 
 .gold-outline-btn:hover {
   background: var(--gold);
   color: var(--gold-btn-text);
   border-color: var(--gold);
+  box-shadow: 0 4px 16px var(--gold-glow);
+  transform: translateY(-1px);
+}
+
+.gold-outline-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .gold-badge {
@@ -283,10 +315,10 @@ button, input, select, textarea {
   border-radius: 999px;
   background: var(--gold-bg);
   border: 1px solid var(--gold-border);
-  color: var(--gold);
+  color: var(--text-gold);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -294,20 +326,22 @@ button, input, select, textarea {
   background: var(--accent-green-bg);
   border: 1px solid var(--accent-green-border);
   color: var(--accent-green);
-  font-weight: 700;
+  font-weight: 800;
   padding: 3px 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .status-pill-lost {
   background: var(--accent-red-bg);
   border: 1px solid var(--accent-red-border);
   color: var(--accent-red);
-  font-weight: 700;
+  font-weight: 800;
   padding: 3px 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 /* ── Custom Range Slider ── */
@@ -341,13 +375,28 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* ── Global Animation Helpers ── */
 @keyframes pulseGold {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+    box-shadow: 0 0 0 0 rgba(180, 130, 20, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+    box-shadow: 0 0 0 8px rgba(180, 130, 20, 0);
   }
 }
 
 .pulse-gold {
   animation: pulseGold 2s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+.live-pulse {
+  animation: livePulse 1.8s ease-in-out infinite;
 }
