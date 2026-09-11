@@ -40,7 +40,7 @@ export default function GlobalLoading() {
         />
       </div>
 
-      {/* Central card */}
+      {/* Central card - Stable constant dimensions */}
       <div
         style={{
           display: "flex",
@@ -50,11 +50,15 @@ export default function GlobalLoading() {
           padding: "36px 44px",
           background: "var(--surface)",
           border: "1px solid var(--gold-border)",
-          borderRadius: 20,
+          borderRadius: 22,
           boxShadow: "0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px var(--gold-border)",
           textAlign: "center",
+          width: "100%",
           maxWidth: 380,
+          minHeight: 230,
+          boxSizing: "border-box",
           margin: "0 20px",
+          transform: "none",
         }}
       >
         {/* Brand emblem */}

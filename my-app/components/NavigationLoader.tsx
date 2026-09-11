@@ -143,23 +143,25 @@ function NavigationLoaderContent() {
         />
       </div>
 
-      {/* Central Luxury Card */}
+      {/* Central Luxury Card - Stable constant dimensions */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: 20,
-          padding: "38px 46px",
+          padding: "36px 44px",
           background: "var(--surface)",
           border: "1px solid var(--gold-border)",
           borderRadius: 22,
           boxShadow: "0 28px 70px rgba(0,0,0,0.18), 0 0 0 1px var(--gold-border)",
           textAlign: "center",
+          width: "100%",
           maxWidth: 380,
+          minHeight: 230,
+          boxSizing: "border-box",
           margin: "0 20px",
-          transform: isNavigating ? "scale(1)" : "scale(0.96)",
-          transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: "none",
         }}
       >
         {/* Animated Gold Emblem */}
