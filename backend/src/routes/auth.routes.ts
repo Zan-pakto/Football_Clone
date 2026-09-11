@@ -31,10 +31,36 @@ router.get("/", async (req: Request, res: Response) => {
 // POST /api/auth
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const body = req.body || {};
-    const { action, name } = body;
-    const email = (body.email || body.loginIdentifier || body.username || "").trim().toLowerCase();
-    const password = body.password || "";
+    let body = req.body || {};
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
+
+    const action = (body.action || (req.query.action as string) || "login").toString().toLowerCase();
+    const name = body.name || "";
+    const email = (
+      body.email ||
+      body.loginIdentifier ||
+      body.username ||
+      body.identifier ||
+      body.user ||
+      (req.query.email as string) ||
+      ""
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    const password = (
+      body.password ||
+      body.pass ||
+      (req.query.password as string) ||
+      ""
+    ).toString();
 
     const userAgent = (req.headers["user-agent"] as string) || "Browser";
     const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";

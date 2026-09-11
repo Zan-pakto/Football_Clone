@@ -44,6 +44,17 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.text({ type: ["text/*", "application/json"], limit: "10mb" }));
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  if (typeof req.body === "string" && req.body.trim().startsWith("{")) {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch {
+      // Keep as-is
+    }
+  }
+  next();
+});
 
 // Request Logger Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {

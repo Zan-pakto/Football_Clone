@@ -120,7 +120,8 @@ export default function AdminDashboardPage() {
         credentials: "include",
         body: JSON.stringify({
           action: "login",
-          loginIdentifier: loginEmail.trim(),
+          email: loginEmail.trim().toLowerCase(),
+          loginIdentifier: loginEmail.trim().toLowerCase(),
           password: loginPassword,
         }),
       });
