@@ -110,10 +110,10 @@ export default function BetOfTheDayPage() {
       const displayConf = Math.min(10, Math.max(7, Math.round(confNum / 10)));
 
       const pick1x2 = m.predictions?.pickScore?.pick || "1";
-      const pickGoals = m.predictions?.goals?.pick || "O2.5";
-      const pickBtts = m.predictions?.btts?.pick || "Yes";
-      const best = m.predictions?.bestTip?.pick || pick1x2;
-      const bestOdd = m.predictions?.bestTip?.odd || m.odds.home || "1.65";
+      const pickGoals = m.predictions?.goals?.pick || "Under 2.5";
+      const pickBtts = m.predictions?.btts?.pick || "No";
+      const best = m.predictions?.bestTip?.pick || "Under 2.5";
+      const bestOdd = m.predictions?.bestTip?.odd || m.odds?.home || "1.95";
 
       return {
         id: m.id,
@@ -126,16 +126,16 @@ export default function BetOfTheDayPage() {
         awayLogoColor: getDeterministicColor(m.awayTeam),
         homeScore: m.homeScore !== null ? Number(m.homeScore) : undefined,
         awayScore: m.awayScore !== null ? Number(m.awayScore) : undefined,
-        odds1: m.odds?.home || "1.85",
+        odds1: m.odds?.home || "1.50",
         oddsX: m.odds?.draw || "3.40",
         odds2: m.odds?.away || "4.10",
-        market1X2: `${pick1x2} - ${m.odds?.home || "1.85"}`,
-        marketOU: `${pickGoals} - ${m.predictions?.goals?.odd || "1.75"}`,
-        marketBTTS: `${pickBtts} - ${m.predictions?.btts?.odd || "1.80"}`,
+        market1X2: `${pick1x2} - ${m.odds?.home || "1.50"}`,
+        marketOU: `${pickGoals} - ${m.predictions?.goals?.odd || "1.95"}`,
+        marketBTTS: `${pickBtts} - ${m.predictions?.btts?.odd || "1.90"}`,
         bestTip: best,
         bestTipOdd: bestOdd,
         confidence: displayConf,
-        isLocked: idx >= 2, // First 2 banker picks free, others VIP
+        isLocked: idx >= 3,
       };
     });
   }, [rawMatches]);
@@ -148,40 +148,43 @@ export default function BetOfTheDayPage() {
     return matches.slice(0, 3).map((m) => ({
       match: `${m.homeTeam} vs ${m.awayTeam}`,
       pick: `${m.bestTip} (${m.bestTipOdd})`,
-      odd: parseFloat(m.bestTipOdd) || 1.45,
+      odds: parseFloat(m.bestTipOdd) || 1.85,
     }));
   }, [matches]);
 
-  const totalSlipOdds = useMemo(() => {
-    if (topSlipPicks.length === 0) return 2.15;
-    const mult = topSlipPicks.reduce((acc, p) => acc * p.odd, 1);
-    return Number(mult.toFixed(2));
+  const combinedOdds = useMemo(() => {
+    if (topSlipPicks.length === 0) return 5.85;
+    return parseFloat(topSlipPicks.reduce((acc, curr) => acc * curr.odds, 1).toFixed(2));
   }, [topSlipPicks]);
 
-  const potentialReturn = (stake * totalSlipOdds).toFixed(2);
+  const potentialWin = useMemo(() => {
+    return (stake * combinedOdds).toFixed(2);
+  }, [stake, combinedOdds]);
 
   const handleCopySlip = () => {
-    const text = topSlipPicks.map((p) => `${p.match} -> ${p.pick}`).join(" | ");
-    navigator.clipboard.writeText(`JollofTips Banker Slip: ${text} @ Total Odds ${totalSlipOdds}`);
+    const text = topSlipPicks
+      .map((p, i) => `${i + 1}. ${p.match} -> Pick: ${p.pick}`)
+      .join("\n");
+    const full = `🔥 JollofTips Banker Slip of the Day (Total Odds: ${combinedOdds}):\n${text}\n\nStake: $${stake} | Potential Win: $${potentialWin}`;
+    navigator.clipboard.writeText(full);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "transparent", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "var(--background)" }}>
       <Navbar />
 
-      <main style={{ flex: 1, maxWidth: 1200, width: "100%", margin: "0 auto", padding: "84px 16px 80px" }}>
-        
-        {/* ── Top Date Tabs ── */}
+      <main style={{ maxWidth: 1320, margin: "0 auto", padding: "28px 20px 80px" }}>
+        {/* ── Date Pills ── */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
+            gap: 10,
             flexWrap: "wrap",
-            marginBottom: 24,
+            marginBottom: 28,
           }}
         >
           {DATES.map((d) => {
@@ -193,14 +196,14 @@ export default function BetOfTheDayPage() {
                 style={{
                   padding: "8px 20px",
                   borderRadius: 999,
-                  border: isSelected ? "1px solid #8b5cf6" : "1px solid transparent",
-                  background: isSelected ? "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)" : "transparent",
-                  color: isSelected ? "#ffffff" : "#94a3b8",
+                  border: isSelected ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                  background: isSelected ? "var(--gold)" : "var(--bg-card)",
+                  color: isSelected ? "var(--gold-btn-text)" : "var(--text-secondary)",
                   fontSize: 13,
                   fontWeight: isSelected ? 800 : 600,
                   cursor: "pointer",
-                  boxShadow: isSelected ? "0 4px 16px rgba(124, 58, 237, 0.4)" : "none",
-                  transition: "all 0.15s ease",
+                  boxShadow: isSelected ? "0 4px 16px var(--gold-glow)" : "none",
+                  transition: "all 0.2s ease",
                 }}
               >
                 {d.label}
@@ -209,53 +212,49 @@ export default function BetOfTheDayPage() {
           })}
         </div>
 
-        {/* ── Warning / Free Tip Notice Banner ── */}
+        {/* ── Notice Banner ── */}
         {!bannerDismissed && (
           <div
             style={{
-              background: "rgba(20, 25, 56, 0.85)",
-              border: "1px solid rgba(168, 85, 247, 0.25)",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--gold-border)",
               borderRadius: 14,
-              padding: "14px 18px",
+              padding: "14px 20px",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 14,
-              marginBottom: 20,
-              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
+              marginBottom: 24,
+              boxShadow: "var(--shadow-card)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  background: "rgba(168, 85, 247, 0.15)",
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "var(--gold-bg)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#c084fc",
+                  color: "var(--gold)",
                 }}
               >
-                <Rocket style={{ width: 16, height: 16 }} />
+                <Rocket size={18} />
               </div>
-              <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0, fontWeight: 500 }}>
-                Predictions are locked without a subscription, but you can enjoy the selection of free tips.
+              <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0, fontWeight: 500 }}>
+                High-confidence banker predictions are verified daily by the JollofTips algorithmic engine.
               </p>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Link
                 href="/pricing"
+                className="gold-btn"
                 style={{
                   padding: "6px 14px",
-                  borderRadius: 8,
-                  background: "rgba(139, 92, 246, 0.2)",
-                  border: "1px solid rgba(168, 85, 247, 0.4)",
-                  color: "#c084fc",
                   fontSize: 12,
-                  fontWeight: 800,
                   textDecoration: "none",
                   whiteSpace: "nowrap",
                 }}
@@ -267,7 +266,7 @@ export default function BetOfTheDayPage() {
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#64748b",
+                  color: "var(--text-dim)",
                   cursor: "pointer",
                   padding: 4,
                   display: "flex",
@@ -275,7 +274,7 @@ export default function BetOfTheDayPage() {
                   justifyContent: "center",
                 }}
               >
-                <X style={{ width: 16, height: 16 }} />
+                <X size={16} />
               </button>
             </div>
           </div>
@@ -285,145 +284,113 @@ export default function BetOfTheDayPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: 16,
-            marginBottom: 20,
+            marginBottom: 24,
           }}
         >
           {/* Card 1: BANKERS */}
           <div
+            className="luxury-card"
             style={{
-              background: "rgba(20, 25, 56, 0.9)",
-              border: "1px solid rgba(168, 85, 247, 0.22)",
-              borderRadius: 16,
               padding: "20px 24px",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
               BANKERS
-            </span>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>
-              {bankerCount}
-            </span>
-            <Layers
-              style={{
-                position: "absolute",
-                right: 18,
-                bottom: 14,
-                width: 44,
-                height: 44,
-                color: "rgba(168, 85, 247, 0.12)",
-              }}
-            />
+            </p>
+            <p style={{ fontSize: 32, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+              {loading ? "..." : bankerCount}
+            </p>
+            <div style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "var(--border-strong)", opacity: 0.6 }}>
+              <Layers size={36} />
+            </div>
           </div>
 
           {/* Card 2: UPCOMING */}
           <div
+            className="luxury-card"
             style={{
-              background: "rgba(20, 25, 56, 0.9)",
-              border: "1px solid rgba(168, 85, 247, 0.22)",
-              borderRadius: 16,
               padding: "20px 24px",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
               UPCOMING
-            </span>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>
-              {upcomingCount}
-            </span>
-            <Clock
-              style={{
-                position: "absolute",
-                right: 18,
-                bottom: 14,
-                width: 44,
-                height: 44,
-                color: "rgba(168, 85, 247, 0.12)",
-              }}
-            />
+            </p>
+            <p style={{ fontSize: 32, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+              {loading ? "..." : upcomingCount}
+            </p>
+            <div style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "var(--border-strong)", opacity: 0.6 }}>
+              <Clock size={36} />
+            </div>
           </div>
 
-          {/* Card 3: SUCCESS */}
+          {/* Card 3: SUCCESS RATE */}
           <div
+            className="luxury-card"
             style={{
-              background: "rgba(20, 25, 56, 0.9)",
-              border: "1px solid rgba(168, 85, 247, 0.22)",
-              borderRadius: 16,
               padding: "20px 24px",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
-              SUCCESS
-            </span>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+              SUCCESS RATE
+            </p>
+            <p style={{ fontSize: 32, fontWeight: 900, color: "var(--accent-green)", margin: 0 }}>
               {successRate}
-            </span>
-            <TrendingUp
-              style={{
-                position: "absolute",
-                right: 18,
-                bottom: 14,
-                width: 44,
-                height: 44,
-                color: "rgba(168, 85, 247, 0.12)",
-              }}
-            />
+            </p>
+            <div style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", color: "var(--accent-green)", opacity: 0.3 }}>
+              <TrendingUp size={36} />
+            </div>
           </div>
         </div>
 
-        {/* ── Sub-Tabs Bar: Bankers vs Slip of the Day ── */}
+        {/* ── Sub Navigation Tabs ── */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "rgba(15, 18, 44, 0.95)",
-            border: "1px solid rgba(168, 85, 247, 0.2)",
-            borderRadius: 14,
-            padding: 5,
-            marginBottom: 16,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 12,
+            padding: 6,
+            marginBottom: 20,
           }}
         >
-          <div style={{ display: "flex", gap: 6, flex: 1, maxWidth: 440 }}>
+          <div style={{ display: "flex", gap: 6 }}>
             <button
               onClick={() => setActiveTab("bankers")}
               style={{
-                flex: 1,
-                padding: "10px 18px",
-                borderRadius: 10,
+                padding: "8px 24px",
+                borderRadius: 8,
                 border: "none",
-                background: activeTab === "bankers" ? "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)" : "transparent",
-                color: activeTab === "bankers" ? "#ffffff" : "#94a3b8",
+                background: activeTab === "bankers" ? "var(--gold)" : "transparent",
+                color: activeTab === "bankers" ? "var(--gold-btn-text)" : "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: activeTab === "bankers" ? "0 4px 14px rgba(124, 58, 237, 0.4)" : "none",
                 transition: "all 0.15s ease",
               }}
             >
-              Bankers
+              Bankers ({bankerCount})
             </button>
-
             <button
               onClick={() => setActiveTab("slip")}
               style={{
-                flex: 1,
-                padding: "10px 18px",
-                borderRadius: 10,
+                padding: "8px 24px",
+                borderRadius: 8,
                 border: "none",
-                background: activeTab === "slip" ? "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)" : "transparent",
-                color: activeTab === "slip" ? "#ffffff" : "#94a3b8",
+                background: activeTab === "slip" ? "var(--gold)" : "transparent",
+                color: activeTab === "slip" ? "var(--gold-btn-text)" : "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: activeTab === "slip" ? "0 4px 14px rgba(124, 58, 237, 0.4)" : "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -433,411 +400,327 @@ export default function BetOfTheDayPage() {
 
           <button
             onClick={() => setShowInfoModal(true)}
+            title="Algorithm confidence info"
             style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              width: 32,
+              height: 32,
               borderRadius: 8,
-              padding: "7px 10px",
-              color: "#94a3b8",
-              cursor: "pointer",
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              color: "var(--text-secondary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginRight: 4,
+              cursor: "pointer",
+              marginRight: 6,
             }}
           >
-            <Info style={{ width: 16, height: 16 }} />
+            <Info size={16} />
           </button>
         </div>
 
-        {/* ════════ TAB 1: BANKERS TABLE ════════ */}
+        {/* ── View 1: Bankers Table ── */}
         {activeTab === "bankers" && (
           <div
+            className="luxury-card"
             style={{
-              background: "rgba(20, 25, 56, 0.92)",
-              border: "1px solid rgba(168, 85, 247, 0.22)",
-              borderRadius: 16,
               overflow: "hidden",
-              boxShadow: "0 12px 35px rgba(0, 0, 0, 0.45)",
             }}
           >
-            {/* Table Header */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "70px 1.4fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 80px",
-                padding: "12px 18px",
-                background: "rgba(12, 16, 40, 0.9)",
-                borderBottom: "1px solid rgba(168, 85, 247, 0.16)",
-                fontSize: 10.5,
-                fontWeight: 800,
-                color: "#64748b",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                alignItems: "center",
-              }}
-            >
-              <div>HOUR</div>
-              <div>MATCHES</div>
-              <div style={{ textAlign: "center", display: "flex", justifyContent: "center", gap: 32 }}>
-                <span>1</span>
-                <span>X</span>
-                <span>2</span>
-              </div>
-              <div style={{ textAlign: "center" }}>1X2</div>
-              <div style={{ textAlign: "center" }}>O/U</div>
-              <div style={{ textAlign: "center" }}>BTTS</div>
-              <div style={{ textAlign: "center" }}>BEST TIP</div>
-              <div style={{ textAlign: "center" }}>CONFIDENCE</div>
-            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                <thead>
+                  <tr
+                    style={{
+                      background: "var(--surface-raised)",
+                      borderBottom: "1px solid var(--border-color)",
+                      color: "var(--text-dim)",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    <th style={{ padding: "14px 18px", width: 90 }}>Hour</th>
+                    <th style={{ padding: "14px 18px" }}>Matches</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 140 }}>1 &nbsp; X &nbsp; 2</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 100 }}>1X2</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 110 }}>O/U</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 100 }}>BTTS</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 130 }}>Best Tip</th>
+                    <th style={{ padding: "14px 18px", textAlign: "center", width: 90 }}>Conf</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} style={{ padding: "60px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--gold)" }} />
+                        Loading high-confidence banker selections...
+                      </td>
+                    </tr>
+                  ) : matches.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ padding: "60px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
+                        No bankers available for this date. Check tomorrow or yesterday.
+                      </td>
+                    </tr>
+                  ) : (
+                    matches.map((m, idx) => (
+                      <tr
+                        key={m.id || idx}
+                        style={{
+                          borderBottom: "1px solid var(--border-subtle)",
+                          background: idx % 2 === 0 ? "transparent" : "var(--surface-raised)",
+                          transition: "background 0.15s ease",
+                        }}
+                      >
+                        {/* Hour */}
+                        <td style={{ padding: "14px 18px", fontWeight: 700, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                          {m.hour}
+                        </td>
 
-            {/* Table Rows */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {matches.map((m, idx) => (
-                <div
-                  key={m.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "70px 1.4fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 80px",
-                    padding: "16px 18px",
-                    borderBottom: idx === matches.length - 1 ? "none" : "1px solid rgba(168, 85, 247, 0.12)",
-                    alignItems: "center",
-                    background: idx % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.015)",
-                    transition: "background 0.12s ease",
-                  }}
-                >
-                  {/* Column 1: Hour */}
-                  <div style={{ fontSize: 12, fontWeight: 800, color: m.hour === "FT" ? "#94a3b8" : "#cbd5e1" }}>
-                    {m.hour}
-                  </div>
+                        {/* Fixture */}
+                        <td style={{ padding: "14px 18px" }}>
+                          <Link href={`/match/${m.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: m.homeLogoColor }} />
+                                <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{m.homeTeam}</span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: m.awayLogoColor }} />
+                                <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{m.awayTeam}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        </td>
 
-                  {/* Column 2: Matches & Scores */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: m.homeLogoColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{m.homeTeam}</span>
-                      </div>
-                      {m.homeScore !== undefined && (
-                        <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{m.homeScore}</span>
-                      )}
-                    </div>
+                        {/* 1 X 2 odds */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <div style={{ display: "inline-flex", gap: 4, background: "var(--odds-box-bg)", padding: "3px 6px", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)" }}>{m.odds1}</span>
+                            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>·</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)" }}>{m.oddsX}</span>
+                            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>·</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)" }}>{m.odds2}</span>
+                          </div>
+                        </td>
 
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: m.awayLogoColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{m.awayTeam}</span>
-                      </div>
-                      {m.awayScore !== undefined && (
-                        <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{m.awayScore}</span>
-                      )}
-                    </div>
-                  </div>
+                        {/* 1X2 Market */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <span style={{ padding: "4px 8px", borderRadius: 6, background: "var(--surface-raised)", border: "1px solid var(--border-color)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+                            {m.market1X2}
+                          </span>
+                        </td>
 
-                  {/* Column 3: 1 X 2 Odds */}
-                  <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
-                    <div style={{
-                      background: "rgba(10, 14, 35, 0.8)",
-                      border: "1px solid rgba(168, 85, 247, 0.2)",
-                      borderRadius: 6,
-                      padding: "5px 8px",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: "#c7d2fe",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}>
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#6366f1" }} />
-                      <span>{m.odds1}</span>
-                    </div>
+                        {/* O/U */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <span style={{ padding: "4px 8px", borderRadius: 6, background: "var(--surface-raised)", border: "1px solid var(--border-color)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+                            {m.marketOU}
+                          </span>
+                        </td>
 
-                    <div style={{
-                      background: "rgba(10, 14, 35, 0.8)",
-                      border: "1px solid rgba(168, 85, 247, 0.2)",
-                      borderRadius: 6,
-                      padding: "5px 8px",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: "#c7d2fe",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}>
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#6366f1" }} />
-                      <span>{m.oddsX}</span>
-                    </div>
+                        {/* BTTS */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <span style={{ padding: "4px 8px", borderRadius: 6, background: "var(--surface-raised)", border: "1px solid var(--border-color)", fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+                            {m.marketBTTS}
+                          </span>
+                        </td>
 
-                    <div style={{
-                      background: "rgba(10, 14, 35, 0.8)",
-                      border: "1px solid rgba(168, 85, 247, 0.2)",
-                      borderRadius: 6,
-                      padding: "5px 8px",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: "#c7d2fe",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}>
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#6366f1" }} />
-                      <span>{m.odds2}</span>
-                    </div>
-                  </div>
+                        {/* BEST TIP (Gold Highlight) */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <span
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              background: "var(--gold-bg)",
+                              border: "1px solid var(--gold-border)",
+                              color: "var(--gold)",
+                              fontWeight: 800,
+                              fontSize: 12,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Sparkles size={12} />
+                            {m.bestTip} - {m.bestTipOdd}
+                          </span>
+                        </td>
 
-                  {/* Column 4: 1X2 */}
-                  <div style={{ textAlign: "center" }}>
-                    {m.isLocked ? (
-                      <div style={{ background: "rgba(139, 92, 246, 0.2)", height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock style={{ width: 12, height: 12, color: "#a855f7" }} />
-                      </div>
-                    ) : (
-                      <div style={{ background: "rgba(139, 92, 246, 0.18)", border: "1px solid rgba(168, 85, 247, 0.35)", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 800, color: "#ffffff" }}>
-                        {m.market1X2}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column 5: O/U */}
-                  <div style={{ textAlign: "center" }}>
-                    {m.isLocked ? (
-                      <div style={{ background: "rgba(139, 92, 246, 0.2)", height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock style={{ width: 12, height: 12, color: "#a855f7" }} />
-                      </div>
-                    ) : (
-                      <div style={{ background: "rgba(139, 92, 246, 0.18)", border: "1px solid rgba(168, 85, 247, 0.35)", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 800, color: "#ffffff" }}>
-                        {m.marketOU}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column 6: BTTS */}
-                  <div style={{ textAlign: "center" }}>
-                    {m.isLocked ? (
-                      <div style={{ background: "rgba(139, 92, 246, 0.2)", height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock style={{ width: 12, height: 12, color: "#a855f7" }} />
-                      </div>
-                    ) : (
-                      <div style={{ background: "rgba(139, 92, 246, 0.18)", border: "1px solid rgba(168, 85, 247, 0.35)", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 800, color: "#ffffff" }}>
-                        {m.marketBTTS}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column 7: BEST TIP */}
-                  <div style={{ textAlign: "center" }}>
-                    {m.isLocked ? (
-                      <div style={{ background: "rgba(139, 92, 246, 0.25)", height: 26, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Lock style={{ width: 12, height: 12, color: "#a855f7" }} />
-                      </div>
-                    ) : (
-                      <div style={{ background: "rgba(168, 85, 247, 0.25)", border: "1px solid #a855f7", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 900, color: "#ffffff" }}>
-                        {m.bestTip} - {m.bestTipOdd}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Column 8: CONFIDENCE */}
-                  <div style={{ textAlign: "center", fontSize: 14, fontWeight: 900, color: "#10b981" }}>
-                    {m.confidence}
-                  </div>
-
-                </div>
-              ))}
+                        {/* Confidence Score */}
+                        <td style={{ padding: "14px 18px", textAlign: "center" }}>
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 900,
+                              color: "var(--accent-green)",
+                            }}
+                          >
+                            {m.confidence}/10
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* ════════ TAB 2: SLIP OF THE DAY ════════ */}
+        {/* ── View 2: Slip of the Day ── */}
         {activeTab === "slip" && (
-          <div
-            style={{
-              maxWidth: 720,
-              margin: "0 auto",
-              background: "rgba(20, 25, 56, 0.92)",
-              border: "1px solid rgba(168, 85, 247, 0.3)",
-              borderRadius: 20,
-              padding: "28px 24px",
-              boxShadow: "0 16px 45px rgba(0, 0, 0, 0.6)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  AI ACCUMULATOR
-                </span>
-                <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "2px 0 0" }}>
-                  Banker Slip of the Day
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+            {/* Left: Top 3 Picks List */}
+            <div className="luxury-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>
+                  Verified Acca Picks (3 Matches)
                 </h3>
+                <span className="gold-badge">Algorithmic Grade A+</span>
               </div>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={handleCopySlip}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "8px 14px",
-                    borderRadius: 8,
-                    background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    color: copied ? "#34d399" : "#cbd5e1",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Copy style={{ width: 13, height: 13 }} />
-                  <span>{copied ? "Copied!" : "Copy Slip"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Slip Picks */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-              {topSlipPicks.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-                  Loading today's banker slip picks...
-                </div>
-              ) : (
-                topSlipPicks.map((p, i) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {topSlipPicks.map((pick, i) => (
                   <div
                     key={i}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "12px 16px",
-                      background: "rgba(10, 14, 35, 0.75)",
-                      border: "1px solid rgba(168, 85, 247, 0.15)",
+                      padding: "14px 16px",
                       borderRadius: 10,
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-color)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{p.match}</div>
-                      <div style={{ fontSize: 12, color: "#a855f7", fontWeight: 700 }}>Pick: {p.pick}</div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                        {pick.match}
+                      </p>
+                      <p style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, marginTop: 3, margin: 0 }}>
+                        Pick: {pick.pick}
+                      </p>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: "#34d399" }}>
-                      @{p.odd.toFixed(2)}
-                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
+                      {pick.odds.toFixed(2)}
+                    </span>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
 
-            {/* Odds & Calculations */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "16px 20px",
-                background: "rgba(168, 85, 247, 0.12)",
-                border: "1px solid rgba(168, 85, 247, 0.3)",
-                borderRadius: 14,
-                marginBottom: 20,
-              }}
-            >
+            {/* Right: Stake & Payout Calculator */}
+            <div className="luxury-card" style={{ padding: "24px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8" }}>TOTAL COMBO ODDS</span>
-                <div style={{ fontSize: 24, fontWeight: 900, color: "#ffffff" }}>{totalSlipOdds.toFixed(2)}</div>
-              </div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", marginBottom: 16 }}>
+                  Slip Multiplier & Payout
+                </h3>
 
-              <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8" }}>ESTIMATED RETURN ($50)</span>
-                <div style={{ fontSize: 24, fontWeight: 900, color: "#34d399" }}>${potentialReturn}</div>
-              </div>
-            </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 13 }}>
+                  <span style={{ color: "var(--text-secondary)" }}>Total Slip Odds:</span>
+                  <span style={{ fontWeight: 800, color: "var(--gold)", fontSize: 16 }}>{combinedOdds}</span>
+                </div>
 
-            <Link
-              href="/pricing"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                width: "100%",
-                padding: "14px",
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                color: "#ffffff",
-                fontSize: 14.5,
-                fontWeight: 800,
-                textDecoration: "none",
-                boxShadow: "0 8px 24px rgba(139, 92, 246, 0.45)",
-              }}
-            >
-              <span>Unlock Live Bet Alerts & Slip Verification</span>
-              <ArrowRight style={{ width: 16, height: 16 }} />
-            </Link>
-          </div>
-        )}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Stake Amount ($):</span>
+                    <span style={{ fontWeight: 800, color: "var(--text-primary)" }}>${stake}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="500"
+                    step="5"
+                    value={stake}
+                    onChange={(e) => setStake(Number(e.target.value))}
+                  />
+                </div>
 
-        {/* ── Info Modal ── */}
-        {showInfoModal && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              background: "rgba(0, 0, 0, 0.75)",
-              backdropFilter: "blur(8px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-            }}
-          >
-            <div
-              style={{
-                maxWidth: 440,
-                width: "100%",
-                background: "rgba(20, 25, 56, 0.95)",
-                border: "1px solid rgba(168, 85, 247, 0.35)",
-                borderRadius: 20,
-                padding: "24px",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <h4 style={{ fontSize: 17, fontWeight: 900, color: "#ffffff", margin: 0 }}>What is a Banker Bet?</h4>
-                <button
-                  onClick={() => setShowInfoModal(false)}
-                  style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                <div
+                  style={{
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--gold-bg)",
+                    border: "1px solid var(--gold-border)",
+                    marginBottom: 20,
+                  }}
                 >
-                  <X style={{ width: 18, height: 18 }} />
+                  <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0, textTransform: "uppercase", fontWeight: 700 }}>
+                    Estimated Payout
+                  </p>
+                  <p style={{ fontSize: 28, fontWeight: 900, color: "var(--gold)", margin: 0 }}>
+                    ${potentialWin}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleCopySlip}
+                  className="gold-btn"
+                  style={{ flex: 1, padding: "12px 18px", fontSize: 13 }}
+                >
+                  {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                  <span>{copied ? "Copied to Clipboard!" : "Copy Slip"}</span>
                 </button>
               </div>
-              <p style={{ fontSize: 13, lineHeight: 1.6, color: "#cbd5e1", margin: "0 0 16px" }}>
-                A <strong>Banker</strong> is our quantitative model&apos;s highest-conviction daily pick. Matches selected as Bankers meet strict criteria:
-              </p>
-              <ul style={{ fontSize: 12.5, lineHeight: 1.6, color: "#94a3b8", paddingLeft: 18, margin: "0 0 20px" }}>
-                <li>Over 80% historical model convergence</li>
-                <li>Favorable form trajectory and low variance risk</li>
-                <li>High expected goals (xG) differential</li>
-              </ul>
-              <button
-                onClick={() => setShowInfoModal(false)}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: 13,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Got it
-              </button>
             </div>
           </div>
         )}
-
       </main>
+
+      {/* Info Modal */}
+      {showInfoModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setShowInfoModal(false)}
+        >
+          <div
+            className="luxury-card"
+            style={{
+              maxWidth: 480,
+              width: "100%",
+              padding: 24,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)" }}>
+                About Banker Predictions
+              </h3>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 16 }}>
+              Bankers are our algorithmic engine’s highest probability predictions of the day. They have passed stringent statistical checks on team form, xG, squad availability, and value edge.
+            </p>
+            <button
+              onClick={() => setShowInfoModal(false)}
+              className="gold-btn"
+              style={{ width: "100%", padding: "10px" }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

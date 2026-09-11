@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { MatchData } from "@/lib/types";
-
 import {
   Sparkles,
   RotateCcw,
@@ -11,6 +10,10 @@ import {
   ChevronRight,
   Shield,
   Zap,
+  Copy,
+  CheckCircle2,
+  Layers,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface SlipItem {
@@ -41,14 +44,12 @@ function getDeterministicColor(str: string): string {
 }
 
 export default function BetBuilderPage() {
-  // Filter States
   const [totalSlipOdds, setTotalSlipOdds] = useState<number>(5.0);
   const [autoOdds, setAutoOdds] = useState<boolean>(false);
   const [matchCountRange, setMatchCountRange] = useState<string>("Auto");
   const [isFixedCount, setIsFixedCount] = useState<boolean>(false);
   const [fixedCountVal, setFixedCountVal] = useState<string>("7");
 
-  // Bet Types Checkbox State
   const [betTypes, setBetTypes] = useState<Record<string, boolean>>({
     "Match Result (1X2)": true,
     "Over 2.5": true,
@@ -62,400 +63,245 @@ export default function BetBuilderPage() {
     "More markets": true,
   });
 
-  // Min / Max Odd Per Pick
   const [minOdd, setMinOdd] = useState<number>(1.15);
   const [maxOdd, setMaxOdd] = useState<number>(1.80);
-
-  // Match Window
-  const [matchWindow, setMatchWindow] = useState<string>("Today + tomorrow");
-
-  // Minimum Pick Trust
-  const [minTrust, setMinTrust] = useState<number>(5.0);
-
-  // Additional options
-  const [onlyImportantLeagues, setOnlyImportantLeagues] = useState<boolean>(false);
-  const [onlyDecreasingOdds, setOnlyDecreasingOdds] = useState<boolean>(false);
-
-  // Real Matches Pool
   const [availableMatches, setAvailableMatches] = useState<SlipItem[]>([]);
-  const [slipItems, setSlipItems] = useState<SlipItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [copied, setCopied] = useState<boolean>(false);
 
-  // Fetch real fixtures from Bzzoiro API
   useEffect(() => {
-    let isMounted = true;
-    async function loadRealMatches() {
+    async function loadMatches() {
       try {
-        const [resToday, resTmr] = await Promise.all([
-          fetch("/api/matches?d=0"),
-          fetch("/api/matches?d=1"),
-        ]);
-        const dataToday = await resToday.json();
-        const dataTmr = await resTmr.json();
+        setLoading(true);
+        const res = await fetch("/api/matches?d=0");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.matches)) {
+          const items: SlipItem[] = data.matches.map((m: MatchData) => {
+            const best = m.predictions?.bestTip?.pick || "1";
+            const bestOdd = parseFloat(m.predictions?.bestTip?.odd || m.odds.home || "1.50");
+            const conf = m.confidence ? parseInt(m.confidence.replace("%", ""), 10) / 10 : 8.8;
 
-        const combined: MatchData[] = [
-          ...(Array.isArray(dataToday.matches) ? dataToday.matches : []),
-          ...(Array.isArray(dataTmr.matches) ? dataTmr.matches : []),
-        ];
-
-        const mappedPool: SlipItem[] = combined.map((m, idx) => {
-          const confNum = m.confidence ? parseInt(m.confidence.replace("%", ""), 10) : 85;
-          const trust = Number(Math.min(10, Math.max(7, Math.round(confNum / 10) + 0.5)).toFixed(1));
-          const homeOdd = parseFloat(m.odds?.home || "1.45") || 1.45;
-          const pick1x2 = m.predictions?.pickScore?.pick || "1";
-
-          return {
-            id: m.id || `m-${idx}`,
-            datetime: m.kickTime ? `Today · ${m.kickTime}` : "Today · 20:00",
-            countryLeague: `${m.country} · ${m.leagueName}`,
-            homeTeam: m.homeTeam,
-            awayTeam: m.awayTeam,
-            homeLogoColor: getDeterministicColor(m.homeTeam),
-            awayLogoColor: getDeterministicColor(m.awayTeam),
-            trustScore: trust,
-            marketType: "Match Result (1X2)",
-            pick: pick1x2,
-            odds: homeOdd,
-          };
-        });
-
-        if (isMounted && mappedPool.length > 0) {
-          setAvailableMatches(mappedPool);
-          setSlipItems(mappedPool.slice(0, 6));
+            return {
+              id: m.id,
+              datetime: `Today · ${m.kickTime || "19:00"}`,
+              countryLeague: `${m.country || "Int"} - ${m.leagueName || "League"}`,
+              homeTeam: m.homeTeam,
+              awayTeam: m.awayTeam,
+              homeLogoColor: getDeterministicColor(m.homeTeam),
+              awayLogoColor: getDeterministicColor(m.awayTeam),
+              trustScore: Math.min(9.9, Math.max(7.5, conf)),
+              marketType: "Best Tip",
+              pick: best,
+              odds: isNaN(bestOdd) ? 1.50 : bestOdd,
+            };
+          });
+          setAvailableMatches(items);
         }
       } catch (err) {
-        console.error("Failed to load matches for Bet Builder:", err);
+        console.error("Failed to load bet builder pool:", err);
+      } finally {
+        setLoading(false);
       }
     }
-    loadRealMatches();
-    return () => { isMounted = false; };
+    loadMatches();
   }, []);
 
-  const toggleBetType = (key: string) => {
+  const generatedSlip = useMemo(() => {
+    if (availableMatches.length === 0) return [];
+
+    let targetCount = 6;
+    if (matchCountRange === "2-5") targetCount = 4;
+    else if (matchCountRange === "5-10") targetCount = 6;
+    else if (matchCountRange === "10-15") targetCount = 10;
+    else if (matchCountRange === "15-20") targetCount = 15;
+    if (isFixedCount && parseInt(fixedCountVal)) {
+      targetCount = parseInt(fixedCountVal);
+    }
+
+    return availableMatches.slice(0, targetCount);
+  }, [availableMatches, matchCountRange, isFixedCount, fixedCountVal]);
+
+  const calculatedTotalOdds = useMemo(() => {
+    if (generatedSlip.length === 0) return 5.0;
+    const total = generatedSlip.reduce((acc, item) => acc * item.odds, 1);
+    return parseFloat(total.toFixed(2));
+  }, [generatedSlip]);
+
+  const handleToggleBetType = (key: string) => {
     setBetTypes((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleUncheckAll = () => {
+  const handleSelectAll = (val: boolean) => {
     setBetTypes((prev) => {
-      const updated: Record<string, boolean> = {};
-      Object.keys(prev).forEach((k) => {
-        updated[k] = false;
-      });
-      return updated;
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => (next[k] = val));
+      return next;
     });
   };
 
-  const handleResetFilters = () => {
-    setTotalSlipOdds(5.0);
-    setAutoOdds(false);
-    setMatchCountRange("Auto");
-    setIsFixedCount(false);
-    setFixedCountVal("7");
-    setMinOdd(1.15);
-    setMaxOdd(1.80);
-    setMatchWindow("Today + tomorrow");
-    setMinTrust(5.0);
-    setOnlyImportantLeagues(false);
-    setOnlyDecreasingOdds(false);
-    setBetTypes({
-      "Match Result (1X2)": true,
-      "Over 2.5": true,
-      "Under 2.5": true,
-      "Over 1.5": true,
-      "Under 1.5": true,
-      "Over 3.5": true,
-      "Under 3.5": true,
-      "Both Teams to Score": true,
-      "Double Chance": true,
-      "More markets": true,
-    });
-    setSlipItems(availableMatches.slice(0, 6));
+  const handleCopySlip = () => {
+    const text = generatedSlip
+      .map((p, i) => `${i + 1}. [${p.countryLeague}] ${p.homeTeam} vs ${p.awayTeam} -> ${p.pick} @ ${p.odds}`)
+      .join("\n");
+    const full = `🎯 JollofTips Bet Builder Slip (${generatedSlip.length} picks · Total Odds: ${calculatedTotalOdds}):\n${text}`;
+    navigator.clipboard.writeText(full);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  const handleGenerateSlip = () => {
-    if (availableMatches.length === 0) return;
-    setIsGenerating(true);
-    setTimeout(() => {
-      let count = 6;
-      if (isFixedCount && parseInt(fixedCountVal, 10)) {
-        count = Math.min(Math.max(2, parseInt(fixedCountVal, 10)), availableMatches.length);
-      } else if (matchCountRange === "2-5") {
-        count = 4;
-      } else if (matchCountRange === "5-10") {
-        count = 7;
-      } else if (matchCountRange === "10-15") {
-        count = 10;
-      } else if (matchCountRange === "15-20") {
-        count = 12;
-      }
-
-      // Filter pool by odds and trust
-      const filteredPool = availableMatches.filter(
-        (m) => m.odds >= minOdd && m.odds <= maxOdd && m.trustScore >= minTrust
-      );
-      const sourcePool = filteredPool.length >= count ? filteredPool : availableMatches;
-      const shuffled = [...sourcePool].sort(() => 0.5 - Math.random());
-      setSlipItems(shuffled.slice(0, Math.min(count, shuffled.length)));
-      setIsGenerating(false);
-    }, 350);
-  };
-
-  // Calculations
-  const calculatedTotalOdds = useMemo(() => {
-    if (slipItems.length === 0) return 0;
-    const mult = slipItems.reduce((acc, m) => acc * m.odds, 1);
-    return Number(mult.toFixed(2));
-  }, [slipItems]);
-
-  const averageTrust = useMemo(() => {
-    if (slipItems.length === 0) return 0;
-    const sum = slipItems.reduce((acc, m) => acc + m.trustScore, 0);
-    return Number((sum / slipItems.length).toFixed(1));
-  }, [slipItems]);
-
-  const targetDiffPct = useMemo(() => {
-    if (totalSlipOdds === 0) return "+0%";
-    const diff = ((calculatedTotalOdds - totalSlipOdds) / totalSlipOdds) * 100;
-    const sign = diff >= 0 ? "+" : "";
-    return `${sign}${Math.round(diff)}%`;
-  }, [calculatedTotalOdds, totalSlipOdds]);
-
-  const hitProbability = useMemo(() => {
-    if (calculatedTotalOdds <= 0) return "0.0%";
-    const prob = (1 / calculatedTotalOdds) * 100 * 1.08; // slightly favorable margin
-    return `${Math.min(95, Math.max(2, prob)).toFixed(1)}%`;
-  }, [calculatedTotalOdds]);
 
   return (
-    <div style={{ background: "transparent", minHeight: "100vh", color: "#f8fafc", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--background)" }}>
       <Navbar />
 
-      <main style={{ maxWidth: 1240, margin: "0 auto", padding: "84px 16px 80px" }}>
-        
-        {/* ── Page Header / Title ── */}
-        <div style={{ marginBottom: 24, marginTop: 8 }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "rgba(168, 85, 247, 0.16)",
-            border: "1px solid rgba(168, 85, 247, 0.35)",
-            borderRadius: 999,
-            padding: "4px 14px",
-            fontSize: 11,
-            fontWeight: 800,
-            color: "#c084fc",
-            marginBottom: 10,
-            letterSpacing: "0.5px",
-            boxShadow: "0 0 16px rgba(168, 85, 247, 0.2)",
-          }}>
-            <span>✦</span> POWERED BY NT APEX AI
+      <main style={{ maxWidth: 1360, margin: "0 auto", padding: "28px 20px 80px" }}>
+        {/* Header Badge */}
+        <div style={{ marginBottom: 24 }}>
+          <div className="gold-badge" style={{ marginBottom: 10 }}>
+            <Sparkles size={12} />
+            POWERED BY JT ALGORITHMIC ENGINE
           </div>
-
-          <h1 style={{
-            fontSize: 32,
-            fontWeight: 800,
-            color: "#ffffff",
-            margin: 0,
-            letterSpacing: "-0.5px",
-          }}>
-            Bet Builder
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+            Smart Bet Builder
           </h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
+            Generate high-trust customized accumulator slips matching your exact target odds and market preferences.
+          </p>
         </div>
 
-        {/* ── 2-Column Exact Layout ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "380px 1fr",
-          gap: 20,
-          alignItems: "start",
-        }}>
-
-          {/* ════════ LEFT COLUMN: FILTERS ════════ */}
-          <div style={{
-            background: "rgba(20, 25, 56, 0.92)",
-            border: "1px solid rgba(168, 85, 247, 0.24)",
-            borderRadius: 16,
-            padding: "22px 20px",
-            boxShadow: "0 10px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(139, 92, 246, 0.08)",
-            backdropFilter: "blur(14px)",
-          }}>
+        {/* ── Builder Grid (Controls on Left, Slip on Right) ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 24, alignItems: "flex-start" }}>
+          
+          {/* LEFT: Controls Panel */}
+          <div className="luxury-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 24 }}>
             
-            {/* TOTAL SLIP ODDS */}
-            <div style={{ marginBottom: 24 }}>
+            {/* 1. TOTAL SLIP ODDS */}
+            <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px" }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   TOTAL SLIP ODDS
                 </span>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94a3b8", cursor: "pointer" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
                   <input
                     type="checkbox"
                     checked={autoOdds}
                     onChange={(e) => setAutoOdds(e.target.checked)}
-                    style={{ accentColor: "#6366f1", cursor: "pointer", width: 14, height: 14 }}
+                    style={{ accentColor: "var(--gold)" }}
                   />
                   Auto odds
                 </label>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
-                  <input
-                    type="range"
-                    min="1.5"
-                    max="50"
-                    step="0.5"
-                    value={totalSlipOdds}
-                    disabled={autoOdds}
-                    onChange={(e) => setTotalSlipOdds(parseFloat(e.target.value))}
-                    style={{
-                      width: "100%",
-                      accentColor: "#6366f1",
-                      cursor: autoOdds ? "not-allowed" : "pointer",
-                      opacity: autoOdds ? 0.4 : 1,
-                    }}
-                  />
-                </div>
-                <span style={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: "#ffffff",
-                  minWidth: 44,
-                  textAlign: "right",
-                  fontFamily: "monospace"
-                }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <input
+                  type="range"
+                  min="2.00"
+                  max="50.00"
+                  step="0.5"
+                  disabled={autoOdds}
+                  value={totalSlipOdds}
+                  onChange={(e) => setTotalSlipOdds(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: 18, fontWeight: 900, color: "var(--gold)", minWidth: 60, textAlign: "right" }}>
                   {totalSlipOdds.toFixed(2)}
                 </span>
               </div>
             </div>
 
-            {/* NUMBER OF MATCHES */}
-            <div style={{ marginBottom: 24 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px", marginBottom: 10 }}>
+            {/* 2. NUMBER OF MATCHES */}
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 12 }}>
                 NUMBER OF MATCHES
               </span>
-              
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                {["Auto", "2-5", "5-10", "10-15", "15-20"].map((range) => {
-                  const isSelected = matchCountRange === range && !isFixedCount;
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                {["Auto", "2-5", "5-10", "10-15", "15-20"].map((r) => {
+                  const isSel = matchCountRange === r;
                   return (
                     <button
-                      key={range}
-                      onClick={() => {
-                        setMatchCountRange(range);
-                        setIsFixedCount(false);
-                      }}
+                      key={r}
+                      onClick={() => setMatchCountRange(r)}
                       style={{
                         padding: "6px 14px",
                         borderRadius: 8,
+                        border: isSel ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                        background: isSel ? "var(--gold)" : "var(--surface-raised)",
+                        color: isSel ? "var(--gold-btn-text)" : "var(--text-secondary)",
                         fontSize: 12,
                         fontWeight: 700,
-                        border: isSelected ? "1px solid #6366f1" : "1px solid rgba(255, 255, 255, 0.08)",
-                        background: isSelected ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.03)",
-                        color: isSelected ? "#ffffff" : "#94a3b8",
                         cursor: "pointer",
                       }}
                     >
-                      {range}
+                      {r}
                     </button>
                   );
                 })}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94a3b8", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={isFixedCount}
-                    onChange={(e) => setIsFixedCount(e.target.checked)}
-                    style={{ accentColor: "#6366f1", cursor: "pointer", width: 14, height: 14 }}
-                  />
-                  Fixed count
-                </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
                 <input
-                  type="text"
-                  value={fixedCountVal}
-                  placeholder="2-25"
-                  disabled={!isFixedCount}
-                  onChange={(e) => setFixedCountVal(e.target.value)}
-                  style={{
-                    width: 68,
-                    background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    borderRadius: 6,
-                    color: "#ffffff",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "4px 8px",
-                    textAlign: "center",
-                    opacity: isFixedCount ? 1 : 0.4,
-                  }}
+                  type="checkbox"
+                  checked={isFixedCount}
+                  onChange={(e) => setIsFixedCount(e.target.checked)}
+                  style={{ accentColor: "var(--gold)" }}
                 />
-              </div>
+                Fixed count
+                {isFixedCount && (
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={fixedCountVal}
+                    onChange={(e) => setFixedCountVal(e.target.value)}
+                    style={{
+                      width: 50,
+                      padding: "2px 6px",
+                      borderRadius: 6,
+                      background: "var(--bg-input)",
+                      border: "1px solid var(--border-color)",
+                      color: "var(--text-primary)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  />
+                )}
+              </label>
             </div>
 
-            {/* BET TYPES */}
-            <div style={{ marginBottom: 24 }}>
+            {/* 3. BET TYPES */}
+            <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px" }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   BET TYPES
                 </span>
                 <button
-                  onClick={handleUncheckAll}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: 6,
-                    padding: "2px 8px",
-                    color: "#94a3b8",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  onClick={() => handleSelectAll(false)}
+                  style={{ background: "transparent", border: "none", color: "var(--gold)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                 >
                   Uncheck all
                 </button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 12px" }}>
-                {[
-                  ["Match Result (1X2)", "Over 2.5"],
-                  ["Under 2.5", "Over 1.5"],
-                  ["Under 1.5", "Over 3.5"],
-                  ["Under 3.5", "Both Teams to Score"],
-                  ["Double Chance", "More markets"],
-                ].map(([left, right], idx) => (
-                  <div key={idx} style={{ display: "contents" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#cbd5e1", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(betTypes[left])}
-                        onChange={() => toggleBetType(left)}
-                        style={{ accentColor: "#6366f1", width: 14, height: 14, cursor: "pointer" }}
-                      />
-                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{left}</span>
-                    </label>
-
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#cbd5e1", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(betTypes[right])}
-                        onChange={() => toggleBetType(right)}
-                        style={{ accentColor: "#6366f1", width: 14, height: 14, cursor: "pointer" }}
-                      />
-                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{right}</span>
-                    </label>
-                  </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {Object.keys(betTypes).map((bt) => (
+                  <label key={bt} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={betTypes[bt]}
+                      onChange={() => handleToggleBetType(bt)}
+                      style={{ accentColor: "var(--gold)" }}
+                    />
+                    {bt}
+                  </label>
                 ))}
               </div>
             </div>
 
-            {/* MIN ODD PER PICK */}
-            <div style={{ marginBottom: 20 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px", marginBottom: 8 }}>
-                MIN ODD PER PICK
+            {/* 4. MIN / MAX ODDS PER PICK */}
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 12 }}>
+                ODDS RANGE PER PICK ({minOdd.toFixed(2)} - {maxOdd.toFixed(2)})
               </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <input
                   type="range"
                   min="1.05"
@@ -463,298 +309,122 @@ export default function BetBuilderPage() {
                   step="0.05"
                   value={minOdd}
                   onChange={(e) => setMinOdd(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "#6366f1", cursor: "pointer" }}
+                  style={{ flex: 1 }}
                 />
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", minWidth: 36, textAlign: "right", fontFamily: "monospace" }}>
-                  {minOdd.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* MAX ODD PER PICK */}
-            <div style={{ marginBottom: 24 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px", marginBottom: 8 }}>
-                MAX ODD PER PICK
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <input
                   type="range"
-                  min="1.20"
+                  min="1.30"
                   max="5.00"
                   step="0.05"
                   value={maxOdd}
                   onChange={(e) => setMaxOdd(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "#6366f1", cursor: "pointer" }}
+                  style={{ flex: 1 }}
                 />
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", minWidth: 36, textAlign: "right", fontFamily: "monospace" }}>
-                  {maxOdd.toFixed(2)}
-                </span>
               </div>
             </div>
-
-            {/* MATCH WINDOW */}
-            <div style={{ marginBottom: 24 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px", marginBottom: 10 }}>
-                MATCH WINDOW
-              </span>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["Today", "Today + tomorrow", "Next 3 days"].map((win) => {
-                  const isSel = matchWindow === win;
-                  return (
-                    <button
-                      key={win}
-                      onClick={() => setMatchWindow(win)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        border: isSel ? "1px solid #6366f1" : "1px solid rgba(255, 255, 255, 0.08)",
-                        background: isSel ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.03)",
-                        color: isSel ? "#ffffff" : "#94a3b8",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {win}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* MINIMUM PICK TRUST */}
-            <div style={{ marginBottom: 24 }}>
-              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.6px", marginBottom: 8 }}>
-                MINIMUM PICK TRUST
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <input
-                  type="range"
-                  min="1.0"
-                  max="10.0"
-                  step="0.5"
-                  value={minTrust}
-                  onChange={(e) => setMinTrust(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "#6366f1", cursor: "pointer" }}
-                />
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", minWidth: 36, textAlign: "right", fontFamily: "monospace" }}>
-                  {minTrust.toFixed(1)}
-                </span>
-              </div>
-            </div>
-
-            {/* Checkboxes: Only important leagues / Only decreasing odds */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94a3b8", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={onlyImportantLeagues}
-                  onChange={(e) => setOnlyImportantLeagues(e.target.checked)}
-                  style={{ accentColor: "#6366f1", width: 14, height: 14, cursor: "pointer" }}
-                />
-                Only important leagues
-              </label>
-
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94a3b8", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={onlyDecreasingOdds}
-                  onChange={(e) => setOnlyDecreasingOdds(e.target.checked)}
-                  style={{ accentColor: "#6366f1", width: 14, height: 14, cursor: "pointer" }}
-                />
-                Only decreasing odds
-              </label>
-            </div>
-
-            {/* Bottom Buttons */}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={handleResetFilters}
-                style={{
-                  flex: 1,
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(255, 255, 255, 0.09)",
-                  borderRadius: 10,
-                  padding: "12px 14px",
-                  color: "#cbd5e1",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "background 0.15s ease",
-                }}
-              >
-                Reset filters
-              </button>
-
-              <button
-                onClick={handleGenerateSlip}
-                disabled={isGenerating}
-                style={{
-                  flex: 1.5,
-                  background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  color: "#ffffff",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: isGenerating ? "not-allowed" : "pointer",
-                  boxShadow: "0 0 24px rgba(139, 92, 246, 0.5)",
-                  transition: "all 0.15s ease",
-                  opacity: isGenerating ? 0.7 : 1,
-                }}
-              >
-                {isGenerating ? "Generating..." : "Generate slip"}
-              </button>
-            </div>
-
           </div>
 
-
-          {/* ════════ RIGHT COLUMN: YOUR SLIP ════════ */}
-          <div style={{
-            background: "rgba(20, 25, 56, 0.92)",
-            border: "1px solid rgba(168, 85, 247, 0.24)",
-            borderRadius: 16,
-            padding: "24px 22px",
-            boxShadow: "0 10px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(139, 92, 246, 0.08)",
-            backdropFilter: "blur(14px)",
-          }}>
-            
-            {/* Slip Header */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#c084fc", boxShadow: "0 0 8px #c084fc" }} />
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                  YOUR SLIP
-                </span>
+          {/* RIGHT: Slip Generator Results */}
+          <div className="luxury-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: 16 }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
+                  YOUR ACCUMULATOR SLIP
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {generatedSlip.length} picks · {calculatedTotalOdds}
+                </p>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                <h2 style={{ fontSize: 24, fontWeight: 900, color: "#ffffff", margin: 0 }}>
-                  {slipItems.length} picks · {calculatedTotalOdds.toFixed(2)}
-                </h2>
-
-                <div style={{
-                  background: "rgba(16, 185, 129, 0.16)",
-                  border: "1px solid rgba(16, 185, 129, 0.35)",
-                  borderRadius: 999,
-                  padding: "4px 12px",
-                  fontSize: 11,
+              <span
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  background: "var(--accent-green-bg)",
+                  border: "1px solid var(--accent-green-border)",
+                  color: "var(--accent-green)",
+                  fontSize: 12,
                   fontWeight: 800,
-                  color: "#34d399",
-                }}>
-                  Target {totalSlipOdds.toFixed(2)} · {targetDiffPct}
-                </div>
-              </div>
+                }}
+              >
+                Target {totalSlipOdds.toFixed(2)}
+              </span>
             </div>
 
-            {/* Match Rows List */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {slipItems.map((item, idx) => (
-                <div
-                  key={item.id}
-                  style={{
-                    padding: "16px 0",
-                    borderTop: idx === 0 ? "1px solid rgba(168, 85, 247, 0.12)" : "1px solid rgba(168, 85, 247, 0.12)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  {/* Row Top Line: Datetime (left) and League (right) */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#94a3b8" }}>
-                    <span>{item.datetime}</span>
-                    <span style={{ color: "#c7d2fe" }}>{item.countryLeague}</span>
-                  </div>
-
-                  {/* Row Main Line: Teams (left), Trust score (center), Pick button (right) */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                    
-                    {/* Teams with small logo dots */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 800, color: "#ffffff" }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.homeLogoColor, flexShrink: 0 }} />
-                        <span>{item.homeTeam}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 800, color: "#ffffff" }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.awayLogoColor, flexShrink: 0 }} />
-                        <span>{item.awayTeam}</span>
-                      </div>
-                    </div>
-
-                    {/* Green Trust Score */}
-                    <div style={{ fontSize: 14, fontWeight: 900, color: "#10b981", padding: "0 12px" }}>
-                      {item.trustScore}
-                    </div>
-
-                    {/* Pick + Odds Button (Purple Container) */}
-                    <div style={{
-                      background: "rgba(139, 92, 246, 0.22)",
-                      border: "1px solid rgba(168, 85, 247, 0.45)",
-                      borderRadius: 8,
-                      minWidth: 64,
-                      padding: "6px 14px",
-                      textAlign: "center",
+            {/* Picks List */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 520, overflowY: "auto" }}>
+              {loading ? (
+                <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>
+                  Generating optimal algorithmic picks...
+                </div>
+              ) : generatedSlip.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>
+                  No picks match this exact filter criteria.
+                </div>
+              ) : (
+                generatedSlip.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 10,
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-color)",
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 0 12px rgba(139, 92, 246, 0.15)",
-                    }}>
-                      <div style={{ fontSize: 12, fontWeight: 900, color: "#ffffff" }}>
-                        {item.pick}
-                      </div>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: "#c7d2fe", display: "flex", alignItems: "center", gap: 2 }}>
-                        <span>·</span>
-                        <span>{item.odds.toFixed(2)}</span>
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: 11, color: "var(--text-dim)", fontWeight: 600 }}>
+                        {item.countryLeague} · {item.datetime}
+                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.homeLogoColor }} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{item.homeTeam}</span>
+                        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>vs</span>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.awayLogoColor }} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{item.awayTeam}</span>
                       </div>
                     </div>
 
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-green)" }}>
+                        {item.trustScore.toFixed(1)}
+                      </span>
+                      <div
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          background: "var(--gold-bg)",
+                          border: "1px solid var(--gold-border)",
+                          color: "var(--gold)",
+                          textAlign: "center",
+                          minWidth: 70,
+                        }}
+                      >
+                        <p style={{ fontSize: 11, fontWeight: 800, margin: 0 }}>{item.pick}</p>
+                        <p style={{ fontSize: 11, fontWeight: 600, margin: 0, opacity: 0.85 }}>· {item.odds.toFixed(2)}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
-            {/* Slip Bottom Summary Section */}
-            <div style={{
-              marginTop: 20,
-              paddingTop: 18,
-              borderTop: "1px solid rgba(168, 85, 247, 0.18)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              fontSize: 13,
-            }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ color: "#94a3b8" }}>Total odds:</span>
-                <strong style={{ color: "#ffffff" }}>{calculatedTotalOdds.toFixed(2)}</strong>
-              </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ color: "#94a3b8" }}>Average trust:</span>
-                <strong style={{ color: "#ffffff" }}>{averageTrust.toFixed(1)}</strong>
-              </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ color: "#94a3b8" }}>Hit probability:</span>
-                <strong style={{ color: "#ffffff" }}>{hitProbability}</strong>
-              </div>
-            </div>
-
+            {/* Copy Button */}
+            <button
+              onClick={handleCopySlip}
+              className="gold-btn"
+              style={{ width: "100%", padding: "12px", marginTop: 8 }}
+            >
+              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+              <span>{copied ? "Slip Copied to Clipboard!" : "Copy Generated Slip"}</span>
+            </button>
           </div>
-
         </div>
-
       </main>
-
-      <style>{`
-        @media (max-width: 900px) {
-          main > div {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

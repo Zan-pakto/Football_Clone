@@ -6,7 +6,7 @@ import DateSelector from "@/components/DateSelector";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { checkPredictionWon } from "@/components/MatchRow";
 import { MatchData } from "@/lib/types";
-import { RefreshCw, ShieldAlert } from "lucide-react";
+import { RefreshCw, Search, Globe, ShieldCheck, Flame, Radio } from "lucide-react";
 
 export default function AllMatchesPage() {
   const [d, setD] = useState("0");
@@ -95,7 +95,7 @@ export default function AllMatchesPage() {
     }
   };
 
-  /* ── Derived stats (real numbers matching NerdyTips) ── */
+  /* ── Derived stats ── */
   const statCounts = useMemo(() => {
     let predicted = 0, upcoming = 0, live = 0, won = 0;
     matches.forEach((m) => {
@@ -113,102 +113,115 @@ export default function AllMatchesPage() {
     return { predicted, upcoming, live, won };
   }, [matches]);
 
-  const liveCount = statCounts.live;
-
-  // Country counts for sidebar
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     matches.forEach((m) => {
-      if (m.country) counts[m.country] = (counts[m.country] || 0) + 1;
+      const c = m.country || "International";
+      counts[c] = (counts[c] || 0) + 1;
     });
     return counts;
   }, [matches]);
 
-  const countries = useMemo(
-    () => Object.keys(countryCounts).sort((a, b) => countryCounts[b] - countryCounts[a]),
-    [countryCounts]
-  );
+  const countries = useMemo(() => {
+    return Object.keys(countryCounts).sort((a, b) => countryCounts[b] - countryCounts[a]);
+  }, [countryCounts]);
 
   const filteredMatches = useMemo(() => {
     return matches.filter((m) => {
-      const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
-      const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
-      const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
-
-      // Status filter
-      if (activeFilter === "predicted" && (!m.predictions?.bestTip?.pick && !m.confidence)) return false;
-      if (activeFilter === "live" && !isLiveM) return false;
-      if (activeFilter === "upcoming" && (isLiveM || isFin)) return false;
-      if (activeFilter === "won") {
-        const isWon = m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
-        if (!isWon) return false;
+      if (selectedCountry !== "all" && (m.country || "International") !== selectedCountry) {
+        return false;
       }
-      // Country filter
-      if (selectedCountry !== "all" && m.country.toLowerCase() !== selectedCountry.toLowerCase()) return false;
-      // Search
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
-        if (
-          !m.homeTeam.toLowerCase().includes(q) &&
-          !m.awayTeam.toLowerCase().includes(q) &&
-          !m.leagueName.toLowerCase().includes(q) &&
-          !m.country.toLowerCase().includes(q)
-        ) return false;
+        const home = m.homeTeam.toLowerCase();
+        const away = m.awayTeam.toLowerCase();
+        const league = (m.leagueName || "").toLowerCase();
+        const country = (m.country || "").toLowerCase();
+        if (!home.includes(q) && !away.includes(q) && !league.includes(q) && !country.includes(q)) {
+          return false;
+        }
+      }
+      if (activeFilter === "predicted") {
+        return Boolean(m.predictions?.bestTip?.pick || m.confidence);
+      }
+      if (activeFilter === "upcoming") {
+        const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
+        const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
+        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+        return !isLiveM && !isFin;
+      }
+      if (activeFilter === "live") {
+        return Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
+      }
+      if (activeFilter === "won") {
+        const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
+        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+        return m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
       }
       return true;
     });
   }, [matches, selectedCountry, searchTerm, activeFilter]);
 
-  const leagueGroups = useMemo(() => {
-    const groupsMap: Record<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }> = {};
+  const groupedByLeague = useMemo(() => {
+    const map = new Map<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }>();
     filteredMatches.forEach((m) => {
-      const key = `${m.country}_${m.leagueName}`;
-      if (!groupsMap[key]) groupsMap[key] = { leagueName: m.leagueName, country: m.country, flagUrl: m.flagUrl, matches: [] };
-      groupsMap[key].matches.push(m);
+      const key = `${m.country || "Int"}_${m.leagueName}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          leagueName: m.leagueName,
+          country: m.country,
+          flagUrl: m.flagUrl,
+          matches: [],
+        });
+      }
+      map.get(key)!.matches.push(m);
     });
-    return Object.values(groupsMap);
+    return Array.from(map.values());
   }, [filteredMatches]);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "transparent", color: "#f8fafc" }}>
-      <Navbar liveCount={liveCount} onSync={handleManualSync} isSyncing={isSyncing} />
+    <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      <Navbar liveCount={statCounts.live} />
 
-      <main style={{ flex: 1, maxWidth: 1240, width: "100%", margin: "0 auto", padding: "84px 16px 60px" }}>
-
-        {/* Page title + date selector */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+      <main style={{ maxWidth: 1400, margin: "0 auto", padding: "28px 20px 80px" }}>
+        {/* ── Top Header & Date Selector ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em" }}>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
               Today&apos;s Football Predictions
             </h1>
-            <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
               High-accuracy statistical algorithmic match tips across global football leagues.
             </p>
           </div>
           <DateSelector currentD={d} onSelectD={(newD) => { setD(newD); setSelectedCountry("all"); }} />
         </div>
 
-        {/* ── Two-column layout: country sidebar + matches ── */}
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-
+        {/* ── Two-Column Layout (Sidebar + Match Feed) ── */}
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
           {/* Country Sidebar */}
           <div
-            className="country-sidebar"
+            className="country-sidebar luxury-card"
             style={{
-              width: 200,
+              width: 220,
               flexShrink: 0,
-              background: "rgba(20, 25, 56, 0.92)",
-              border: "1px solid rgba(168, 85, 247, 0.24)",
-              borderRadius: 12,
               overflow: "hidden",
-              maxHeight: "calc(100vh - 160px)",
+              maxHeight: "calc(100vh - 120px)",
               overflowY: "auto",
               position: "sticky",
               top: 84,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.4), 0 0 16px rgba(139, 92, 246, 0.08)",
             }}
           >
-            {/* All Countries */}
+            {/* All Countries Button */}
             <button
               onClick={() => setSelectedCountry("all")}
               style={{
@@ -216,26 +229,38 @@ export default function AllMatchesPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "10px 14px",
+                padding: "12px 16px",
                 fontSize: 12,
-                fontWeight: selectedCountry === "all" ? 700 : 500,
-                color: selectedCountry === "all" ? "#fff" : "#c7d2fe",
-                background: selectedCountry === "all" ? "rgba(168, 85, 247, 0.18)" : "transparent",
+                fontWeight: selectedCountry === "all" ? 800 : 500,
+                color: selectedCountry === "all" ? "var(--gold)" : "var(--text-secondary)",
+                background: selectedCountry === "all" ? "var(--gold-bg)" : "transparent",
                 border: "none",
-                borderBottom: "1px solid rgba(168, 85, 247, 0.15)",
+                borderBottom: "1px solid var(--border-color)",
+                borderLeft: selectedCountry === "all" ? "3px solid var(--gold)" : "3px solid transparent",
                 cursor: "pointer",
                 textAlign: "left",
+                transition: "all 0.15s ease",
               }}
             >
-              <span>All Countries</span>
-              <span style={{
-                fontSize: 11, fontWeight: 700, minWidth: 24, textAlign: "right",
-                color: selectedCountry === "all" ? "#c084fc" : "#64748b",
-              }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Globe size={14} />
+                All Countries
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  background: selectedCountry === "all" ? "var(--gold)" : "var(--surface-raised)",
+                  color: selectedCountry === "all" ? "var(--gold-btn-text)" : "var(--text-dim)",
+                }}
+              >
                 {matches.length}
               </span>
             </button>
 
+            {/* Individual Countries */}
             {countries.map((country) => (
               <button
                 key={country}
@@ -245,34 +270,54 @@ export default function AllMatchesPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "8px 14px",
+                  padding: "10px 16px",
                   fontSize: 12,
-                  fontWeight: selectedCountry === country ? 700 : 400,
-                  color: selectedCountry === country ? "#fff" : "#94a3b8",
-                  background: selectedCountry === country ? "rgba(168, 85, 247, 0.16)" : "transparent",
+                  fontWeight: selectedCountry === country ? 800 : 500,
+                  color: selectedCountry === country ? "var(--gold)" : "var(--text-secondary)",
+                  background: selectedCountry === country ? "var(--gold-bg)" : "transparent",
                   border: "none",
-                  borderBottom: "1px solid rgba(168, 85, 247, 0.08)",
+                  borderBottom: "1px solid var(--border-subtle)",
+                  borderLeft: selectedCountry === country ? "3px solid var(--gold)" : "3px solid transparent",
                   cursor: "pointer",
                   textAlign: "left",
+                  transition: "all 0.15s ease",
                 }}
               >
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>
                   {country}
                 </span>
-                <span style={{
-                  fontSize: 11, fontWeight: 600, minWidth: 20, textAlign: "right", flexShrink: 0,
-                  color: selectedCountry === country ? "#c084fc" : "#64748b",
-                }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 6px",
+                    borderRadius: 6,
+                    background: selectedCountry === country ? "var(--gold)" : "var(--surface-raised)",
+                    color: selectedCountry === country ? "var(--gold-btn-text)" : "var(--text-dim)",
+                  }}
+                >
                   {countryCounts[country] || 0}
                 </span>
               </button>
             ))}
           </div>
 
-          {/* Matches Feed */}
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 0 }}>
-            {/* Search bar above matches */}
-            <div style={{ marginBottom: 12 }}>
+          {/* Right Feed Area */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Search Input Bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 16px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 12,
+                boxShadow: "var(--shadow-subtle)",
+              }}
+            >
+              <Search size={16} color="var(--gold)" />
               <input
                 type="text"
                 placeholder="Search teams, leagues, countries..."
@@ -280,119 +325,133 @@ export default function AllMatchesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "10px 16px",
-                  background: "rgba(20, 25, 56, 0.9)",
-                  border: "1px solid rgba(168, 85, 247, 0.25)",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  color: "#ffffff",
+                  background: "transparent",
+                  border: "none",
                   outline: "none",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                  fontSize: 13,
+                  color: "var(--text-primary)",
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#a855f7"; e.target.style.boxShadow = "0 0 16px rgba(168, 85, 247, 0.25)"; }}
-                onBlur={(e) => { e.target.style.borderColor = "rgba(168, 85, 247, 0.25)"; e.target.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3)"; }}
               />
             </div>
 
-            {/* ── Exact NerdyTips Stat Cards Banner ── */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 12,
-              marginBottom: 16,
-            }}>
-              {[
-                { key: "all", label: "PREDICTED", value: matches.length,},
-                { key: "upcoming", label: "UPCOMING", value: statCounts.upcoming },
-                { key: "live", label: "LIVE", value: statCounts.live},
-                { key: "won", label: "WON MATCHES", value: statCounts.won},
-              ].map(({ key, label, value,}) => {
-                const isActive = activeFilter === key || (key === "all" && activeFilter === "predicted");
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setActiveFilter(key as any)}
-                    style={{
-                      background: isActive ? "linear-gradient(135deg, rgba(36, 44, 96, 0.95) 0%, rgba(26, 32, 74, 0.95) 100%)" : "rgba(20, 25, 56, 0.88)",
-                      border: isActive ? "1.5px solid #a855f7" : "1px solid rgba(168, 85, 247, 0.22)",
-                      borderRadius: 14,
-                      padding: "16px 20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      boxShadow: isActive ? "0 0 22px rgba(168, 85, 247, 0.25)" : "0 6px 20px rgba(0,0,0,0.35)",
-                      transition: "all 0.15s ease",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: isActive ? "#c084fc" : "#94a3b8", letterSpacing: "0.08em" }}>
-                        {label}
-                      </span>
-                     
-                    </div>
-                    <span style={{ fontSize: 30, fontWeight: 900, color: "#ffffff", lineHeight: 1 }}>
-                      {loading ? "–" : value}
-                    </span>
-                  </button>
-                );
-              })}
+            {/* 4 Stat Filter Cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {/* PREDICTED */}
+              <button
+                onClick={() => setActiveFilter(activeFilter === "predicted" ? "all" : "predicted")}
+                className="luxury-card"
+                style={{
+                  padding: "14px 18px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: activeFilter === "predicted" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                  background: activeFilter === "predicted" ? "var(--gold-bg)" : "var(--bg-card)",
+                }}
+              >
+                <p style={{ fontSize: 10, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                  PREDICTED
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {statCounts.predicted}
+                </p>
+              </button>
+
+              {/* UPCOMING */}
+              <button
+                onClick={() => setActiveFilter(activeFilter === "upcoming" ? "all" : "upcoming")}
+                className="luxury-card"
+                style={{
+                  padding: "14px 18px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: activeFilter === "upcoming" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                  background: activeFilter === "upcoming" ? "var(--gold-bg)" : "var(--bg-card)",
+                }}
+              >
+                <p style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                  UPCOMING
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {statCounts.upcoming}
+                </p>
+              </button>
+
+              {/* LIVE */}
+              <button
+                onClick={() => setActiveFilter(activeFilter === "live" ? "all" : "live")}
+                className="luxury-card"
+                style={{
+                  padding: "14px 18px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: activeFilter === "live" ? "1px solid var(--accent-green)" : "1px solid var(--border-color)",
+                  background: activeFilter === "live" ? "var(--accent-green-bg)" : "var(--bg-card)",
+                }}
+              >
+                <p style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Radio size={12} className="animate-pulse" /> LIVE
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {statCounts.live}
+                </p>
+              </button>
+
+              {/* WON MATCHES */}
+              <button
+                onClick={() => setActiveFilter(activeFilter === "won" ? "all" : "won")}
+                className="luxury-card"
+                style={{
+                  padding: "14px 18px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: activeFilter === "won" ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                  background: activeFilter === "won" ? "var(--gold-bg)" : "var(--bg-card)",
+                }}
+              >
+                <p style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                  WON MATCHES
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {statCounts.won}
+                </p>
+              </button>
             </div>
 
+            {/* League Groups & Matches Feed */}
             {loading ? (
-              <div style={{ padding: "80px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                <RefreshCw style={{ width: 28, height: 28, color: "#10b981", animation: "spin 1s linear infinite" }} />
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>Loading Football Predictions...</p>
+              <div className="luxury-card" style={{ padding: "60px 20px", textAlign: "center" }}>
+                <RefreshCw size={28} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--gold)" }} />
+                <p style={{ color: "var(--text-secondary)" }}>Loading algorithmic match data...</p>
               </div>
-            ) : leagueGroups.length === 0 ? (
-              <div style={{
-                padding: "60px 24px", background: "#0d1220", border: "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center",
-              }}>
-                <ShieldAlert style={{ width: 36, height: 36, color: "#334155" }} />
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: "#e2e8f0" }}>No matches found</h3>
-                <p style={{ fontSize: 12, color: "#64748b" }}>No matches match your current filter selection.</p>
-                <button
-                  onClick={() => { setSearchTerm(""); setSelectedCountry("all"); }}
-                  style={{
-                    marginTop: 6, padding: "7px 18px", background: "#1e293b",
-                    border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
-                    fontSize: 12, fontWeight: 700, color: "#e2e8f0", cursor: "pointer",
-                  }}
-                >
-                  Clear Filters
-                </button>
+            ) : groupedByLeague.length === 0 ? (
+              <div className="luxury-card" style={{ padding: "60px 20px", textAlign: "center" }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
+                  No matches found for this filter
+                </p>
+                <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+                  Try selecting another country or date.
+                </p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {leagueGroups.map((group, idx) => (
-                  <LeagueGroupCard
-                    key={`${group.country}_${group.leagueName}_${idx}`}
-                    leagueName={group.leagueName}
-                    country={group.country}
-                    flagUrl={group.flagUrl}
-                    matches={group.matches}
-                  />
-                ))}
-              </div>
+              groupedByLeague.map((group) => (
+                <LeagueGroupCard
+                  key={`${group.country}_${group.leagueName}`}
+                  leagueName={group.leagueName}
+                  country={group.country}
+                  flagUrl={group.flagUrl}
+                  matches={group.matches}
+                />
+              ))
             )}
           </div>
         </div>
       </main>
-
-
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes liveDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }
-        @media (max-width: 767px) {
-          .country-sidebar { display: none; }
-        }
-      `}</style>
     </div>
   );
 }

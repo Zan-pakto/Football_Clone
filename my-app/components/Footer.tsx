@@ -17,46 +17,32 @@ export default function Footer() {
     Tools: [
       { label: "Hit & Win", href: "/hit-and-win" },
       { label: "Progress Tracker", href: "/progress" },
-      { label: "Live Matches", href: "/live" },
+      { label: "Live Matches", href: "/all-matches" },
       { label: "How It Works", href: "/how-it-works" },
     ],
     Company: [
       { label: "Blog", href: "/blog" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "VIP Pricing", href: "/pricing" },
       { label: "Terms & Conditions", href: "/terms" },
-      { label: "Join", href: "/join" },
+      { label: "Account", href: "/account" },
     ],
   };
 
   return (
     <footer
       style={{
-        background: "#09090f",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        color: "#8a8a9a",
+        background: "var(--bg-surface)",
+        borderTop: "1px solid var(--border-color)",
+        color: "var(--text-secondary)",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Very subtle top gold glow */}
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "500px",
-          height: "120px",
-          background: "radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      <div
-        style={{
-          maxWidth: 1280,
+          maxWidth: 1360,
           margin: "0 auto",
-          padding: "72px 32px 40px",
+          padding: "60px 24px 36px",
           position: "relative",
           zIndex: 1,
         }}
@@ -65,9 +51,9 @@ export default function Footer() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.4fr repeat(3, 1fr)",
-            gap: "40px 48px",
-            marginBottom: 56,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "40px",
+            marginBottom: 48,
           }}
         >
           {/* Brand Column */}
@@ -89,204 +75,106 @@ export default function Footer() {
                   justifyContent: "center",
                   width: 34,
                   height: 34,
-                  borderRadius: 8,
-                  background: "rgba(201,168,76,0.1)",
-                  border: "1px solid rgba(201,168,76,0.28)",
+                  borderRadius: 10,
+                  background: "var(--gold-bg)",
+                  border: "1px solid var(--gold-border)",
+                  color: "var(--gold)",
+                  fontWeight: 900,
+                  fontSize: 14,
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    color: "#c9a84c",
-                    fontWeight: 800,
-                    fontSize: 15,
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  JT
-                </span>
+                JT
               </div>
               <span
                 style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#f5f3ee",
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.03em",
                 }}
               >
-                JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
+                JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
               </span>
             </Link>
 
             <p
               style={{
                 fontSize: 13,
-                lineHeight: 1.7,
-                color: "#484858",
-                margin: "0 0 24px",
-                maxWidth: 280,
-                fontFamily: "'Inter', sans-serif",
+                lineHeight: 1.6,
+                color: "var(--text-secondary)",
+                marginBottom: 20,
               }}
             >
-              High-conviction AI football prediction models across 700+ global
-              leagues. Free daily tips, updated in real time.
+              High-accuracy statistical algorithmic match tips across 160+ football leagues worldwide.
             </p>
 
-            {/* Status pill */}
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "7px 14px",
-                borderRadius: 999,
-                background: "rgba(34,197,94,0.06)",
-                border: "1px solid rgba(34,197,94,0.2)",
-              }}
-            >
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  boxShadow: "0 0 8px rgba(34,197,94,0.6)",
-                }}
-                className="live-pulse"
-              />
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#22c55e", letterSpacing: "0.04em" }}>
-                AI Model Active
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span className="gold-badge">
+                <ShieldCheck size={12} />
+                Audited Ledger
               </span>
             </div>
           </div>
 
-          {/* Link Columns */}
-          {Object.entries(links).map(([title, items]) => (
-            <div key={title}>
-              <div
+          {/* Links Columns */}
+          {Object.entries(links).map(([category, items]) => (
+            <div key={category}>
+              <p
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  color: "#c9a84c",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "var(--text-primary)",
                   textTransform: "uppercase",
-                  marginBottom: 18,
-                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: "0.06em",
+                  marginBottom: 14,
                 }}
               >
-                {title}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {category}
+              </p>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
                 {items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    style={{
-                      fontSize: 13,
-                      color: "#484858",
-                      textDecoration: "none",
-                      fontWeight: 400,
-                      transition: "color 0.18s ease",
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#f5f3ee";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "#484858";
-                    }}
-                  >
-                    {item.label}
-                  </Link>
+                  <li key={item.label}>
+                    <Link
+                      href={item.href}
+                      style={{
+                        fontSize: 13,
+                        color: "var(--text-secondary)",
+                        transition: "color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--gold)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                      }}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ))}
         </div>
 
-        {/* ── Divider ── */}
-        <div
-          style={{
-            height: 1,
-            background: "rgba(255,255,255,0.05)",
-            marginBottom: 32,
-          }}
-        />
-
         {/* ── Bottom Bar ── */}
         <div
           style={{
+            borderTop: "1px solid var(--border-color)",
+            paddingTop: 24,
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
+            alignItems: "center",
             flexWrap: "wrap",
             gap: 16,
+            fontSize: 12,
+            color: "var(--text-dim)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#2a2a3d", fontFamily: "'Inter', sans-serif" }}>
-              © {currentYear} JollofTips. All rights reserved.
-            </span>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldCheck style={{ width: 12, height: 12, color: "#2a2a3d" }} />
-              <span style={{ fontSize: 11, color: "#2a2a3d", fontFamily: "'Inter', sans-serif" }}>
-                For informational purposes only. Bet responsibly.
-              </span>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Globe style={{ width: 12, height: 12, color: "#2a2a3d" }} />
-              <span style={{ fontSize: 11, color: "#2a2a3d", fontFamily: "'Inter', sans-serif" }}>
-                700+ Leagues
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Trophy style={{ width: 12, height: 12, color: "#c9a84c" }} />
-              <span style={{ fontSize: 11, color: "#484858", fontFamily: "'Inter', sans-serif" }}>
-                89% AI Accuracy
-              </span>
-            </div>
-            <Link
-              href="/progress"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 11,
-                color: "#c9a84c",
-                textDecoration: "none",
-                fontWeight: 600,
-                fontFamily: "'Inter', sans-serif",
-                transition: "opacity 0.15s ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-            >
-              <ArrowUpRight style={{ width: 12, height: 12 }} />
-              Track Record
-            </Link>
-          </div>
+          <p>© {currentYear} JollofTips. All algorithmic models & rights reserved.</p>
+          <p>Strictly 18+ · Please gamble responsibly.</p>
         </div>
       </div>
-
-      {/* Responsive footer grid */}
-      <style>{`
-        @media (max-width: 900px) {
-          footer > div > div:first-child {
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-        @media (max-width: 540px) {
-          footer > div > div:first-child {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </footer>
   );
 }

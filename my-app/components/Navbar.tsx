@@ -11,7 +11,10 @@ import {
   Search,
   UserPlus,
   User,
+  Menu,
+  Sparkles,
 } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
   liveCount?: number;
@@ -38,8 +41,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("" );
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Fetch current auth status
   const checkAuthStatus = useCallback(async () => {
@@ -68,14 +72,14 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   // Scroll listener for dynamic navbar styling
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 15);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Keyboard shortcut for Cmd+K
+  // Keyboard shortcut for Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -103,346 +107,467 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
     }
   };
 
-  const isLanding = pathname === "/" || pathname === "";
-  const isNavOpaque = !isLanding || isScrolled;
-
   return (
     <>
-      <nav style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        width: "100%",
-        zIndex: 50,
-        background: isNavOpaque ? "rgba(9, 9, 15, 0.92)" : "transparent",
-        backdropFilter: isNavOpaque ? "blur(20px)" : "none",
-        WebkitBackdropFilter: isNavOpaque ? "blur(20px)" : "none",
-        borderBottom: isNavOpaque ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
-        boxShadow: isNavOpaque ? "0 4px 32px rgba(0, 0, 0, 0.7)" : "none",
-        transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease",
-      }}>
-        <div style={{
-          maxWidth: 1320,
-          margin: "0 auto",
-          padding: "0 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: 60,
-          gap: 16,
-        }}>
-          {/* Brand Logo - JollofTips Style */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
-            <div style={{
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          width: "100%",
+          background: isScrolled ? "var(--bg-header)" : "var(--background)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: `1px solid ${isScrolled ? "var(--border-color)" : "transparent"}`,
+          transition: "background 0.25s ease, border-color 0.25s ease",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1400,
+            margin: "0 auto",
+            padding: "0 20px",
+            height: 64,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          {/* Brand Logo */}
+          <Link
+            href="/"
+            style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: 32,
-              height: 32,
-              borderRadius: 7,
-              background: "rgba(201,168,76,0.12)",
-              border: "1px solid rgba(201,168,76,0.3)",
+              gap: 10,
+              textDecoration: "none",
               flexShrink: 0,
-            }}>
-              <span style={{
-                color: "#c9a84c",
-                fontWeight: 800,
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                background: "var(--gold-bg)",
+                border: "1px solid var(--gold-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 900,
                 fontSize: 14,
-                fontFamily: "'Playfair Display', serif",
-                letterSpacing: "-0.5px",
-                userSelect: "none",
-              }}>
-                JT
-              </span>
+                color: "var(--gold)",
+                letterSpacing: "-0.02em",
+                boxShadow: "0 0 12px var(--gold-glow)",
+              }}
+            >
+              JT
             </div>
-            <span style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#f5f3ee",
-              letterSpacing: "0.06em",
-              fontFamily: "'Inter', sans-serif",
-              textTransform: "uppercase",
-            }}>
-              JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
+            <span
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: "var(--text-primary)",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
             </span>
           </Link>
 
-          {/* Nav Links - Exact NerdyTips List */}
-          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "nowrap" }}>
+          {/* Desktop Navigation Links */}
+          <nav
+            style={{
+              display: "none",
+              alignItems: "center",
+              gap: 4,
+            }}
+            className="hidden lg:flex"
+          >
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
-                  key={link.label}
+                  key={link.href}
                   href={link.href}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
                     padding: "6px 12px",
+                    borderRadius: 8,
                     fontSize: 13,
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? "#f5f3ee" : "#8a8a9a",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    borderRadius: 6,
-                    borderBottom: isActive ? "1px solid rgba(201,168,76,0.6)" : "1px solid transparent",
-                    transition: "color 0.15s, border-color 0.15s",
+                    color: isActive ? "var(--gold)" : "var(--text-secondary)",
+                    background: isActive ? "var(--gold-bg)" : "transparent",
+                    transition: "all 0.15s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#f5f3ee"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? "#f5f3ee" : "#8a8a9a"; }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--surface-raised)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                      e.currentTarget.style.background = "transparent";
+                    }
+                  }}
                 >
                   {link.label}
+                  {link.href === "/all-matches" && liveCount > 0 && (
+                    <span
+                      style={{
+                        padding: "1px 6px",
+                        borderRadius: 999,
+                        background: "var(--accent-green)",
+                        color: "#ffffff",
+                        fontSize: 10,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {liveCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
-          </div>
+          </nav>
 
-          {/* Right Action Icons & Auth */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            {/* Quick Search */}
+          {/* Right Action Controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Quick Search Button */}
             <button
               onClick={() => setShowSearchModal(true)}
+              style={{
+                display: "none",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 12px",
+                borderRadius: 8,
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-secondary)",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+              className="hidden md:flex"
+            >
+              <Search size={14} />
+              <span>Search</span>
+              <kbd
+                style={{
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border-color)",
+                  fontSize: 10,
+                  color: "var(--text-dim)",
+                }}
+              >
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Theme Toggle Button (Light/Dark switch) */}
+            <ThemeToggle />
+
+            {/* VIP Upgrade Pill */}
+            <Link
+              href="/pricing"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                padding: "6px 14px",
                 borderRadius: 8,
-                padding: "6px 12px",
-                color: "#94a3b8",
+                background: "var(--gold-bg)",
+                border: "1px solid var(--gold-border)",
+                color: "var(--gold)",
                 fontSize: 12,
-                cursor: "pointer",
-                transition: "border-color 0.15s",
+                fontWeight: 700,
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--gold)";
+                e.currentTarget.style.color = "var(--gold-btn-text)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--gold-bg)";
+                e.currentTarget.style.color = "var(--gold)";
               }}
             >
-              <Search style={{ width: 13, height: 13, color: "#64748b" }} />
-              <span className="search-label">Search</span>
-              <span style={{
-                background: "rgba(255,255,255,0.07)",
-                fontSize: 10,
-                fontWeight: 700,
-                color: "#64748b",
-                padding: "1px 5px",
-                borderRadius: 4,
-                fontFamily: "monospace",
-              }}>
-                ⌘K
-              </span>
-            </button>
+              <Crown size={14} />
+              <span className="hidden sm:inline">VIP Access</span>
+            </Link>
 
-            {/* Direct Login / Register Links or Active User Pill */}
-            {!loadingAuth && (
-              isLoggedIn && currentUser ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Link
-                    href="/account"
+            {/* Auth Button */}
+            {loadingAuth ? (
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "var(--surface-raised)",
+                }}
+              />
+            ) : isLoggedIn ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Link
+                  href="/account"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "4px 10px 4px 6px",
+                    borderRadius: 999,
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border-color)",
+                    color: "var(--text-primary)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      background: "rgba(16, 185, 129, 0.12)",
-                      border: "1px solid rgba(16, 185, 129, 0.3)",
-                      borderRadius: 999,
-                      padding: "3px 12px 3px 4px",
-                      textDecoration: "none",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <div style={{
-                      width: 26,
-                      height: 26,
+                      width: 24,
+                      height: 24,
                       borderRadius: "50%",
-                      background: currentUser.role === "ADMIN" ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      background: "var(--accent-green)",
+                      color: "#fff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: currentUser.role === "ADMIN" ? "#451a03" : "#022c22",
                       fontWeight: 800,
-                      fontSize: 12,
-                    }}>
-                      {(currentUser.name || currentUser.email || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>
-                      {currentUser.name || currentUser.email?.split("@")[0] || "My Account"}
-                    </span>
-                    {currentUser.role === "ADMIN" && (
-                      <Crown style={{ width: 12, height: 12, color: "#fbbf24" }} />
-                    )}
-                  </Link>
-
-                  <button
-                    onClick={handleLogout}
-                    title="Sign Out"
-                    style={{
-                      background: "rgba(239, 68, 68, 0.1)",
-                      border: "1px solid rgba(239, 68, 68, 0.25)",
-                      color: "#f87171",
-                      borderRadius: 8,
-                      padding: "6px 8px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      fontSize: 11,
                     }}
                   >
-                    <LogOut style={{ width: 14, height: 14 }} />
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Link
-                    href="/login"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                      color: "#ffffff",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      borderRadius: 8,
-                      padding: "6px 14px",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      textDecoration: "none",
-                      boxShadow: "0 0 16px rgba(99, 102, 241, 0.4)",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow = "0 0 22px rgba(99, 102, 241, 0.65)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 0 16px rgba(99, 102, 241, 0.4)";
-                    }}
-                  >
-                    <LogIn style={{ width: 14, height: 14, strokeWidth: 2.2 }} />
-                    <span>Sign In</span>
-                  </Link>
-                  <Link
-                    href="/register"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      background: "rgba(255, 255, 255, 0.05)",
-                      color: "#cbd5e1",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <UserPlus style={{ width: 13, height: 13, color: "#818cf8" }} />
-                    <span>Register</span>
-                  </Link>
-                </div>
-              )
+                    {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                  <span className="hidden md:inline" style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {currentUser?.name || "Account"}
+                  </span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  title="Log out"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: "transparent",
+                    border: "1px solid var(--border-color)",
+                    color: "var(--text-secondary)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--accent-red)";
+                    e.currentTarget.style.borderColor = "var(--accent-red-border)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.borderColor = "var(--border-color)";
+                  }}
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border-color)",
+                  color: "var(--text-primary)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                <LogIn size={14} />
+                <span>Login</span>
+              </Link>
             )}
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              onClick={() => setMobileMenuOpen((p) => !p)}
+              className="flex lg:hidden"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: "var(--surface-raised)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-primary)",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </div>
-      </nav>
 
-      {/* ── Search Modal ── */}
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div
+            className="lg:hidden"
+            style={{
+              padding: "16px 20px",
+              background: "var(--bg-surface)",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "var(--gold)" : "var(--text-primary)",
+                    background: isActive ? "var(--gold-bg)" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span>{link.label}</span>
+                  {link.href === "/all-matches" && liveCount > 0 && (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "var(--accent-green)",
+                        color: "#ffffff",
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {liveCount} LIVE
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </header>
+
+      {/* Global Search Modal */}
       {showSearchModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 110,
-          background: "rgba(0, 0, 0, 0.8)",
-          backdropFilter: "blur(6px)",
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "center",
-          padding: "80px 16px 16px",
-        }}
-        onClick={() => setShowSearchModal(false)}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: 100,
+            paddingLeft: 16,
+            paddingRight: 16,
+          }}
+          onClick={() => setShowSearchModal(false)}
         >
           <div
             style={{
-              background: "#0d1220",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 14,
-              maxWidth: 540,
               width: "100%",
+              maxWidth: 560,
+              background: "var(--bg-card)",
+              border: "1px solid var(--gold-border)",
+              borderRadius: 14,
+              boxShadow: "var(--shadow-card)",
               overflow: "hidden",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.7)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <Search style={{ width: 16, height: 16, color: "#94a3b8", marginRight: 10 }} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "14px 18px",
+                borderBottom: "1px solid var(--border-color)",
+              }}
+            >
+              <Search size={18} color="var(--gold)" />
               <input
                 type="text"
                 autoFocus
-                placeholder="Search matches, leagues, teams or countries..."
+                placeholder="Search matches, leagues, teams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchQuery.trim()) {
-                    window.location.href = `/all-matches?q=${encodeURIComponent(searchQuery.trim())}`;
-                  }
-                }}
                 style={{
-                  flex: 1,
+                  width: "100%",
                   background: "transparent",
                   border: "none",
-                  color: "#ffffff",
-                  fontSize: 14,
                   outline: "none",
+                  fontSize: 14,
+                  color: "var(--text-primary)",
                 }}
               />
               <button
                 onClick={() => setShowSearchModal(false)}
-                style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer" }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
               >
-                <X style={{ width: 16, height: 16 }} />
+                <X size={18} />
               </button>
             </div>
-            <div style={{ padding: "12px 16px", display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: "#64748b", width: "100%", marginBottom: 4 }}>Quick Navigation:</span>
-              {[
-                { label: "Premier League", href: "/all-matches?q=Premier%20League" },
-                { label: "La Liga", href: "/all-matches?q=La%20Liga" },
-                { label: "Champions League", href: "/all-matches?q=Champions" },
-                { label: "Live Matches", href: "/all-matches?filter=live" },
-                { label: "All Leagues Directory", href: "/leagues" },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setShowSearchModal(false)}
-                  style={{
-                    fontSize: 12,
-                    color: "#94a3b8",
-                    background: "#13172e",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    padding: "5px 10px",
-                    borderRadius: 6,
-                    textDecoration: "none",
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div style={{ padding: "16px 18px" }}>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+                Popular quick links
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["Arsenal", "Real Madrid", "Premier League", "La Liga", "Bankers Today"].map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/all-matches`}
+                    onClick={() => setShowSearchModal(false)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-color)",
+                      color: "var(--text-primary)",
+                      fontSize: 12,
+                    }}
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 1024px) {
-          .nav-links-container { display: none !important; }
-          .search-label { display: none; }
-        }
-      `}</style>
     </>
   );
 }

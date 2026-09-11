@@ -17,14 +17,10 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
   return (
     <div
+      className="luxury-card"
       style={{
-        background: "#0f0f1a",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: "12px",
         overflow: "hidden",
         marginBottom: "16px",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-        transition: "border-color 0.2s ease",
       }}
     >
       {/* ── League Header ── */}
@@ -35,24 +31,22 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
           alignItems: "center",
           justifyContent: "space-between",
           padding: "12px 18px",
-          background: "rgba(20,20,32,0.98)",
-          borderBottom: isOpen ? "1px solid rgba(255,255,255,0.05)" : "none",
+          background: "var(--surface-raised)",
+          borderBottom: isOpen ? "1px solid var(--border-color)" : "none",
           cursor: "pointer",
           userSelect: "none",
           transition: "background 0.15s ease",
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(25,25,38,0.98)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(20,20,32,0.98)"; }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
           {/* League icon */}
           <div
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: "7px",
-              background: "rgba(201,168,76,0.08)",
-              border: "1px solid rgba(201,168,76,0.2)",
+              width: 28,
+              height: 28,
+              borderRadius: "8px",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -66,7 +60,7 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
                 style={{ width: 14, height: 14, objectFit: "contain" }}
               />
             ) : (
-              <Trophy style={{ width: 12, height: 12, color: "#c9a84c" }} />
+              <Trophy style={{ width: 13, height: 13, color: "var(--gold)" }} />
             )}
           </div>
 
@@ -74,12 +68,11 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
           <span
             style={{
               fontSize: "13px",
-              fontWeight: 600,
-              color: "#f5f3ee",
+              fontWeight: 700,
+              color: "var(--text-primary)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              fontFamily: "'Inter', sans-serif",
             }}
           >
             {leagueName}
@@ -88,16 +81,15 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
           {/* Country badge */}
           <span
             style={{
-              fontSize: "10px",
-              color: "#484858",
-              fontWeight: 500,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              fontSize: "11px",
+              color: "var(--text-dim)",
+              fontWeight: 600,
+              background: "var(--surface)",
+              border: "1px solid var(--border-color)",
               padding: "2px 8px",
-              borderRadius: "5px",
+              borderRadius: "6px",
               whiteSpace: "nowrap",
               flexShrink: 0,
-              fontFamily: "'Inter', sans-serif",
             }}
           >
             {country}
@@ -109,20 +101,19 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
           <span
             style={{
               fontSize: "11px",
-              fontWeight: 600,
-              color: "#c9a84c",
-              background: "rgba(201,168,76,0.08)",
-              border: "1px solid rgba(201,168,76,0.2)",
+              fontWeight: 800,
+              color: "var(--gold)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               padding: "2px 10px",
               borderRadius: "999px",
-              fontFamily: "'JetBrains Mono', monospace",
             }}
           >
             {matches.length}
           </span>
           {isOpen
-            ? <ChevronUp style={{ width: 14, height: 14, color: "#484858" }} />
-            : <ChevronDown style={{ width: 14, height: 14, color: "#484858" }} />
+            ? <ChevronUp style={{ width: 14, height: 14, color: "var(--text-dim)" }} />
+            : <ChevronDown style={{ width: 14, height: 14, color: "var(--text-dim)" }} />
           }
         </div>
       </div>
@@ -138,28 +129,25 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
                 display: "grid",
                 gridTemplateColumns: "60px minmax(200px, 1.3fr) 140px 88px 92px 76px 110px 76px",
                 padding: "8px 18px",
-                background: "rgba(9,9,15,0.9)",
-                borderBottom: "1px solid rgba(255,255,255,0.04)",
+                background: "var(--surface)",
+                borderBottom: "1px solid var(--border-color)",
                 fontSize: "9px",
-                fontWeight: 700,
-                color: "#2a2a3d",
+                fontWeight: 800,
+                color: "var(--text-dim)",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
                 alignItems: "center",
-                fontFamily: "'Inter', sans-serif",
               }}
             >
               <div style={{ textAlign: "center" }}>TIME</div>
               <div style={{ paddingLeft: "10px" }}>MATCH FIXTURE</div>
               <div style={{ textAlign: "center" }}>
-                <span style={{ color: "#484858", fontWeight: 700 }}>
-                  1 &nbsp;·&nbsp; X &nbsp;·&nbsp; 2
-                </span>
+                <span>1 &nbsp;·&nbsp; X &nbsp;·&nbsp; 2</span>
               </div>
               <div style={{ textAlign: "center" }}>1X2 TIP</div>
               <div style={{ textAlign: "center" }}>GOALS</div>
               <div style={{ textAlign: "center" }}>BTTS</div>
-              <div style={{ textAlign: "center", color: "#c9a84c" }}>BEST TIP</div>
+              <div style={{ textAlign: "center", color: "var(--gold)" }}>BEST TIP</div>
               <div style={{ textAlign: "center" }}>CONFIDENCE</div>
             </div>
 
@@ -168,7 +156,7 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
               {matches.map((match, idx) => (
                 <div
                   key={match.id}
-                  style={{ borderTop: idx > 0 ? "1px solid rgba(255,255,255,0.03)" : "none" }}
+                  style={{ borderTop: idx > 0 ? "1px solid var(--border-subtle)" : "none" }}
                 >
                   <MatchRow match={match} />
                 </div>

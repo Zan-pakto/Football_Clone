@@ -4,14 +4,13 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { MatchData } from "@/lib/types";
-import { Trophy, Globe, Search, ArrowRight, ShieldCheck, Zap, Layers, ChevronRight, RefreshCw } from "lucide-react";
+import { Trophy, Globe, Search, ArrowRight, Layers, ChevronRight, RefreshCw } from "lucide-react";
 
 export default function LeaguesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchMatches = useCallback(async () => {
     try {
@@ -32,19 +31,6 @@ export default function LeaguesPage() {
     fetchMatches();
   }, [fetchMatches]);
 
-  const handleSync = async () => {
-    try {
-      setIsSyncing(true);
-      const res = await fetch("/api/sync?d=0", { method: "POST" });
-      const data = await res.json();
-      if (data.success) await fetchMatches();
-    } catch (err) {
-      console.error("Sync error:", err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const leaguesByCountry = useMemo(() => {
     const map: Record<string, { country: string; flagUrl: string | null; leagues: Record<string, number> }> = {};
 
@@ -60,344 +46,290 @@ export default function LeaguesPage() {
       map[c].leagues[m.leagueName] = (map[c].leagues[m.leagueName] || 0) + 1;
     });
 
-    let list = Object.values(map);
+    return Object.values(map);
+  }, [matches]);
 
-    // Region filter
-    if (selectedRegion !== "all") {
-      if (selectedRegion === "top5") {
-        const top5 = ["england", "spain", "germany", "italy", "france"];
-        list = list.filter((item) => top5.includes(item.country.toLowerCase()));
-      } else {
-        list = list.filter((item) => item.country.toLowerCase() === selectedRegion.toLowerCase());
+  const totalCountries = leaguesByCountry.length;
+  const totalLeagues = useMemo(() => {
+    return leaguesByCountry.reduce((acc, c) => acc + Object.keys(c.leagues).length, 0);
+  }, [leaguesByCountry]);
+
+  const filteredLeagues = useMemo(() => {
+    return leaguesByCountry.filter((item) => {
+      if (selectedRegion !== "all") {
+        if (selectedRegion === "top5") {
+          const top5 = ["England", "Spain", "Germany", "Italy", "France"];
+          if (!top5.includes(item.country)) return false;
+        } else if (item.country.toLowerCase() !== selectedRegion.toLowerCase()) {
+          return false;
+        }
       }
-    }
-
-    // Search query filter
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      list = list.filter(
-        (item) =>
-          item.country.toLowerCase().includes(q) ||
-          Object.keys(item.leagues).some((l) => l.toLowerCase().includes(q))
-      );
-    }
-
-    return list.sort((a, b) => a.country.localeCompare(b.country));
-  }, [matches, search, selectedRegion]);
-
-  const liveCount = useMemo(
-    () => matches.filter((m) => m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed))).length,
-    [matches]
-  );
-
-  const totalLeaguesCount = useMemo(() => {
-    const set = new Set<string>();
-    matches.forEach((m) => set.add(`${m.country}_${m.leagueName}`));
-    return set.size;
-  }, [matches]);
-
-  const totalCountriesCount = useMemo(() => {
-    const set = new Set<string>();
-    matches.forEach((m) => { if (m.country) set.add(m.country); });
-    return set.size;
-  }, [matches]);
+      if (search) {
+        const q = search.toLowerCase();
+        const inCountry = item.country.toLowerCase().includes(q);
+        const inLeagues = Object.keys(item.leagues).some((l) => l.toLowerCase().includes(q));
+        return inCountry || inLeagues;
+      }
+      return true;
+    });
+  }, [leaguesByCountry, selectedRegion, search]);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "transparent", color: "#f8fafc" }}>
-      <Navbar liveCount={liveCount} onSync={handleSync} isSyncing={isSyncing} />
+    <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      <Navbar />
 
-      <main style={{ flex: 1, maxWidth: 1240, width: "100%", margin: "0 auto", padding: "84px 16px 60px" }}>
-
-        {/* ── Top Header Title & Stats ── */}
-        <div style={{
-          background: "linear-gradient(135deg, rgba(20, 25, 58, 0.95) 0%, rgba(14, 18, 44, 0.95) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.22)",
-          borderRadius: 16,
-          padding: "24px 28px",
-          marginBottom: 24,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(139, 92, 246, 0.08)",
-        }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                <div style={{
-                  background: "rgba(245, 158, 11, 0.15)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  padding: 8,
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <Trophy style={{ width: 20, height: 20, color: "#f59e0b" }} />
-                </div>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: "#ffffff", letterSpacing: "-0.5px", margin: 0 }}>
-                  Football Leagues & Competitions
-                </h1>
-              </div>
-              <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
-                Explore coverage across 160+ international leagues, cups, and regional football divisions.
-              </p>
+      <main style={{ maxWidth: 1360, margin: "0 auto", padding: "28px 20px 80px" }}>
+        
+        {/* ── Top Hero Card ── */}
+        <div
+          className="luxury-card"
+          style={{
+            padding: "28px 32px",
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 24,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 18 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: "var(--gold-bg)",
+                border: "1px solid var(--gold-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--gold)",
+                flexShrink: 0,
+              }}
+            >
+              <Trophy size={24} />
             </div>
-
-            {/* Stats Pills */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div style={{
-                background: "#13172e",
-                border: "1px solid rgba(255,255,255,0.08)",
-                padding: "8px 14px",
-                borderRadius: 10,
-                textAlign: "center",
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>Countries</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#ffffff" }}>{loading ? "–" : totalCountriesCount}</div>
-              </div>
-              <div style={{
-                background: "#13172e",
-                border: "1px solid rgba(255,255,255,0.08)",
-                padding: "8px 14px",
-                borderRadius: 10,
-                textAlign: "center",
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>Leagues</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#6366f1" }}>{loading ? "–" : totalLeaguesCount}</div>
-              </div>
-              <div style={{
-                background: "#13172e",
-                border: "1px solid rgba(255,255,255,0.08)",
-                padding: "8px 14px",
-                borderRadius: 10,
-                textAlign: "center",
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>Matches Today</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#10b981" }}>{loading ? "–" : matches.length}</div>
-              </div>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                Football Leagues & Competitions
+              </h1>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
+                Explore algorithmic coverage across 160+ international leagues, cups, and continental tournaments.
+              </p>
             </div>
           </div>
 
-          {/* ── Search & Quick Region Filter ── */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 20, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* Quick Filter Buttons */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {[
-                { id: "all", label: "All Countries" },
-                { id: "top5", label: "Top 5 Leagues" },
-                { id: "england", label: "England" },
-                { id: "spain", label: "Spain" },
-                { id: "germany", label: "Germany" },
-                { id: "italy", label: "Italy" },
-                { id: "france", label: "France" },
-              ].map((pill) => {
-                const isActive = selectedRegion === pill.id;
-                return (
-                  <button
-                    key={pill.id}
-                    onClick={() => setSelectedRegion(pill.id)}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: isActive ? 800 : 600,
-                      background: isActive ? "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)" : "#13172e",
-                      color: isActive ? "#ffffff" : "#94a3b8",
-                      border: isActive ? "1px solid transparent" : "1px solid rgba(255,255,255,0.08)",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {pill.label}
-                  </button>
-                );
-              })}
+          {/* 3 Metric Pills */}
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: "var(--surface-raised)", border: "1px solid var(--border-color)" }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase" }}>Countries</p>
+              <p style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>{totalCountries}</p>
             </div>
-
-            {/* Search Input Box */}
-            <div style={{ position: "relative", minWidth: 260, flex: "0 1 320px" }}>
-              <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 15, height: 15, color: "#64748b" }} />
-              <input
-                type="text"
-                placeholder="Search league or country..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "#080915",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8,
-                  padding: "8px 12px 8px 36px",
-                  color: "#ffffff",
-                  fontSize: 13,
-                  outline: "none",
-                }}
-                onFocus={(e) => { e.target.style.borderColor = "#6366f1"; }}
-                onBlur={(e) => { e.target.style.borderColor = "rgba(255,255,255,0.12)"; }}
-              />
+            <div style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: "var(--surface-raised)", border: "1px solid var(--border-color)" }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase" }}>Leagues</p>
+              <p style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>{totalLeagues}</p>
+            </div>
+            <div style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: "var(--surface-raised)", border: "1px solid var(--border-color)" }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: "var(--accent-green)", textTransform: "uppercase" }}>Matches Today</p>
+              <p style={{ fontSize: 20, fontWeight: 900, color: "var(--accent-green)", margin: 0 }}>{matches.length}</p>
             </div>
           </div>
         </div>
 
-        {/* ── Leagues Grid ── */}
-        {loading ? (
-          <div style={{ padding: "80px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, color: "#64748b" }}>
-            <RefreshCw style={{ width: 32, height: 32, color: "#6366f1", animation: "spin 1s linear infinite" }} />
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Loading global leagues catalog...</span>
+        {/* ── Filter Bar & Search ── */}
+        <div
+          className="luxury-card"
+          style={{
+            padding: "12px 18px",
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+          }}
+        >
+          {/* Region Pills */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[
+              { id: "all", label: "All Countries" },
+              { id: "top5", label: "Top 5 Leagues" },
+              { id: "England", label: "England" },
+              { id: "Spain", label: "Spain" },
+              { id: "Germany", label: "Germany" },
+              { id: "Italy", label: "Italy" },
+              { id: "France", label: "France" },
+            ].map((reg) => {
+              const isSel = selectedRegion === reg.id;
+              return (
+                <button
+                  key={reg.id}
+                  onClick={() => setSelectedRegion(reg.id)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    border: isSel ? "1px solid var(--gold)" : "1px solid var(--border-color)",
+                    background: isSel ? "var(--gold)" : "transparent",
+                    color: isSel ? "var(--gold-btn-text)" : "var(--text-secondary)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {reg.label}
+                </button>
+              );
+            })}
           </div>
-        ) : leaguesByCountry.length === 0 ? (
-          <div style={{
-            padding: "60px 24px",
-            textAlign: "center",
-            background: "#0c1022",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 14,
-            color: "#64748b",
-          }}>
-            <Globe style={{ width: 36, height: 36, color: "#334155", margin: "0 auto 12px" }} />
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: "#e2e8f0", marginBottom: 6 }}>No leagues match your criteria</h3>
-            <p style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>Try adjusting your search terms or filter selection.</p>
-            <button
-              onClick={() => { setSearch(""); setSelectedRegion("all"); }}
+
+          {/* Search Box */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 12px",
+              borderRadius: 8,
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border-color)",
+              width: 240,
+            }}
+          >
+            <Search size={14} color="var(--gold)" />
+            <input
+              type="text"
+              placeholder="Search league or country..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               style={{
-                padding: "8px 18px",
-                background: "#1e293b",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 6,
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                outline: "none",
                 fontSize: 12,
-                fontWeight: 700,
-                color: "#e2e8f0",
-                cursor: "pointer",
+                color: "var(--text-primary)",
               }}
-            >
-              Reset Filters
-            </button>
+            />
+          </div>
+        </div>
+
+        {/* ── Leagues 3-Column Grid ── */}
+        {loading ? (
+          <div className="luxury-card" style={{ padding: 60, textAlign: "center" }}>
+            <RefreshCw size={28} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--gold)" }} />
+            <p style={{ color: "var(--text-secondary)" }}>Loading league directory...</p>
+          </div>
+        ) : filteredLeagues.length === 0 ? (
+          <div className="luxury-card" style={{ padding: 60, textAlign: "center" }}>
+            <p style={{ color: "var(--text-secondary)" }}>No leagues found matching your query.</p>
           </div>
         ) : (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-            gap: 16,
-          }}>
-            {leaguesByCountry.map((item) => {
-              const totalMatchesInCountry = Object.values(item.leagues).reduce((a, b) => a + b, 0);
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {filteredLeagues.map((item) => {
+              const countryTotalMatches = Object.values(item.leagues).reduce((a, b) => a + b, 0);
+
               return (
                 <div
                   key={item.country}
+                  className="luxury-card"
                   style={{
-                    background: "#0c1022",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: 14,
-                    overflow: "hidden",
+                    padding: "20px",
                     display: "flex",
                     flexDirection: "column",
-                    transition: "border-color 0.15s ease, transform 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(99,102,241,0.35)";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
-                    e.currentTarget.style.transform = "translateY(0)";
+                    justifyContent: "space-between",
                   }}
                 >
-                  {/* Country Header */}
-                  <div style={{
-                    padding: "14px 16px",
-                    background: "#13172e",
-                    borderBottom: "1px solid rgba(255,255,255,0.06)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}>
+                  {/* Card Header: Country Name + Count Badge */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderBottom: "1px solid var(--border-color)",
+                      paddingBottom: 12,
+                      marginBottom: 12,
+                    }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 6,
-                        background: "rgba(99, 102, 241, 0.15)",
-                        border: "1px solid rgba(99, 102, 241, 0.3)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        <Globe style={{ width: 14, height: 14, color: "#818cf8" }} />
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: "var(--surface-raised)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--gold)",
+                        }}
+                      >
+                        <Globe size={16} />
                       </div>
-                      <h3 style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
                         {item.country}
-                      </h3>
+                      </span>
                     </div>
 
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#94a3b8",
-                      background: "#1c223d",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                    }}>
-                      {totalMatchesInCountry} {totalMatchesInCountry === 1 ? "match" : "matches"}
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: "var(--surface-raised)",
+                        color: "var(--text-secondary)",
+                        border: "1px solid var(--border-color)",
+                      }}
+                    >
+                      {countryTotalMatches} {countryTotalMatches === 1 ? "match" : "matches"}
                     </span>
                   </div>
 
-                  {/* Leagues inside Country */}
-                  <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                    {Object.entries(item.leagues).map(([leagueName, count]) => (
+                  {/* Sub Leagues List */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {Object.entries(item.leagues).map(([lName, mCount]) => (
                       <Link
-                        key={leagueName}
-                        href={`/all-matches?q=${encodeURIComponent(leagueName)}`}
+                        key={lName}
+                        href={`/all-matches`}
                         style={{
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: "var(--surface-raised)",
+                          border: "1px solid var(--border-subtle)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          padding: "9px 12px",
-                          borderRadius: 8,
-                          background: "#080b18",
-                          border: "1px solid rgba(255,255,255,0.04)",
-                          textDecoration: "none",
-                          transition: "all 0.12s ease",
+                          color: "var(--text-secondary)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          transition: "all 0.15s ease",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#151a33";
-                          e.currentTarget.style.borderColor = "rgba(99,102,241,0.25)";
+                          e.currentTarget.style.color = "var(--gold)";
+                          e.currentTarget.style.borderColor = "var(--gold-border)";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#080b18";
-                          e.currentTarget.style.borderColor = "rgba(255,255,255,0.04)";
+                          e.currentTarget.style.color = "var(--text-secondary)";
+                          e.currentTarget.style.borderColor = "var(--border-subtle)";
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                          <span style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: "#6366f1",
-                            flexShrink: 0,
-                          }} />
-                          <span style={{
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            color: "#e2e8f0",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>
-                            {leagueName}
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
+                          {lName}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)" }}>
+                            {mCount}
                           </span>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                          <span style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            color: "#94a3b8",
-                            background: "rgba(255,255,255,0.05)",
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                          }}>
-                            {count}
-                          </span>
-                          <ChevronRight style={{ width: 13, height: 13, color: "#64748b" }} />
+                          <ChevronRight size={14} />
                         </div>
                       </Link>
                     ))}
@@ -408,12 +340,6 @@ export default function LeaguesPage() {
           </div>
         )}
       </main>
-
-
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

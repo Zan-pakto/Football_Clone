@@ -124,12 +124,12 @@ export default function MatchRow({ match }: MatchRowProps) {
   const isOverallLost = match.status === "lost" || (isFinished && bestTipWon === false);
 
   const accentColor = isLive
-    ? "#22c55e"
+    ? "var(--accent-green)"
     : isOverallWon
-    ? "#22c55e"
+    ? "var(--accent-green)"
     : isOverallLost
-    ? "#ef4444"
-    : "rgba(201,168,76,0.25)";
+    ? "var(--accent-red)"
+    : "var(--border-color)";
 
   const href = match.url
     ? match.url.startsWith("http")
@@ -146,9 +146,9 @@ export default function MatchRow({ match }: MatchRowProps) {
       style={{
         position: "relative",
         background: isLive
-          ? "linear-gradient(90deg, rgba(34,197,94,0.08) 0%, rgba(15,15,26,0.95) 60%)"
-          : "rgba(15,15,26,0.95)",
-        borderLeft: `2px solid ${accentColor}`,
+          ? "var(--accent-green-bg)"
+          : "var(--bg-card)",
+        borderLeft: `3px solid ${accentColor}`,
         borderBottom: "none",
       }}
     >
@@ -173,27 +173,25 @@ export default function MatchRow({ match }: MatchRowProps) {
               gap: 4,
               fontSize: 10,
               fontWeight: 900,
-              color: "#34d399",
-              background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.4)",
+              color: "var(--accent-green)",
+              background: "var(--accent-green-bg)",
+              border: "1px solid var(--accent-green-border)",
               padding: "2px 7px",
               borderRadius: 6,
-              boxShadow: "0 0 10px rgba(16, 185, 129, 0.2)",
             }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
               {match.elapsed || "LIVE"}
             </div>
           ) : (
             <div style={{
               fontSize: 10,
-              fontWeight: 600,
-              color: isFinished ? "#2a2a3d" : "#8a8a9a",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              fontWeight: 700,
+              color: isFinished ? "var(--text-dim)" : "var(--text-secondary)",
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border-color)",
               padding: "3px 8px",
               borderRadius: 5,
               letterSpacing: "0.04em",
-              fontFamily: "'JetBrains Mono', monospace",
             }}>
               {isFinished ? match.elapsed || "FT" : match.kickTime || "–"}
             </div>
@@ -217,20 +215,20 @@ export default function MatchRow({ match }: MatchRowProps) {
                   width: 17,
                   height: 17,
                   borderRadius: "50%",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border-color)",
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 8,
                   fontWeight: 700,
-                  color: "#484858"
+                  color: "var(--text-dim)"
                 }}>
                   {match.homeTeam.charAt(0)}
                 </div>
               )}
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {match.homeTeam}
               </span>
             </div>
@@ -238,11 +236,11 @@ export default function MatchRow({ match }: MatchRowProps) {
               <span style={{
                 fontSize: 13,
                 fontWeight: 900,
-                color: isLive ? "#34d399" : "#ffffff",
+                color: isLive ? "var(--accent-green)" : "var(--text-primary)",
                 flexShrink: 0,
                 padding: "1px 6px",
                 borderRadius: 4,
-                background: isLive ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.08)",
+                background: isLive ? "var(--accent-green-bg)" : "var(--surface-raised)",
                 minWidth: 20,
                 textAlign: "center",
               }}>
@@ -266,20 +264,20 @@ export default function MatchRow({ match }: MatchRowProps) {
                   width: 17,
                   height: 17,
                   borderRadius: "50%",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border-color)",
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 8,
                   fontWeight: 700,
-                  color: "#484858"
+                  color: "var(--text-dim)"
                 }}>
                   {match.awayTeam.charAt(0)}
                 </div>
               )}
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {match.awayTeam}
               </span>
             </div>
@@ -287,11 +285,11 @@ export default function MatchRow({ match }: MatchRowProps) {
               <span style={{
                 fontSize: 13,
                 fontWeight: 900,
-                color: isLive ? "#34d399" : "#ffffff",
+                color: isLive ? "var(--accent-green)" : "var(--text-primary)",
                 flexShrink: 0,
                 padding: "1px 6px",
                 borderRadius: 4,
-                background: isLive ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.08)",
+                background: isLive ? "var(--accent-green-bg)" : "var(--surface-raised)",
                 minWidth: 20,
                 textAlign: "center",
               }}>
@@ -316,23 +314,22 @@ export default function MatchRow({ match }: MatchRowProps) {
             <div
               key={i}
               style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(9,9,15,0.8)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 5,
-              padding: "3px 4px",
-              transition: "border-color 0.15s ease",
-            }}
-          >
-            <span style={{ fontSize: 8, fontWeight: 700, color: "#484858", letterSpacing: "0.06em", lineHeight: 1 }}>
-              {item.label}
-            </span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "#8a8a9a", marginTop: 2, lineHeight: 1.1, fontFamily: "'JetBrains Mono', monospace" }}>
-              {item.val || "–"}
-            </span>
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--odds-box-bg)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 6,
+                padding: "3px 4px",
+              }}
+            >
+              <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", lineHeight: 1 }}>
+                {item.label}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.1 }}>
+                {item.val || "–"}
+              </span>
             </div>
           ))}
         </div>
@@ -377,39 +374,39 @@ export default function MatchRow({ match }: MatchRowProps) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 2,
+              gap: 3,
             }}>
               <span style={{
                 fontSize: 12,
                 fontWeight: 900,
                 letterSpacing: "-0.01em",
                 color: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                  ? "#22c55e"
+                  ? "var(--accent-green)"
                   : parseFloat(match.confidence) >= 60 || parseFloat(match.confidence) >= 6.0
-                  ? "#c9a84c"
-                  : "#8a8a9a",
+                  ? "var(--gold)"
+                  : "var(--text-secondary)",
               }}>
                 {match.confidence}
               </span>
               <div style={{
-                width: 34,
+                width: 36,
                 height: 3,
                 borderRadius: 999,
-                background: "rgba(255, 255, 255, 0.1)",
+                background: "var(--border-color)",
                 overflow: "hidden",
               }}>
                 <div style={{
                   width: `${Math.min(100, parseFloat(match.confidence) * (parseFloat(match.confidence) <= 10 ? 10 : 1))}%`,
                   height: "100%",
                   background: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                    ? "#22c55e"
-                    : "#c9a84c",
+                    ? "var(--accent-green)"
+                    : "var(--gold)",
                   borderRadius: 999,
                 }} />
               </div>
             </div>
           ) : (
-            <span style={{ fontSize: 11, color: "#475569" }}>–</span>
+            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>–</span>
           )}
         </div>
       </div>
@@ -425,21 +422,21 @@ export default function MatchRow({ match }: MatchRowProps) {
               gap: 4,
               fontSize: 10,
               fontWeight: 900,
-              color: "#34d399",
-              background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
+              color: "var(--accent-green)",
+              background: "var(--accent-green-bg)",
+              border: "1px solid var(--accent-green-border)",
               padding: "2px 8px",
               borderRadius: 6,
             }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
               LIVE {match.elapsed || ""}
             </span>
           ) : (
             <span style={{
               fontSize: 11,
               fontWeight: 800,
-              color: "#94a3b8",
-              background: "rgba(255, 255, 255, 0.05)",
+              color: "var(--text-secondary)",
+              background: "var(--surface-raised)",
               padding: "2px 8px",
               borderRadius: 5,
             }}>
@@ -449,69 +446,53 @@ export default function MatchRow({ match }: MatchRowProps) {
 
           {match.confidence && (
             <span style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: "#c9a84c",
-              background: "rgba(201,168,76,0.08)",
-              border: "1px solid rgba(201,168,76,0.2)",
+              fontSize: 11,
+              fontWeight: 800,
+              color: "var(--gold)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               padding: "2px 8px",
               borderRadius: 5,
-              fontFamily: "'JetBrains Mono', monospace",
             }}>
-              {match.confidence}
+              {match.confidence} Conf
             </span>
           )}
         </div>
 
-        {/* Fixtures & Scores */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "rgba(9,9,15,0.6)", padding: "8px 12px", borderRadius: 7 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {match.homeLogo ? (
-                <img src={match.homeLogo} alt={match.homeTeam} style={{ width: 16, height: 16, borderRadius: "50%" }} onError={(e) => { (e.target as HTMLElement).style.display = "none"; }} />
-              ) : (
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.04)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#484858" }}>{match.homeTeam.charAt(0)}</span>
-              )}
-              <span>{match.homeTeam}</span>
-            </div>
-            {hasScores && <span style={{ fontWeight: 900, color: isLive ? "#34d399" : "#fff" }}>{match.homeScore}</span>}
+        {/* Teams & Scores */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{match.homeTeam}</span>
+            {hasScores && <span style={{ fontSize: 14, fontWeight: 900, color: "var(--text-primary)" }}>{match.homeScore}</span>}
           </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {match.awayLogo ? (
-                <img src={match.awayLogo} alt={match.awayTeam} style={{ width: 16, height: 16, borderRadius: "50%" }} onError={(e) => { (e.target as HTMLElement).style.display = "none"; }} />
-              ) : (
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.04)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#484858" }}>{match.awayTeam.charAt(0)}</span>
-              )}
-              <span>{match.awayTeam}</span>
-            </div>
-            {hasScores && <span style={{ fontWeight: 900, color: isLive ? "#34d399" : "#fff" }}>{match.awayScore}</span>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{match.awayTeam}</span>
+            {hasScores && <span style={{ fontSize: 14, fontWeight: 900, color: "var(--text-primary)" }}>{match.awayScore}</span>}
           </div>
         </div>
 
-        {/* Mobile Predictions Badges */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {match.predictions.bestTip.pick && (
+        {/* Best Tip Pill */}
+        {match.predictions?.bestTip?.pick && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-color)", paddingTop: 8 }}>
+            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>Best Algorithmic Tip</span>
             <span style={{
-              fontSize: 11,
-              fontWeight: 700,
-              padding: "3px 9px",
-              borderRadius: 5,
-              background: bestTipWon ? "rgba(34,197,94,0.1)" : isFinished ? "rgba(239,68,68,0.1)" : "rgba(201,168,76,0.08)",
-              color: bestTipWon ? "#22c55e" : isFinished ? "#ef4444" : "#c9a84c",
-              border: `1px solid ${bestTipWon ? "rgba(34,197,94,0.25)" : isFinished ? "rgba(239,68,68,0.25)" : "rgba(201,168,76,0.2)"}`,
-              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "3px 10px",
+              borderRadius: 6,
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
+              color: "var(--gold)",
             }}>
-              Top Pick: {cleanPickLabel(match.predictions.bestTip.pick)} @ {match.predictions.bestTip.odd || "–"}
+              {cleanPickLabel(match.predictions.bestTip.pick)} @ {match.predictions.bestTip.odd || "–"}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <style>{`
         .match-row-item:hover {
-          background: rgba(20,20,32,0.98) !important;
+          background: var(--bg-card-hover) !important;
         }
         .match-desktop { display: none !important; }
         .match-mobile { display: flex !important; }
@@ -524,7 +505,7 @@ export default function MatchRow({ match }: MatchRowProps) {
   );
 }
 
-/* ── Refined Prediction Cell Component with Zero Truncation / Overlap ── */
+/* ── Prediction Cell Component ── */
 function PredCell({
   rawPick,
   odd,
@@ -545,8 +526,8 @@ function PredCell({
       <div style={{ textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 38 }}>
         <span style={{
           fontSize: 11,
-          color: "#475569",
-          background: "rgba(255, 255, 255, 0.03)",
+          color: "var(--text-dim)",
+          background: "var(--surface-raised)",
           padding: "2px 8px",
           borderRadius: 4,
         }}>
@@ -560,36 +541,36 @@ function PredCell({
   const isRed = isFinished && isWon === false;
 
   const cardBg = isGreen
-    ? "rgba(34,197,94,0.1)"
+    ? "var(--accent-green-bg)"
     : isRed
-    ? "rgba(239,68,68,0.1)"
+    ? "var(--accent-red-bg)"
     : isFeatured
-    ? "rgba(201,168,76,0.08)"
-    : "rgba(9,9,15,0.8)";
+    ? "var(--gold-bg)"
+    : "var(--odds-box-bg)";
 
   const cardBorder = isGreen
-    ? "1px solid rgba(34,197,94,0.25)"
+    ? "1px solid var(--accent-green-border)"
     : isRed
-    ? "1px solid rgba(239,68,68,0.25)"
+    ? "1px solid var(--accent-red-border)"
     : isFeatured
-    ? "1px solid rgba(201,168,76,0.28)"
-    : "1px solid rgba(255,255,255,0.07)";
+    ? "1px solid var(--gold-border)"
+    : "1px solid var(--border-color)";
 
   const pickColor = isGreen
-    ? "#22c55e"
+    ? "var(--accent-green)"
     : isRed
-    ? "#ef4444"
+    ? "var(--accent-red)"
     : isFeatured
-    ? "#c9a84c"
-    : "#f5f3ee";
+    ? "var(--gold)"
+    : "var(--text-primary)";
 
   const oddColor = isGreen
-    ? "#22c55e"
+    ? "var(--accent-green)"
     : isRed
-    ? "#ef4444"
+    ? "var(--accent-red)"
     : isFeatured
-    ? "#9a7c36"
-    : "#8a8a9a";
+    ? "var(--gold-dim)"
+    : "var(--text-secondary)";
 
   return (
     <div style={{
@@ -612,16 +593,15 @@ function PredCell({
         padding: "3px 6px",
         width: "100%",
         maxWidth: isFeatured ? 96 : 76,
-        boxShadow: isFeatured ? "0 0 16px rgba(201,168,76,0.12)" : "none",
         transition: "transform 0.15s ease",
       }}>
         {/* Pick Label */}
         <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "center" }}>
-          {isGreen && <Check style={{ width: 10, height: 10, color: "#34d399", strokeWidth: 3 }} />}
-          {isRed && <X style={{ width: 10, height: 10, color: "#f43f5e", strokeWidth: 3 }} />}
+          {isGreen && <Check style={{ width: 10, height: 10, color: "var(--accent-green)", strokeWidth: 3 }} />}
+          {isRed && <X style={{ width: 10, height: 10, color: "var(--accent-red)", strokeWidth: 3 }} />}
           <span style={{
             fontSize: 11,
-            fontWeight: 900,
+            fontWeight: 800,
             color: pickColor,
             letterSpacing: "-0.01em",
             whiteSpace: "nowrap",
@@ -635,7 +615,7 @@ function PredCell({
         {odd && (
           <span style={{
             fontSize: 10,
-            fontWeight: 800,
+            fontWeight: 700,
             color: oddColor,
             lineHeight: 1,
             marginTop: 2,
