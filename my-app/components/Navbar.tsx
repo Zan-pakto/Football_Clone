@@ -9,10 +9,8 @@ import {
   LogIn,
   X,
   Search,
-  UserPlus,
   User,
   Menu,
-  Sparkles,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -118,13 +116,13 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           background: isScrolled ? "var(--bg-header)" : "var(--background)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          borderBottom: `1px solid ${isScrolled ? "var(--border-color)" : "transparent"}`,
+          borderBottom: `1px solid ${isScrolled ? "var(--border-color)" : "var(--border-subtle)"}`,
           transition: "background 0.25s ease, border-color 0.25s ease",
         }}
       >
         <div
           style={{
-            maxWidth: 1400,
+            maxWidth: 1440,
             margin: "0 auto",
             padding: "0 20px",
             height: 64,
@@ -134,7 +132,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             gap: 16,
           }}
         >
-          {/* Brand Logo */}
+          {/* Left: Brand Logo */}
           <Link
             href="/"
             style={{
@@ -166,8 +164,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             </div>
             <span
               style={{
-                fontSize: 17,
-                fontWeight: 800,
+                fontSize: 18,
+                fontWeight: 900,
                 color: "var(--text-primary)",
                 letterSpacing: "-0.03em",
               }}
@@ -176,14 +174,13 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             </span>
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Center: Desktop Navigation Links (Always visible on desktop!) */}
           <nav
+            className="navbar-desktop-links"
             style={{
-              display: "none",
               alignItems: "center",
               gap: 4,
             }}
-            className="hidden lg:flex"
           >
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -192,16 +189,18 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   key={link.href}
                   href={link.href}
                   style={{
-                    padding: "6px 12px",
+                    padding: "7px 12px",
                     borderRadius: 8,
                     fontSize: 13,
-                    fontWeight: isActive ? 700 : 500,
+                    fontWeight: isActive ? 800 : 600,
                     color: isActive ? "var(--gold)" : "var(--text-secondary)",
                     background: isActive ? "var(--gold-bg)" : "transparent",
                     transition: "all 0.15s ease",
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
+                    whiteSpace: "nowrap",
+                    border: isActive ? "1px solid var(--gold-border)" : "1px solid transparent",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
@@ -237,12 +236,12 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           </nav>
 
           {/* Right Action Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             {/* Quick Search Button */}
             <button
               onClick={() => setShowSearchModal(true)}
+              className="navbar-search-btn"
               style={{
-                display: "none",
                 alignItems: "center",
                 gap: 8,
                 padding: "6px 12px",
@@ -251,10 +250,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 border: "1px solid var(--border-color)",
                 color: "var(--text-secondary)",
                 fontSize: 12,
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: "pointer",
               }}
-              className="hidden md:flex"
             >
               <Search size={14} />
               <span>Search</span>
@@ -288,8 +286,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 border: "1px solid var(--gold-border)",
                 color: "var(--gold)",
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 800,
                 transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--gold)";
@@ -391,7 +390,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   border: "1px solid var(--border-color)",
                   color: "var(--text-primary)",
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
                 }}
               >
                 <LogIn size={14} />
@@ -399,10 +399,10 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               </Link>
             )}
 
-            {/* Mobile Hamburger Toggle */}
+            {/* Mobile Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen((p) => !p)}
-              className="flex lg:hidden"
+              className="navbar-mobile-toggle"
               style={{
                 width: 36,
                 height: 36,
@@ -414,6 +414,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 justifyContent: "center",
                 cursor: "pointer",
               }}
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -423,7 +424,6 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div
-            className="lg:hidden"
             style={{
               padding: "16px 20px",
               background: "var(--bg-surface)",
@@ -431,6 +431,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               display: "flex",
               flexDirection: "column",
               gap: 8,
+              boxShadow: "var(--shadow-card)",
             }}
           >
             {navLinks.map((link) => {
@@ -444,7 +445,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     padding: "10px 14px",
                     borderRadius: 8,
                     fontSize: 14,
-                    fontWeight: isActive ? 700 : 500,
+                    fontWeight: isActive ? 800 : 600,
                     color: isActive ? "var(--gold)" : "var(--text-primary)",
                     background: isActive ? "var(--gold-bg)" : "transparent",
                     display: "flex",
@@ -473,6 +474,31 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           </div>
         )}
       </header>
+
+      {/* Global CSS for Navbar Responsive Breakpoints */}
+      <style>{`
+        .navbar-desktop-links {
+          display: none !important;
+        }
+        .navbar-search-btn {
+          display: none !important;
+        }
+        .navbar-mobile-toggle {
+          display: flex !important;
+        }
+
+        @media (min-width: 1024px) {
+          .navbar-desktop-links {
+            display: flex !important;
+          }
+          .navbar-search-btn {
+            display: inline-flex !important;
+          }
+          .navbar-mobile-toggle {
+            display: none !important;
+          }
+        }
+      `}</style>
 
       {/* Global Search Modal */}
       {showSearchModal && (
@@ -542,14 +568,14 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               </button>
             </div>
             <div style={{ padding: "16px 18px" }}>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
-                Popular quick links
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 10, fontWeight: 700 }}>
+                POPULAR QUICK LINKS
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {["Arsenal", "Real Madrid", "Premier League", "La Liga", "Bankers Today"].map((tag) => (
+                {navLinks.map((item) => (
                   <Link
-                    key={tag}
-                    href={`/all-matches`}
+                    key={item.href}
+                    href={item.href}
                     onClick={() => setShowSearchModal(false)}
                     style={{
                       padding: "6px 12px",
@@ -558,9 +584,10 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       border: "1px solid var(--border-color)",
                       color: "var(--text-primary)",
                       fontSize: 12,
+                      fontWeight: 600,
                     }}
                   >
-                    {tag}
+                    {item.label}
                   </Link>
                 ))}
               </div>
