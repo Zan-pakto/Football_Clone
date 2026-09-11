@@ -124,12 +124,12 @@ export default function MatchRow({ match }: MatchRowProps) {
   const isOverallLost = match.status === "lost" || (isFinished && bestTipWon === false);
 
   const accentColor = isLive
-    ? "#10b981"
+    ? "#22c55e"
     : isOverallWon
-    ? "#10b981"
+    ? "#22c55e"
     : isOverallLost
-    ? "#f43f5e"
-    : "rgba(99, 102, 241, 0.35)";
+    ? "#ef4444"
+    : "rgba(201,168,76,0.25)";
 
   const href = match.url
     ? match.url.startsWith("http")
@@ -146,10 +146,10 @@ export default function MatchRow({ match }: MatchRowProps) {
       style={{
         position: "relative",
         background: isLive
-          ? "linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, rgba(20, 25, 56, 0.9) 100%)"
-          : "rgba(20, 25, 56, 0.75)",
-        borderLeft: `3px solid ${accentColor}`,
-        borderBottom: "1px solid rgba(168, 85, 247, 0.1)",
+          ? "linear-gradient(90deg, rgba(34,197,94,0.08) 0%, rgba(15,15,26,0.95) 60%)"
+          : "rgba(15,15,26,0.95)",
+        borderLeft: `2px solid ${accentColor}`,
+        borderBottom: "none",
       }}
     >
       {/* ── Desktop Row Grid ── */}
@@ -185,14 +185,15 @@ export default function MatchRow({ match }: MatchRowProps) {
             </div>
           ) : (
             <div style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: isFinished ? "#94a3b8" : "#cbd5e1",
-              background: isFinished ? "rgba(255, 255, 255, 0.04)" : "rgba(99, 102, 241, 0.08)",
-              border: `1px solid ${isFinished ? "rgba(255, 255, 255, 0.07)" : "rgba(99, 102, 241, 0.2)"}`,
+              fontSize: 10,
+              fontWeight: 600,
+              color: isFinished ? "#2a2a3d" : "#8a8a9a",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
               padding: "3px 8px",
-              borderRadius: 6,
-              letterSpacing: "0.02em",
+              borderRadius: 5,
+              letterSpacing: "0.04em",
+              fontFamily: "'JetBrains Mono', monospace",
             }}>
               {isFinished ? match.elapsed || "FT" : match.kickTime || "–"}
             </div>
@@ -216,15 +217,15 @@ export default function MatchRow({ match }: MatchRowProps) {
                   width: 17,
                   height: 17,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #1e2448 0%, #121630 100%)",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 8,
-                  fontWeight: 900,
-                  color: "#a5b4fc"
+                  fontWeight: 700,
+                  color: "#484858"
                 }}>
                   {match.homeTeam.charAt(0)}
                 </div>
@@ -265,15 +266,15 @@ export default function MatchRow({ match }: MatchRowProps) {
                   width: 17,
                   height: 17,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #1e2448 0%, #121630 100%)",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 8,
-                  fontWeight: 900,
-                  color: "#a5b4fc"
+                  fontWeight: 700,
+                  color: "#484858"
                 }}>
                   {match.awayTeam.charAt(0)}
                 </div>
@@ -315,23 +316,23 @@ export default function MatchRow({ match }: MatchRowProps) {
             <div
               key={i}
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(14, 18, 43, 0.9)",
-                border: "1px solid rgba(99, 102, 241, 0.2)",
-                borderRadius: 6,
-                padding: "3px 4px",
-                transition: "border-color 0.15s ease",
-              }}
-            >
-              <span style={{ fontSize: 8, fontWeight: 800, color: "#818cf8", letterSpacing: "0.04em", lineHeight: 1 }}>
-                {item.label}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#c7d2fe", marginTop: 2, lineHeight: 1.1 }}>
-                {item.val || "–"}
-              </span>
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(9,9,15,0.8)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 5,
+              padding: "3px 4px",
+              transition: "border-color 0.15s ease",
+            }}
+          >
+            <span style={{ fontSize: 8, fontWeight: 700, color: "#484858", letterSpacing: "0.06em", lineHeight: 1 }}>
+              {item.label}
+            </span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#8a8a9a", marginTop: 2, lineHeight: 1.1, fontFamily: "'JetBrains Mono', monospace" }}>
+              {item.val || "–"}
+            </span>
             </div>
           ))}
         </div>
@@ -383,10 +384,10 @@ export default function MatchRow({ match }: MatchRowProps) {
                 fontWeight: 900,
                 letterSpacing: "-0.01em",
                 color: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                  ? "#34d399"
+                  ? "#22c55e"
                   : parseFloat(match.confidence) >= 60 || parseFloat(match.confidence) >= 6.0
-                  ? "#fbbf24"
-                  : "#a78bfa",
+                  ? "#c9a84c"
+                  : "#8a8a9a",
               }}>
                 {match.confidence}
               </span>
@@ -401,8 +402,8 @@ export default function MatchRow({ match }: MatchRowProps) {
                   width: `${Math.min(100, parseFloat(match.confidence) * (parseFloat(match.confidence) <= 10 ? 10 : 1))}%`,
                   height: "100%",
                   background: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                    ? "linear-gradient(90deg, #10b981, #34d399)"
-                    : "#fbbf24",
+                    ? "#22c55e"
+                    : "#c9a84c",
                   borderRadius: 999,
                 }} />
               </div>
@@ -448,27 +449,28 @@ export default function MatchRow({ match }: MatchRowProps) {
 
           {match.confidence && (
             <span style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: "#818cf8",
-              background: "rgba(99, 102, 241, 0.12)",
-              border: "1px solid rgba(99, 102, 241, 0.25)",
+              fontSize: 10,
+              fontWeight: 600,
+              color: "#c9a84c",
+              background: "rgba(201,168,76,0.08)",
+              border: "1px solid rgba(201,168,76,0.2)",
               padding: "2px 8px",
-              borderRadius: 6,
+              borderRadius: 5,
+              fontFamily: "'JetBrains Mono', monospace",
             }}>
-              AI Trust {match.confidence}
+              {match.confidence}
             </span>
           )}
         </div>
 
         {/* Fixtures & Scores */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "rgba(15, 19, 45, 0.5)", padding: "8px 12px", borderRadius: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "rgba(9,9,15,0.6)", padding: "8px 12px", borderRadius: 7 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {match.homeLogo ? (
                 <img src={match.homeLogo} alt={match.homeTeam} style={{ width: 16, height: 16, borderRadius: "50%" }} onError={(e) => { (e.target as HTMLElement).style.display = "none"; }} />
               ) : (
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "#1e2448", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#818cf8" }}>{match.homeTeam.charAt(0)}</span>
+                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.04)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#484858" }}>{match.homeTeam.charAt(0)}</span>
               )}
               <span>{match.homeTeam}</span>
             </div>
@@ -480,7 +482,7 @@ export default function MatchRow({ match }: MatchRowProps) {
               {match.awayLogo ? (
                 <img src={match.awayLogo} alt={match.awayTeam} style={{ width: 16, height: 16, borderRadius: "50%" }} onError={(e) => { (e.target as HTMLElement).style.display = "none"; }} />
               ) : (
-                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "#1e2448", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#818cf8" }}>{match.awayTeam.charAt(0)}</span>
+                <span style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.04)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: "#484858" }}>{match.awayTeam.charAt(0)}</span>
               )}
               <span>{match.awayTeam}</span>
             </div>
@@ -493,12 +495,13 @@ export default function MatchRow({ match }: MatchRowProps) {
           {match.predictions.bestTip.pick && (
             <span style={{
               fontSize: 11,
-              fontWeight: 800,
+              fontWeight: 700,
               padding: "3px 9px",
-              borderRadius: 6,
-              background: bestTipWon ? "rgba(16, 185, 129, 0.18)" : isFinished ? "rgba(239, 68, 68, 0.18)" : "rgba(99, 102, 241, 0.15)",
-              color: bestTipWon ? "#34d399" : isFinished ? "#f87171" : "#c7d2fe",
-              border: `1px solid ${bestTipWon ? "rgba(16, 185, 129, 0.35)" : isFinished ? "rgba(239, 68, 68, 0.35)" : "rgba(99, 102, 241, 0.3)"}`,
+              borderRadius: 5,
+              background: bestTipWon ? "rgba(34,197,94,0.1)" : isFinished ? "rgba(239,68,68,0.1)" : "rgba(201,168,76,0.08)",
+              color: bestTipWon ? "#22c55e" : isFinished ? "#ef4444" : "#c9a84c",
+              border: `1px solid ${bestTipWon ? "rgba(34,197,94,0.25)" : isFinished ? "rgba(239,68,68,0.25)" : "rgba(201,168,76,0.2)"}`,
+              fontFamily: "'Inter', sans-serif",
             }}>
               Top Pick: {cleanPickLabel(match.predictions.bestTip.pick)} @ {match.predictions.bestTip.odd || "–"}
             </span>
@@ -508,7 +511,7 @@ export default function MatchRow({ match }: MatchRowProps) {
 
       <style>{`
         .match-row-item:hover {
-          background: rgba(36, 44, 96, 0.85) !important;
+          background: rgba(20,20,32,0.98) !important;
         }
         .match-desktop { display: none !important; }
         .match-mobile { display: flex !important; }
@@ -557,36 +560,36 @@ function PredCell({
   const isRed = isFinished && isWon === false;
 
   const cardBg = isGreen
-    ? "rgba(16, 185, 129, 0.14)"
+    ? "rgba(34,197,94,0.1)"
     : isRed
-    ? "rgba(244, 63, 94, 0.14)"
+    ? "rgba(239,68,68,0.1)"
     : isFeatured
-    ? "linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(139, 92, 246, 0.22) 100%)"
-    : "rgba(14, 18, 43, 0.85)";
+    ? "rgba(201,168,76,0.08)"
+    : "rgba(9,9,15,0.8)";
 
   const cardBorder = isGreen
-    ? "1px solid rgba(16, 185, 129, 0.38)"
+    ? "1px solid rgba(34,197,94,0.25)"
     : isRed
-    ? "1px solid rgba(244, 63, 94, 0.38)"
+    ? "1px solid rgba(239,68,68,0.25)"
     : isFeatured
-    ? "1px solid rgba(139, 92, 246, 0.45)"
-    : "1px solid rgba(99, 102, 241, 0.18)";
+    ? "1px solid rgba(201,168,76,0.28)"
+    : "1px solid rgba(255,255,255,0.07)";
 
   const pickColor = isGreen
-    ? "#34d399"
+    ? "#22c55e"
     : isRed
-    ? "#f43f5e"
+    ? "#ef4444"
     : isFeatured
-    ? "#e0e7ff"
-    : "#ffffff";
+    ? "#c9a84c"
+    : "#f5f3ee";
 
   const oddColor = isGreen
-    ? "#34d399"
+    ? "#22c55e"
     : isRed
-    ? "#f43f5e"
+    ? "#ef4444"
     : isFeatured
-    ? "#a5b4fc"
-    : "#818cf8";
+    ? "#9a7c36"
+    : "#8a8a9a";
 
   return (
     <div style={{
@@ -609,7 +612,7 @@ function PredCell({
         padding: "3px 6px",
         width: "100%",
         maxWidth: isFeatured ? 96 : 76,
-        boxShadow: isFeatured ? "0 0 12px rgba(139, 92, 246, 0.2)" : "none",
+        boxShadow: isFeatured ? "0 0 16px rgba(201,168,76,0.12)" : "none",
         transition: "transform 0.15s ease",
       }}>
         {/* Pick Label */}

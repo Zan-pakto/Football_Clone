@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 export default function GlobalLoading() {
   return (
@@ -11,76 +11,83 @@ export default function GlobalLoading() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(6, 8, 20, 0.88)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
+        background: "rgba(9, 9, 15, 0.92)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      {/* Top Rainbow Progress Bar */}
+      {/* Top gold progress bar */}
       <div
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           right: 0,
-          height: 3,
-          background: "linear-gradient(90deg, #f97316 0%, #a855f7 50%, #38bdf8 100%)",
-          boxShadow: "0 0 16px rgba(168, 85, 247, 0.9), 0 0 8px rgba(56, 189, 248, 0.8)",
-          animation: "shimmer 1.5s infinite linear",
+          height: 2,
+          background: "linear-gradient(90deg, transparent 0%, #c9a84c 40%, #e2c475 60%, #c9a84c 80%, transparent 100%)",
+          backgroundSize: "200% 100%",
+          animation: "goldSlide 1.6s ease-in-out infinite",
         }}
       />
 
-      {/* Central Glass Card */}
+      {/* Central card */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 16,
-          padding: "36px 44px",
-          background: "linear-gradient(135deg, rgba(20, 25, 58, 0.95) 0%, rgba(12, 16, 40, 0.98) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.35)",
-          borderRadius: 22,
-          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 35px rgba(139, 92, 246, 0.25)",
+          gap: 20,
+          padding: "40px 48px",
+          background: "rgba(15, 15, 26, 0.96)",
+          border: "1px solid rgba(201, 168, 76, 0.18)",
+          borderRadius: 18,
+          boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.05)",
           textAlign: "center",
-          maxWidth: 420,
+          maxWidth: 360,
           margin: "0 20px",
         }}
       >
-        {/* Animated Brand Emblem */}
-        <div style={{ position: "relative", width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Brand emblem */}
+        <div
+          style={{
+            position: "relative",
+            width: 60,
+            height: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* Rotating gold ring */}
           <div
             style={{
               position: "absolute",
-              inset: -8,
+              inset: -4,
               borderRadius: "50%",
-              background: "conic-gradient(from 0deg, #f97316, #a855f7, #38bdf8, #f97316)",
-              animation: "spinSlow 1.8s linear infinite",
-              filter: "blur(6px)",
-              opacity: 0.7,
+              border: "1.5px solid transparent",
+              borderTopColor: "#c9a84c",
+              borderRightColor: "rgba(201,168,76,0.3)",
+              animation: "spinSlow 1.4s linear infinite",
             }}
           />
           <div
             style={{
-              position: "relative",
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               borderRadius: 12,
-              background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
+              background: "rgba(201,168,76,0.08)",
+              border: "1px solid rgba(201,168,76,0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(249, 115, 22, 0.5)",
-              transform: "skew(-4deg)",
             }}
           >
             <span
               style={{
-                color: "#ffffff",
-                fontWeight: 900,
-                fontSize: 22,
-                fontStyle: "italic",
-                transform: "skew(4deg)",
+                fontFamily: "'Playfair Display', serif",
+                color: "#c9a84c",
+                fontWeight: 800,
+                fontSize: 20,
                 letterSpacing: "-1px",
               }}
             >
@@ -89,34 +96,75 @@ export default function GlobalLoading() {
           </div>
         </div>
 
-        {/* Brand Text & Status */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 4 }}>
-            <Sparkles style={{ width: 15, height: 15, color: "#c084fc" }} />
-            <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff", letterSpacing: "-0.01em" }}>
-              Jollof<span style={{ color: "#a855f7" }}>Tips</span> AI
+        {/* Brand text */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <Trophy style={{ width: 13, height: 13, color: "#c9a84c" }} />
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#f5f3ee",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
             </span>
           </div>
           <p
             style={{
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "#94a3b8",
+              fontSize: 12,
+              fontWeight: 400,
+              color: "#484858",
               margin: 0,
-              lineHeight: 1.4,
+              lineHeight: 1.5,
+              fontFamily: "'Inter', sans-serif",
             }}
           >
-            Loading match intelligence & predictions...
+            Loading match intelligence...
           </p>
         </div>
 
-        {/* Pulse Loading Indicator */}
+        {/* Gold dots */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#f97316" }} />
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#a855f7" }} />
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#38bdf8" }} />
+          {[0, 0.2, 0.4].map((delay) => (
+            <div
+              key={delay}
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: "#c9a84c",
+                animation: `pulseDot 1.2s ease-in-out ${delay}s infinite`,
+              }}
+            />
+          ))}
         </div>
       </div>
+
+      <style>{`
+        @keyframes goldSlide {
+          0% { background-position: -100% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes spinSlow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 0.2; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   );
 }
