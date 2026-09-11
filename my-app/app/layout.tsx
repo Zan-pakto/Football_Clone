@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="light" data-theme="light" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -41,12 +41,16 @@ export default function RootLayout({
               (function() {
                 try {
                   var saved = localStorage.getItem('jt-theme');
-                  var prefDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var theme = saved || (prefDark ? 'dark' : 'dark');
+                  var theme = saved === 'dark' ? 'dark' : 'light';
+                  document.documentElement.classList.remove('dark', 'light');
                   document.documentElement.classList.add(theme);
                   document.documentElement.setAttribute('data-theme', theme);
                   document.documentElement.style.colorScheme = theme;
-                } catch (e) {}
+                } catch (e) {
+                  document.documentElement.classList.add('light');
+                  document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.style.colorScheme = 'light';
+                }
               })();
             `,
           }}
