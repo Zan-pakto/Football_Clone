@@ -45,6 +45,17 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Request Logger Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const statusColor = res.statusCode >= 400 ? "⚠️" : "✅";
+    console.log(`${statusColor} [HTTP] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 // Root health check
 app.get("/health", (_req: Request, res: Response) => {
   res.json({

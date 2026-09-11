@@ -16,12 +16,14 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const token = getAuthToken(req);
     const user = await authService.getCurrentUser(token);
+    console.log(`👤 [AUTH:SESSION_CHECK] ${user ? `Logged in as ${user.email} (${user.role})` : "Guest session (not logged in)"}`);
     return res.json({
       success: true,
       isLoggedIn: Boolean(user),
       user: user || null,
     });
   } catch (error: any) {
+    console.error(`❌ [AUTH:SESSION_ERROR]`, error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -32,14 +34,16 @@ router.post("/", async (req: Request, res: Response) => {
     const body = req.body || {};
     const { action, email, password, name } = body;
 
-    const userAgent = req.headers["user-agent"] || "Browser";
+    const userAgent = (req.headers["user-agent"] as string) || "Browser";
     const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
 
     if (action === "register") {
+      console.log(`📝 [AUTH:REGISTER_ATTEMPT] Email: ${email} | IP: ${ipAddress}`);
       if (!email || !password) {
         return res.status(400).json({ success: false, error: "Email and password are required" });
       }
       const { user, token } = await authService.register({ email, password, name });
+      console.log(`✨ [AUTH:REGISTER_SUCCESS] User: ${user.email} | ID: ${user.id} | Plan: ${user.subscriptionPlan}`);
       res.cookie("auth_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -51,27 +55,36 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     if (action === "login") {
+      console.log(`🔑 [AUTH:LOGIN_ATTEMPT] Email: ${email} | IP: ${ipAddress} | Device: ${userAgent.includes("Mobile") ? "Mobile Device" : "Desktop Computer"}`);
       if (!email || !password) {
+        console.log(`❌ [AUTH:LOGIN_FAILED] Missing email or password`);
         return res.status(400).json({ success: false, error: "Email and password are required" });
       }
-      const { user, token } = await authService.login({
-        email,
-        password,
-        userAgent,
-        ipAddress,
-        deviceName: userAgent.includes("Mobile") ? "Mobile Device" : "Desktop Computer",
-      });
-      res.cookie("auth_token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-      return res.json({ success: true, user, message: "Logged in successfully" });
+      try {
+        const { user, token } = await authService.login({
+          email,
+          password,
+          userAgent,
+          ipAddress,
+          deviceName: userAgent.includes("Mobile") ? "Mobile Device" : "Desktop Computer",
+        });
+        console.log(`✅ [AUTH:LOGIN_SUCCESS] Successfully logged in: ${user.email} (Role: ${user.role}, Plan: ${user.subscriptionPlan}, ID: ${user.id})`);
+        res.cookie("auth_token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        return res.json({ success: true, user, message: "Logged in successfully" });
+      } catch (loginErr: any) {
+        console.log(`❌ [AUTH:LOGIN_FAILED] Email: ${email} | Reason: ${loginErr.message}`);
+        return res.status(400).json({ success: false, error: loginErr.message || "Invalid credentials" });
+      }
     }
 
     if (action === "logout") {
+      console.log(`🚪 [AUTH:LOGOUT] User logged out, clearing cookie`);
       res.clearCookie("auth_token", { path: "/" });
       return res.json({ success: true, message: "Logged out" });
     }
@@ -81,10 +94,12 @@ router.post("/", async (req: Request, res: Response) => {
     const currentUser = await authService.getCurrentUser(token);
 
     if (!currentUser) {
+      console.log(`⚠️ [AUTH:UNAUTHORIZED] Action '${action}' attempted without valid session`);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     if (action === "update_profile") {
+      console.log(`✏️ [AUTH:UPDATE_PROFILE] User: ${currentUser.email} | New Name: ${name}`);
       const updatedUser = await authService.updateProfile(currentUser.id, { name });
       return res.json({
         success: true,
@@ -94,6 +109,7 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     if (action === "change_password") {
+      console.log(`🔒 [AUTH:CHANGE_PASSWORD] User: ${currentUser.email}`);
       const { currentPassword, newPassword } = body;
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ success: false, error: "Current and new passwords are required" });
@@ -107,6 +123,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     return res.status(400).json({ success: false, error: "Invalid action" });
   } catch (error: any) {
+    console.error(`💥 [AUTH:ERROR]`, error.message);
     return res.status(400).json({ success: false, error: error.message || "Authentication error" });
   }
 });
