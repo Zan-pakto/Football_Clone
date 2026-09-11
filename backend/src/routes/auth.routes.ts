@@ -32,7 +32,9 @@ router.get("/", async (req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     const body = req.body || {};
-    const { action, email, password, name } = body;
+    const { action, name } = body;
+    const email = (body.email || body.loginIdentifier || body.username || "").trim().toLowerCase();
+    const password = body.password || "";
 
     const userAgent = (req.headers["user-agent"] as string) || "Browser";
     const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";

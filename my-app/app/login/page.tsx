@@ -122,15 +122,17 @@ function AuthContent() {
     setLoading(true);
 
     try {
+      const authEmail = mode === "register" ? email.trim().toLowerCase() : loginIdentifier.trim().toLowerCase();
+
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: mode,
           name: mode === "register" ? name.trim() : undefined,
-          email: mode === "register" ? email.trim().toLowerCase() : undefined,
+          email: authEmail,
           username: mode === "register" ? username.trim().toLowerCase() : undefined,
-          loginIdentifier: mode === "login" ? loginIdentifier.trim() : undefined,
+          loginIdentifier: loginIdentifier.trim(),
           password,
         }),
       });
