@@ -116,10 +116,10 @@ function NavigationLoaderContent() {
           alignItems: "center",
           gap: 20,
           padding: "36px 44px",
-          background: "rgba(15, 15, 26, 0.96)",
-          border: "1px solid rgba(201, 168, 76, 0.18)",
+          background: "var(--surface)",
+          border: "1px solid var(--gold-border)",
           borderRadius: 18,
-          boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.05)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--gold-border)",
           textAlign: "center",
           maxWidth: 380,
           margin: "0 20px",
@@ -133,8 +133,8 @@ function NavigationLoaderContent() {
               inset: -4,
               borderRadius: "50%",
               border: "1.5px solid transparent",
-              borderTopColor: "#c9a84c",
-              borderRightColor: "rgba(201,168,76,0.2)",
+              borderTopColor: "var(--gold)",
+              borderRightColor: "var(--gold-border)",
               animation: "spinSlow 1.4s linear infinite",
             }}
           />
@@ -143,14 +143,14 @@ function NavigationLoaderContent() {
               width: 40,
               height: 40,
               borderRadius: 10,
-              background: "rgba(201,168,76,0.08)",
-              border: "1px solid rgba(201,168,76,0.22)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <span style={{ fontFamily: "'Playfair Display', serif", color: "#c9a84c", fontWeight: 800, fontSize: 16, letterSpacing: "-0.5px" }}>
+            <span style={{ fontFamily: "var(--font-display)", color: "var(--text-gold)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.5px" }}>
               JT
             </span>
           </div>
@@ -158,10 +158,10 @@ function NavigationLoaderContent() {
 
         {/* Brand text */}
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#f5f3ee", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
-            JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+            JOLLOF<span style={{ color: "var(--text-gold)" }}>TIPS</span>
           </div>
-          <p style={{ fontSize: 12, fontWeight: 400, color: "#484858", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {LOADING_TIPS[tipIndex]}
           </p>
         </div>
@@ -175,7 +175,7 @@ function NavigationLoaderContent() {
                 width: 5,
                 height: 5,
                 borderRadius: "50%",
-                background: "#c9a84c",
+                background: "var(--gold)",
                 animation: `dotBounce 0.8s ease-in-out ${delay}s infinite`,
               }}
             />

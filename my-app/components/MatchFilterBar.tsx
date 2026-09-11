@@ -29,15 +29,15 @@ export default function MatchFilterBar({
         style={{
           width: 188,
           flexShrink: 0,
-          background: "rgba(15,15,26,0.97)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 10,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
           overflow: "hidden",
           maxHeight: "calc(100vh - 180px)",
           overflowY: "auto",
           position: "sticky",
           top: 74,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
         }}
       >
         {/* Sidebar header */}
@@ -47,14 +47,14 @@ export default function MatchFilterBar({
             alignItems: "center",
             gap: 6,
             padding: "10px 14px",
-            background: "rgba(9,9,15,0.9)",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            background: "var(--surface-raised)",
+            borderBottom: "1px solid var(--border)",
             fontSize: 10,
             fontWeight: 700,
-            color: "#c9a84c",
+            color: "var(--text-gold)",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-sans)",
           }}
         >
           <Globe style={{ width: 12, height: 12 }} />
@@ -72,15 +72,15 @@ export default function MatchFilterBar({
             padding: "9px 14px",
             fontSize: 12,
             fontWeight: selectedCountry === "all" ? 600 : 400,
-            color: selectedCountry === "all" ? "#f5f3ee" : "#484858",
-            background: selectedCountry === "all" ? "rgba(201,168,76,0.08)" : "transparent",
+            color: selectedCountry === "all" ? "var(--text-primary)" : "var(--text-secondary)",
+            background: selectedCountry === "all" ? "var(--gold-bg)" : "transparent",
             border: "none",
             cursor: "pointer",
             textAlign: "left",
-            borderBottom: "1px solid rgba(255,255,255,0.03)",
-            borderLeft: selectedCountry === "all" ? "2px solid #c9a84c" : "2px solid transparent",
+            borderBottom: "1px solid var(--border-subtle)",
+            borderLeft: selectedCountry === "all" ? "2px solid var(--gold)" : "2px solid transparent",
             transition: "all 0.12s",
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "var(--font-sans)",
           }}
         >
           <span>All Regions</span>
@@ -88,11 +88,11 @@ export default function MatchFilterBar({
             style={{
               fontSize: 10,
               fontWeight: 600,
-              color: selectedCountry === "all" ? "#c9a84c" : "#2a2a3d",
-              background: selectedCountry === "all" ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.04)",
+              color: selectedCountry === "all" ? "var(--text-gold)" : "var(--text-dim)",
+              background: selectedCountry === "all" ? "var(--gold-bg)" : "var(--surface-overlay)",
               padding: "1px 6px",
               borderRadius: 4,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-mono)",
             }}
           >
             {totalCount}
@@ -112,15 +112,15 @@ export default function MatchFilterBar({
               padding: "8px 14px",
               fontSize: 12,
               fontWeight: selectedCountry === country ? 600 : 400,
-              color: selectedCountry === country ? "#f5f3ee" : "#484858",
-              background: selectedCountry === country ? "rgba(201,168,76,0.06)" : "transparent",
+              color: selectedCountry === country ? "var(--text-primary)" : "var(--text-secondary)",
+              background: selectedCountry === country ? "var(--gold-bg)" : "transparent",
               border: "none",
-              borderBottom: "1px solid rgba(255,255,255,0.02)",
-              borderLeft: selectedCountry === country ? "2px solid #c9a84c" : "2px solid transparent",
+              borderBottom: "1px solid var(--border-subtle)",
+              borderLeft: selectedCountry === country ? "2px solid var(--gold)" : "2px solid transparent",
               cursor: "pointer",
               textAlign: "left",
               transition: "all 0.12s",
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-sans)",
             }}
           >
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 115 }}>
@@ -131,12 +131,12 @@ export default function MatchFilterBar({
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: selectedCountry === country ? "#c9a84c" : "#2a2a3d",
+                  color: selectedCountry === country ? "var(--text-gold)" : "var(--text-dim)",
                   flexShrink: 0,
-                  background: selectedCountry === country ? "rgba(201,168,76,0.1)" : "rgba(255,255,255,0.03)",
+                  background: selectedCountry === country ? "var(--gold-bg)" : "var(--surface-overlay)",
                   padding: "1px 6px",
                   borderRadius: 4,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                 }}
               >
                 {countryCounts[country]}
@@ -156,13 +156,13 @@ export default function MatchFilterBar({
               alignItems: "center",
               gap: 8,
               padding: "8px 14px",
-              background: "rgba(15,15,26,0.95)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               width: 260,
             }}
           >
-            <Search style={{ width: 13, height: 13, color: "#484858" }} />
+            <Search style={{ width: 13, height: 13, color: "var(--text-dim)" }} />
             <input
               type="text"
               placeholder="Search teams, leagues..."
@@ -172,10 +172,10 @@ export default function MatchFilterBar({
                 background: "transparent",
                 border: "none",
                 fontSize: 12,
-                color: "#f5f3ee",
+                color: "var(--text-primary)",
                 outline: "none",
                 width: "100%",
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--font-sans)",
               }}
             />
           </div>

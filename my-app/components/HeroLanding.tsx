@@ -284,12 +284,12 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
           {/* Main Prediction Card */}
           <div
             style={{
-              background: "rgba(15,15,26,0.9)",
-              border: "1px solid var(--border)",
-              borderRadius: "16px",
+              background: "var(--surface)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: "20px",
               padding: "32px",
               backdropFilter: "blur(20px)",
-              boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.05)",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.08), 0 0 0 1px var(--gold-border)",
               position: "relative",
               overflow: "hidden",
             }}
@@ -300,10 +300,10 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 position: "absolute",
                 top: 0,
                 right: 0,
-                width: "120px",
-                height: "120px",
+                width: "140px",
+                height: "140px",
                 background:
-                  "radial-gradient(circle at 100% 0%, rgba(201,168,76,0.12) 0%, transparent 70%)",
+                  "radial-gradient(circle at 100% 0%, var(--gold-glow) 0%, transparent 70%)",
                 pointerEvents: "none",
               }}
             />
@@ -314,21 +314,25 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: "28px",
+                marginBottom: "24px",
               }}
             >
               <div>
                 <div
                   style={{
-                    fontSize: "10px",
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    color: "var(--text-dim)",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    color: "var(--text-gold)",
                     textTransform: "uppercase",
                     fontFamily: "var(--font-sans)",
                     marginBottom: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
                   }}
                 >
+                  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
                   AI Bet of the Day
                 </div>
                 <div
@@ -353,9 +357,9 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 <span
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "28px",
-                    fontWeight: 600,
-                    color: "var(--gold)",
+                    fontSize: "30px",
+                    fontWeight: 700,
+                    color: "var(--text-gold)",
                     lineHeight: 1,
                   }}
                 >
@@ -364,10 +368,11 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 <span
                   style={{
                     fontSize: "10px",
-                    color: "var(--gold-dim)",
-                    fontWeight: 500,
-                    letterSpacing: "0.06em",
+                    color: "var(--text-dim)",
+                    fontWeight: 600,
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
+                    marginTop: "3px",
                   }}
                 >
                   Confidence
@@ -384,13 +389,13 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
               }}
             />
 
-            {/* Match row */}
+            {/* Match row with authentic team logos and flags */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: "20px",
+                marginBottom: "24px",
               }}
             >
               {/* Home team */}
@@ -398,56 +403,92 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "6px",
+                  gap: "8px",
                   flex: 1,
                 }}
               >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    background: "var(--surface-overlay)",
-                    border: "1px solid var(--border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Shield style={{ width: 16, height: 16, color: "var(--gold)" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-strong)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "6px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                      position: "relative",
+                    }}
+                  >
+                    <img
+                      src="https://media.api-sports.io/football/teams/541.png"
+                      alt="Real Madrid"
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      color: "var(--text-secondary)",
+                      background: "var(--surface-overlay)",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      border: "1px solid var(--border)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span>🇪🇸</span> ESP
+                  </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Real Madrid
-                </span>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 500,
-                  }}
-                >
-                  Home · Win favoured
-                </span>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    Real Madrid
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                      fontWeight: 500,
+                      marginTop: "2px",
+                    }}
+                  >
+                    Home · Win favoured
+                  </div>
+                </div>
               </div>
 
-              {/* vs */}
+              {/* vs Badge */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: "4px",
-                  padding: "0 16px",
+                  padding: "0 12px",
                 }}
               >
-                <span
+                <div
                   style={{
+                    padding: "4px 10px",
+                    borderRadius: "999px",
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border-strong)",
                     fontSize: "11px",
                     fontWeight: 700,
                     color: "var(--text-dim)",
@@ -455,15 +496,8 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                     textTransform: "uppercase",
                   }}
                 >
-                  vs
-                </span>
-                <div
-                  style={{
-                    width: "40px",
-                    height: "1px",
-                    background: "var(--border)",
-                  }}
-                />
+                  VS
+                </div>
               </div>
 
               {/* Away team */}
@@ -472,76 +506,110 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
-                  gap: "6px",
+                  gap: "8px",
                   flex: 1,
+                  textAlign: "right",
                 }}
               >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    background: "var(--surface-overlay)",
-                    border: "1px solid var(--border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Zap style={{ width: 16, height: 16, color: "var(--text-secondary)" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexDirection: "row-reverse" }}>
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-strong)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "6px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                      position: "relative",
+                    }}
+                  >
+                    <img
+                      src="https://media.api-sports.io/football/teams/505.png"
+                      alt="Inter Milan"
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      color: "var(--text-secondary)",
+                      background: "var(--surface-overlay)",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      border: "1px solid var(--border)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span>🇮🇹</span> ITA
+                  </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Inter Milan
-                </span>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 500,
-                  }}
-                >
-                  Away
-                </span>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    Inter Milan
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                      fontWeight: 500,
+                      marginTop: "2px",
+                    }}
+                  >
+                    Away · Form 4-1-0
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Prediction result */}
+            {/* Prediction result box */}
             <div
               style={{
-                background: "rgba(201,168,76,0.06)",
-                border: "1px solid rgba(201,168,76,0.18)",
-                borderRadius: "8px",
-                padding: "14px 18px",
+                background: "var(--gold-bg)",
+                border: "1px solid var(--gold-border)",
+                borderRadius: "12px",
+                padding: "16px 20px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: "20px",
+                marginBottom: "24px",
               }}
             >
               <div>
                 <div
                   style={{
                     fontSize: "10px",
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    color: "var(--gold-dim)",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    color: "var(--text-gold)",
                     textTransform: "uppercase",
-                    marginBottom: "2px",
+                    marginBottom: "3px",
                   }}
                 >
-                  AI Prediction
+                  AI Prediction Pick
                 </div>
                 <div
                   style={{
-                    fontSize: "15px",
-                    fontWeight: 700,
+                    fontSize: "16px",
+                    fontWeight: 800,
                     color: "var(--text-primary)",
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   Home Win (1)
@@ -551,11 +619,11 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 <div
                   style={{
                     fontSize: "10px",
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
                     color: "var(--text-dim)",
                     textTransform: "uppercase",
-                    marginBottom: "2px",
+                    marginBottom: "3px",
                   }}
                 >
                   Odds
@@ -563,9 +631,9 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 <div
                   style={{
                     fontFamily: "var(--font-mono)",
-                    fontSize: "18px",
-                    fontWeight: 600,
-                    color: "var(--gold)",
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    color: "var(--text-gold)",
                   }}
                 >
                   1.72
@@ -574,11 +642,11 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
             </div>
 
             {/* Feature list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {[
-                { icon: TrendingUp, text: "Statistical model consensus: Strong" },
-                { icon: Shield, text: "UEFA Champions League · Group Stage" },
-              ].map(({ icon: Icon, text }) => (
+                { icon: TrendingUp, text: "Statistical model consensus: 89% Strong", color: "var(--accent-green)" },
+                { icon: Shield, text: "UEFA Champions League · Group Stage · Santiago Bernabéu", color: "var(--gold)" },
+              ].map(({ icon: Icon, text, color }) => (
                 <div
                   key={text}
                   style={{
@@ -589,17 +657,17 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 >
                   <Icon
                     style={{
-                      width: 13,
-                      height: 13,
-                      color: "var(--text-dim)",
+                      width: 15,
+                      height: 15,
+                      color: color,
                       flexShrink: 0,
                     }}
                   />
                   <span
                     style={{
-                      fontSize: "12px",
-                      color: "var(--text-dim)",
-                      fontWeight: 400,
+                      fontSize: "13px",
+                      color: "var(--text-secondary)",
+                      fontWeight: 500,
                     }}
                   >
                     {text}
@@ -625,16 +693,17 @@ export default function HeroLanding({ totalMatches = 0 }: HeroLandingProps) {
                 padding: "8px 18px",
                 borderRadius: "999px",
                 background: "var(--surface)",
-                border: "1px solid var(--border)",
+                border: "1px solid var(--border-strong)",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
                 fontSize: "12px",
-                color: "var(--text-dim)",
-                fontWeight: 500,
+                color: "var(--text-primary)",
+                fontWeight: 600,
               }}
             >
               <div
                 style={{
-                  width: "6px",
-                  height: "6px",
+                  width: "7px",
+                  height: "7px",
                   borderRadius: "50%",
                   background: "var(--accent-green)",
                   boxShadow: "0 0 8px rgba(34,197,94,0.6)",
