@@ -115,11 +115,11 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
         right: 0,
         width: "100%",
         zIndex: 50,
-        background: isNavOpaque ? "rgba(18, 22, 50, 0.92)" : "transparent",
-        backdropFilter: isNavOpaque ? "blur(16px)" : "none",
-        WebkitBackdropFilter: isNavOpaque ? "blur(16px)" : "none",
-        borderBottom: isNavOpaque ? "1px solid rgba(168, 85, 247, 0.2)" : "1px solid transparent",
-        boxShadow: isNavOpaque ? "0 4px 24px rgba(10, 12, 30, 0.6), 0 0 20px rgba(139, 92, 246, 0.08)" : "none",
+        background: isNavOpaque ? "rgba(9, 9, 15, 0.92)" : "transparent",
+        backdropFilter: isNavOpaque ? "blur(20px)" : "none",
+        WebkitBackdropFilter: isNavOpaque ? "blur(20px)" : "none",
+        borderBottom: isNavOpaque ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent",
+        boxShadow: isNavOpaque ? "0 4px 32px rgba(0, 0, 0, 0.7)" : "none",
         transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease",
       }}>
         <div style={{
@@ -138,34 +138,33 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-              boxShadow: "0 0 14px rgba(249,115,22,0.45)",
-              transform: "skew(-6deg)",
+              width: 32,
+              height: 32,
+              borderRadius: 7,
+              background: "rgba(201,168,76,0.12)",
+              border: "1px solid rgba(201,168,76,0.3)",
+              flexShrink: 0,
             }}>
               <span style={{
-                color: "#ffffff",
-                fontWeight: 900,
-                fontSize: 16,
-                fontStyle: "italic",
+                color: "#c9a84c",
+                fontWeight: 800,
+                fontSize: 14,
+                fontFamily: "'Playfair Display', serif",
                 letterSpacing: "-0.5px",
-                transform: "skew(6deg)",
                 userSelect: "none",
               }}>
                 JT
               </span>
             </div>
             <span style={{
-              fontSize: 18,
-              fontWeight: 900,
-              color: "#ffffff",
-              letterSpacing: "0.5px",
-              fontFamily: "inherit",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "#f5f3ee",
+              letterSpacing: "0.06em",
+              fontFamily: "'Inter', sans-serif",
               textTransform: "uppercase",
             }}>
-              JOLLOF<span style={{ color: "#f97316", fontWeight: 900 }}>TIPS</span>
+              JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
             </span>
           </Link>
 
@@ -183,14 +182,15 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     padding: "6px 12px",
                     fontSize: 13,
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? "#ffffff" : "#94a3b8",
+                    color: isActive ? "#f5f3ee" : "#8a8a9a",
                     textDecoration: "none",
                     whiteSpace: "nowrap",
                     borderRadius: 6,
-                    transition: "color 0.15s, background 0.15s",
+                    borderBottom: isActive ? "1px solid rgba(201,168,76,0.6)" : "1px solid transparent",
+                    transition: "color 0.15s, border-color 0.15s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? "#ffffff" : "#94a3b8"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#f5f3ee"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = isActive ? "#f5f3ee" : "#8a8a9a"; }}
                 >
                   {link.label}
                 </Link>

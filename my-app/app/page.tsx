@@ -102,14 +102,14 @@ export default async function HomePage() {
 
         {/* Bet of the Day / Featured AI Pick Hero */}
         <div style={{
-          background: "linear-gradient(135deg, rgba(17, 22, 54, 0.9) 0%, rgba(12, 16, 40, 0.95) 50%, rgba(6, 8, 20, 1) 100%)",
-          border: "1px solid rgba(99, 102, 241, 0.35)",
-          borderRadius: "var(--radius)",
+          background: "rgba(15,15,26,0.9)",
+          border: "1px solid rgba(201,168,76,0.2)",
+          borderRadius: "12px",
           padding: "24px",
           marginBottom: 32,
           position: "relative",
           overflow: "hidden",
-          boxShadow: "0 12px 35px rgba(0, 0, 0, 0.5), 0 0 25px rgba(99, 102, 241, 0.15)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.05)",
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
@@ -117,45 +117,44 @@ export default async function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                background: "rgba(239, 68, 68, 0.12)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                color: "#f87171",
+                background: "rgba(201,168,76,0.08)",
+                border: "1px solid rgba(201,168,76,0.22)",
+                color: "#c9a84c",
                 fontSize: 11,
-                fontWeight: 800,
+                fontWeight: 700,
                 padding: "4px 12px",
                 borderRadius: 999,
                 textTransform: "uppercase",
-                letterSpacing: "0.04em",
+                letterSpacing: "0.06em",
                 marginBottom: 10,
               }}>
                 <Flame style={{ width: 13, height: 13 }} />
                 AI BET OF THE DAY • {featuredMatch?.confidence || "89%"} CONFIDENCE
               </div>
-              <h2 style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f5f3ee", margin: "0 0 6px", letterSpacing: "-0.02em", fontFamily: "var(--font-sans)" }}>
                 {featuredMatch ? `${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} — ${featuredMatch.leagueName}` : "Featured Match Analysis"}
               </h2>
-              <p style={{ color: "#94a3b8", fontSize: 13, margin: 0, fontWeight: 500 }}>
-                High statistical model consensus for <strong style={{ color: "#818cf8", fontWeight: 700 }}>{featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}</strong>
+              <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: 0, fontWeight: 400 }}
+              >
+                High-confidence AI consensus for{" "}
+                <strong style={{ color: "var(--gold)", fontWeight: 600 }}>{featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}</strong>
               </p>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Link
                 href={featuredMatch ? featuredMatch.url : "/all-matches"}
+                className="gold-cta-btn"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
                   padding: "10px 20px",
-                  borderRadius: 10,
-                  background: "linear-gradient(135deg, #7065f0 0%, #5d50e6 100%)",
-                  color: "#ffffff",
-                  fontWeight: 700,
+                  borderRadius: 8,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: "none",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  boxShadow: "0 4px 20px rgba(112, 101, 240, 0.4)",
-                  transition: "all 0.15s ease",
+                  transition: "all 0.18s ease",
                 }}
               >
                 <span>View Full Analysis</span>
@@ -179,12 +178,12 @@ export default async function HomePage() {
               href="/all-matches?d=-1"
               style={{
                 padding: "8px 16px",
-                borderRadius: 8,
-                background: "rgba(12, 15, 36, 0.9)",
-                border: "1px solid rgba(99, 102, 241, 0.2)",
-                color: "#94a3b8",
+                borderRadius: 7,
+                background: "rgba(15,15,26,0.8)",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 500,
                 textDecoration: "none",
                 transition: "all 0.15s ease",
               }}
@@ -195,14 +194,13 @@ export default async function HomePage() {
               href="/all-matches?d=0"
               style={{
                 padding: "8px 18px",
-                borderRadius: 8,
-                background: "linear-gradient(135deg, #7065f0 0%, #5d50e6 100%)",
-                color: "#ffffff",
+                borderRadius: 7,
+                background: "rgba(201,168,76,0.1)",
+                border: "1px solid rgba(201,168,76,0.35)",
+                color: "#c9a84c",
                 fontSize: 13,
-                fontWeight: 800,
+                fontWeight: 700,
                 textDecoration: "none",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 4px 18px rgba(112, 101, 240, 0.35)",
               }}
             >
               Today ({totalMatches})
@@ -211,12 +209,12 @@ export default async function HomePage() {
               href="/all-matches?d=1"
               style={{
                 padding: "8px 16px",
-                borderRadius: 8,
-                background: "rgba(12, 15, 36, 0.9)",
-                border: "1px solid rgba(99, 102, 241, 0.2)",
-                color: "#94a3b8",
+                borderRadius: 7,
+                background: "rgba(15,15,26,0.8)",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 500,
                 textDecoration: "none",
                 transition: "all 0.15s ease",
               }}
@@ -232,9 +230,9 @@ export default async function HomePage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                color: "#818cf8",
+                color: "var(--gold)",
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 600,
                 textDecoration: "none",
               }}
             >
