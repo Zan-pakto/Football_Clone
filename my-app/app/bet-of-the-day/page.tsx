@@ -53,8 +53,8 @@ const DATES = [
 ];
 
 const TEAM_COLORS = [
-  "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6",
-  "#ec4899", "#06b6d4", "#14b8a6", "#f97316", "#6366f1"
+  "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#d4af37",
+  "#06b6d4", "#14b8a6", "#f97316", "#0284c7", "#84cc16"
 ];
 
 function getDeterministicColor(str: string): string {
