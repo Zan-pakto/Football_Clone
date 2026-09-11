@@ -73,7 +73,11 @@ export default function AdminDashboardPage() {
       if (selectedTierFilter !== "ALL") queryParams.set("tier", selectedTierFilter);
       if (selectedStatusFilter !== "ALL") queryParams.set("status", selectedStatusFilter);
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
       const res = await fetch(`/api/admin?${queryParams.toString()}`, {
+        headers,
         credentials: "include",
       });
       const json = await res.json();
@@ -123,6 +127,9 @@ export default function AdminDashboardPage() {
 
       const json = await res.json();
       if (json.success) {
+        if (json.token && typeof window !== "undefined") {
+          localStorage.setItem("jt_auth_token", json.token);
+        }
         setIsAuthenticated(true);
         showToast("Admin authenticated successfully!");
         fetchAdminData();
@@ -140,9 +147,15 @@ export default function AdminDashboardPage() {
   const handleUpdateTier = async (userId: string, newTier: string) => {
     try {
       setActionLoadingId(userId);
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const res = await fetch("/api/admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({
           action: "update_tier",
@@ -170,9 +183,15 @@ export default function AdminDashboardPage() {
   const handleToggleBlock = async (userId: string, currentBlocked: boolean) => {
     try {
       setActionLoadingId(userId);
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const res = await fetch("/api/admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({
           action: "toggle_block",
@@ -199,9 +218,15 @@ export default function AdminDashboardPage() {
   // Clear Server Cache Action
   const handleClearCache = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const res = await fetch("/api/admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({ action: "clear_cache" }),
       });

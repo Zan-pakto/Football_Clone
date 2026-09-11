@@ -139,6 +139,10 @@ function AuthContent() {
         return;
       }
 
+      if (data.token && typeof window !== "undefined") {
+        localStorage.setItem("jt_auth_token", data.token);
+      }
+
       setSuccess(mode === "register" ? "Account registered successfully! Redirecting..." : "Welcome back! Redirecting...");
       setTimeout(() => {
         window.location.href = redirectUrl;
@@ -153,12 +157,21 @@ function AuthContent() {
   const handleLogout = async () => {
     setLoading(true);
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       await fetch("/api/auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({ action: "logout" }),
       });
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("jt_auth_token");
+      }
       setCurrentUser(null);
       setSuccess("Logged out successfully.");
     } catch {

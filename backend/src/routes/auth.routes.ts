@@ -39,6 +39,8 @@ router.post("/", async (req: Request, res: Response) => {
     const userAgent = (req.headers["user-agent"] as string) || "Browser";
     const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
 
+    const isProd = process.env.NODE_ENV === "production";
+
     if (action === "register") {
       console.log(`📝 [AUTH:REGISTER_ATTEMPT] Email: ${email} | IP: ${ipAddress}`);
       if (!email || !password) {
@@ -48,12 +50,12 @@ router.post("/", async (req: Request, res: Response) => {
       console.log(`✨ [AUTH:REGISTER_SUCCESS] User: ${user.email} | ID: ${user.id} | Plan: ${user.subscriptionPlan}`);
       res.cookie("auth_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.json({ success: true, user, message: "Registered successfully" });
+      return res.json({ success: true, user, token, message: "Registered successfully" });
     }
 
     if (action === "login") {
@@ -73,12 +75,12 @@ router.post("/", async (req: Request, res: Response) => {
         console.log(`✅ [AUTH:LOGIN_SUCCESS] Successfully logged in: ${user.email} (Role: ${user.role}, Plan: ${user.subscriptionPlan}, ID: ${user.id})`);
         res.cookie("auth_token", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
+          secure: isProd,
+          sameSite: isProd ? "none" : "lax",
           path: "/",
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
-        return res.json({ success: true, user, message: "Logged in successfully" });
+        return res.json({ success: true, user, token, message: "Logged in successfully" });
       } catch (loginErr: any) {
         console.log(`❌ [AUTH:LOGIN_FAILED] Email: ${email} | Reason: ${loginErr.message}`);
         return res.status(400).json({ success: false, error: loginErr.message || "Invalid credentials" });
@@ -87,7 +89,11 @@ router.post("/", async (req: Request, res: Response) => {
 
     if (action === "logout") {
       console.log(`🚪 [AUTH:LOGOUT] User logged out, clearing cookie`);
-      res.clearCookie("auth_token", { path: "/" });
+      res.clearCookie("auth_token", {
+        path: "/",
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+      });
       return res.json({ success: true, message: "Logged out" });
     }
 

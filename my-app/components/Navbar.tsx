@@ -47,7 +47,13 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   const checkAuthStatus = useCallback(async () => {
     try {
       setLoadingAuth(true);
-      const res = await fetch("/api/auth");
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch("/api/auth", {
+        headers,
+        credentials: "include",
+      });
       const data = await res.json();
       if (data.success && data.isLoggedIn && data.user) {
         setIsLoggedIn(true);
@@ -92,11 +98,21 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   // Handle Logout
   const handleLogout = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       await fetch("/api/auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify({ action: "logout" }),
       });
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("jt_auth_token");
+      }
       setIsLoggedIn(false);
       setCurrentUser(null);
       window.location.reload();
