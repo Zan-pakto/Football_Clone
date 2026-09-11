@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTheme } from "./ThemeProvider";
 
 const LOADING_TIPS = [
   "Analyzing match odds & Poisson probabilities...",
@@ -14,6 +15,8 @@ const LOADING_TIPS = [
 function NavigationLoaderContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [isNavigating, setIsNavigating] = useState(false);
   const [tipIndex, setTipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -78,7 +81,7 @@ function NavigationLoaderContent() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(6, 6, 12, 0.92)",
+        background: isLight ? "rgba(244, 246, 250, 0.94)" : "rgba(6, 6, 12, 0.94)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         transition: "opacity 0.25s ease-out",
@@ -93,7 +96,7 @@ function NavigationLoaderContent() {
           left: 0,
           right: 0,
           height: 2.5,
-          background: "rgba(255,255,255,0.06)",
+          background: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
           overflow: "hidden",
           zIndex: 1000000,
         }}
@@ -102,14 +105,18 @@ function NavigationLoaderContent() {
           style={{
             height: "100%",
             width: `${progress}%`,
-            background: "linear-gradient(90deg, #9a7c36, #c9a84c, #f3db98, #c9a84c)",
-            boxShadow: "0 0 12px rgba(201,168,76,0.8)",
+            background: isLight
+              ? "linear-gradient(90deg, #92670e, #b48214, #d4af37, #b48214)"
+              : "linear-gradient(90deg, #9a7c36, #c9a84c, #f3db98, #c9a84c)",
+            boxShadow: isLight
+              ? "0 0 12px rgba(180,130,20,0.5)"
+              : "0 0 12px rgba(201,168,76,0.8)",
             transition: "width 0.18s ease-out",
           }}
         />
       </div>
 
-      {/* Central Black Luxury Card */}
+      {/* Central Luxury Card */}
       <div
         style={{
           display: "flex",
@@ -117,10 +124,14 @@ function NavigationLoaderContent() {
           alignItems: "center",
           gap: 20,
           padding: "38px 46px",
-          background: "rgba(13, 14, 22, 0.98)",
-          border: "1px solid rgba(201, 168, 76, 0.28)",
+          background: isLight ? "rgba(255, 255, 255, 0.98)" : "rgba(13, 14, 22, 0.98)",
+          border: isLight
+            ? "1px solid rgba(180, 130, 20, 0.35)"
+            : "1px solid rgba(201, 168, 76, 0.28)",
           borderRadius: 20,
-          boxShadow: "0 28px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(201,168,76,0.12)",
+          boxShadow: isLight
+            ? "0 28px 70px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(180, 130, 20, 0.15)"
+            : "0 28px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(201,168,76,0.12)",
           textAlign: "center",
           maxWidth: 380,
           margin: "0 20px",
@@ -134,8 +145,8 @@ function NavigationLoaderContent() {
               inset: -5,
               borderRadius: "50%",
               border: "1.5px solid transparent",
-              borderTopColor: "#c9a84c",
-              borderRightColor: "rgba(201,168,76,0.35)",
+              borderTopColor: isLight ? "#b48214" : "#c9a84c",
+              borderRightColor: isLight ? "rgba(180,130,20,0.25)" : "rgba(201,168,76,0.35)",
               animation: "spinSlow 1.4s linear infinite",
             }}
           />
@@ -144,14 +155,14 @@ function NavigationLoaderContent() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: "rgba(201,168,76,0.12)",
-              border: "1px solid rgba(201,168,76,0.35)",
+              background: isLight ? "rgba(180, 130, 20, 0.08)" : "rgba(201, 168, 76, 0.12)",
+              border: isLight ? "1.5px solid rgba(180, 130, 20, 0.3)" : "1.5px solid rgba(201, 168, 76, 0.35)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <span style={{ fontFamily: "var(--font-display)", color: "#c9a84c", fontWeight: 800, fontSize: 18, letterSpacing: "-0.5px" }}>
+            <span style={{ fontFamily: "var(--font-display)", color: isLight ? "#b48214" : "#c9a84c", fontWeight: 800, fontSize: 18, letterSpacing: "-0.5px" }}>
               JT
             </span>
           </div>
@@ -159,10 +170,10 @@ function NavigationLoaderContent() {
 
         {/* Brand text */}
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#ffffff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-            JOLLOF<span style={{ color: "#c9a84c" }}>TIPS</span>
+          <div style={{ fontSize: 15, fontWeight: 800, color: isLight ? "#0f172a" : "#ffffff", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            JOLLOF<span style={{ color: isLight ? "#b48214" : "#c9a84c" }}>TIPS</span>
           </div>
-          <p style={{ fontSize: 12, fontWeight: 500, color: "#cbd5e1", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: isLight ? "#475569" : "#cbd5e1", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {LOADING_TIPS[tipIndex]}
           </p>
         </div>
@@ -176,7 +187,7 @@ function NavigationLoaderContent() {
                 width: 5,
                 height: 5,
                 borderRadius: "50%",
-                background: "#c9a84c",
+                background: isLight ? "#b48214" : "#c9a84c",
                 animation: `dotBounce 0.8s ease-in-out ${delay}s infinite`,
               }}
             />
