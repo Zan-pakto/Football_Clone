@@ -216,20 +216,6 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   }}
                 >
                   {link.label}
-                  {link.href === "/all-matches" && liveCount > 0 && (
-                    <span
-                      style={{
-                        padding: "1px 6px",
-                        borderRadius: 999,
-                        background: "var(--accent-green)",
-                        color: "#ffffff",
-                        fontSize: 10,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {liveCount}
-                    </span>
-                  )}
                 </Link>
               );
             })}
@@ -454,20 +440,6 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   }}
                 >
                   <span>{link.label}</span>
-                  {link.href === "/all-matches" && liveCount > 0 && (
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "var(--accent-green)",
-                        color: "#ffffff",
-                        fontSize: 11,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {liveCount} LIVE
-                    </span>
-                  )}
                 </Link>
               );
             })}
