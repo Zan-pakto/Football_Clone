@@ -1,9 +1,17 @@
 import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
-import HowItWorks from "@/components/HowItWorks";
+import Footer from "@/components/Footer";
+import {
+  TrustStrip,
+  HowJollofTipsWorks,
+  AIIntelligenceSection,
+  PerformanceAccuracySection,
+  WhyJollofTips,
+  PremiumCTABanner,
+} from "@/components/LandingSections";
 import { cookies } from "next/headers";
-import { Zap, Trophy, Sparkles, ArrowRight, ShieldCheck, Flame } from "lucide-react";
+import { Flame, ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export const revalidate = 120; // 2 min ISR for instant sub-0.8s LCP on pre-login pages
@@ -92,13 +100,47 @@ export default async function HomePage() {
 
   return (
     <div style={{ background: "var(--background)", minHeight: "100vh", color: "var(--foreground)" }}>
+      {/* ── 1. Premium Navbar ── */}
       <Navbar liveCount={liveMatches.length} />
 
-      {/* Above-The-Fold Hero Showcase */}
+      {/* ── 2. Hero Section ── */}
       <HeroLanding totalMatches={totalMatches} />
 
-      {/* Below-The-Fold Match Predictions Feed */}
-      <main id="matches-feed" className="scroll-mt-8" style={{ maxWidth: 1360, margin: "0 auto", padding: "40px 20px 80px" }}>
+      {/* ── 3. Trust / Statistics Strip ── */}
+      <TrustStrip totalMatches={totalMatches} />
+
+      {/* ── 4. How JollofTips Works ── */}
+      <HowJollofTipsWorks />
+
+      {/* ── 5. Today's Predictions Feed ── */}
+      <main id="matches-feed" className="scroll-mt-12" style={{ maxWidth: 1360, margin: "0 auto", padding: "40px 20px 80px" }}>
+        {/* Section Header */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
+          <div>
+            <div className="gold-badge" style={{ marginBottom: 8 }}>
+              TODAY&apos;S AI PREDICTIONS
+            </div>
+            <h2 style={{ fontSize: "clamp(24px, 3.5vw, 36px)", fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: 0 }}>
+              Live Match Predictions & Telemetry
+            </h2>
+          </div>
+
+          <Link
+            href="/all-matches"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--gold)",
+              fontSize: 14,
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            <span>View All {totalMatches > 0 ? totalMatches : ""} Fixtures</span>
+            <ArrowRight size={15} />
+          </Link>
+        </div>
 
         {/* Bet of the Day / Featured AI Pick Hero */}
         <div className="luxury-card" style={{
@@ -113,9 +155,9 @@ export default async function HomePage() {
                 <Flame size={13} />
                 AI BET OF THE DAY • {featuredMatch?.confidence || "89%"} CONFIDENCE
               </div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
                 {featuredMatch ? `${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} — ${featuredMatch.leagueName}` : "Featured Match Analysis"}
-              </h2>
+              </h3>
               <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: 0 }}>
                 High-confidence AI consensus for{" "}
                 <strong style={{ color: "var(--gold)", fontWeight: 700 }}>{featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}</strong>
@@ -210,27 +252,56 @@ export default async function HomePage() {
               }}
             >
               <ShieldCheck size={16} color="var(--accent-green)" />
-              <span>Verified 85% Win-Rate Track Record</span>
+              <span>Verified 89.4% Win-Rate Track Record</span>
             </Link>
           </div>
         </div>
 
         {/* Grouped Match Cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {mappedGroups.map((group) => (
-            <LeagueGroupCard
-              key={group.leagueName}
-              leagueName={group.leagueName}
-              country={group.country}
-              flagUrl={group.flagUrl}
-              matches={group.matches as any}
-            />
-          ))}
+          {mappedGroups.length > 0 ? (
+            mappedGroups.map((group) => (
+              <LeagueGroupCard
+                key={group.leagueName}
+                leagueName={group.leagueName}
+                country={group.country}
+                flagUrl={group.flagUrl}
+                matches={group.matches as any}
+              />
+            ))
+          ) : (
+            <div
+              className="luxury-card"
+              style={{
+                padding: "48px 24px",
+                textAlign: "center",
+              }}
+            >
+              <p style={{ color: "var(--text-secondary)", fontSize: "15px", margin: "0 0 16px" }}>
+                Real-time predictions are syncing with our live sports telemetry engine.
+              </p>
+              <Link href="/all-matches" className="gold-btn" style={{ padding: "10px 24px", fontSize: "13px" }}>
+                Browse All Match Fixtures
+              </Link>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* How It Works AI Predictions Section */}
-      <HowItWorks />
+      {/* ── 6. AI Intelligence Section ── */}
+      <AIIntelligenceSection />
+
+      {/* ── 7. Performance / Accuracy Section ── */}
+      <PerformanceAccuracySection />
+
+      {/* ── 8. Why JollofTips ── */}
+      <WhyJollofTips />
+
+      {/* ── 9. Premium CTA Banner ── */}
+      <PremiumCTABanner />
+
+      {/* ── 10. Luxury Footer ── */}
+      <Footer />
     </div>
   );
 }
