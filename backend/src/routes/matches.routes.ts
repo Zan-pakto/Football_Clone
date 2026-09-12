@@ -1,18 +1,31 @@
 import { Router, Request, Response } from "express";
 import { store } from "../lib/db/store";
 import { fixtureService } from "../lib/football/fixture-service";
+import { authService } from "../lib/auth/auth-service";
+import { accessControlService, FREE_DAILY_TIPS_LIMIT } from "../lib/subscriptions/access-service";
 import { MatchData, LiveMatchUpdate } from "../lib/types";
 
 const router = Router();
+
+function getAuthToken(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.auth_token;
+  const queryToken = req.query?.token as string | undefined;
+  return authHeader?.replace("Bearer ", "") || cookieToken || queryToken;
+}
 
 // GET /api/matches/live
 router.get("/live", async (req: Request, res: Response) => {
   try {
     const d = (req.query.d as string) ?? "0";
+    const token = getAuthToken(req);
+    const user = await authService.getCurrentUser(token);
+    const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
-    const liveFixtures = await fixtureService.getLiveFixtures();
+    const rawLiveFixtures = await fixtureService.getLiveFixtures();
+    const sanitizedFixtures = accessControlService.filterFixturesList(rawLiveFixtures, user);
 
-    const convertedMatches: MatchData[] = liveFixtures.map((f) => {
+    const convertedMatches: MatchData[] = sanitizedFixtures.map((f, idx) => {
       const p1x2 = f.predictions?.find((p) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
       const pGoals = f.predictions?.find((p) => p.market === "OVER_UNDER");
       const pBtts = f.predictions?.find((p) => p.market === "BTTS");
@@ -20,9 +33,16 @@ router.get("/live", async (req: Request, res: Response) => {
         ? [...f.predictions].sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0]
         : null;
 
-      const topConfidence = f.predictions && f.predictions.length > 0
+      const isMatchLocked = Boolean(
+        pBest?.isLocked ||
+        (f.predictions && f.predictions.length > 0 && f.predictions.every((p) => p.isLocked))
+      );
+
+      const lockReason = pBest?.lockReason || (f.predictions && f.predictions[0]?.lockReason) || (isMatchLocked ? "live_kickoff_locked" : null);
+
+      const topConfidence = f.predictions && f.predictions.length > 0 && !isMatchLocked
         ? Math.max(...f.predictions.map((p) => p.confidence || 80))
-        : 84;
+        : null;
 
       return {
         id: f.id,
@@ -40,18 +60,37 @@ router.get("/live", async (req: Request, res: Response) => {
         awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
         elapsed: f.elapsed,
         isLive: true,
+        isLocked: isMatchLocked,
+        lockReason,
+        freeTipIndex: idx,
         odds: {
           home: f.odds?.home ? String(f.odds.home) : "1.75",
           draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
           away: f.odds?.away ? String(f.odds.away) : "4.20",
         },
         predictions: {
-          pickScore: { pick: p1x2?.selection || null, odd: p1x2?.odd ? String(p1x2.odd) : null },
-          goals: { pick: pGoals?.selection || null, odd: pGoals?.odd ? String(pGoals.odd) : null },
-          btts: { pick: pBtts?.selection || null, odd: pBtts?.odd ? String(pBtts.odd) : null },
-          bestTip: { pick: pBest?.selection || p1x2?.selection || null, odd: pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null },
+          pickScore: {
+            pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
+            odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(p1x2?.isLocked),
+          },
+          goals: {
+            pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
+            odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+            isLocked: Boolean(pGoals?.isLocked),
+          },
+          btts: {
+            pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
+            odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+            isLocked: Boolean(pBtts?.isLocked),
+          },
+          bestTip: {
+            pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
+            odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(pBest?.isLocked),
+          },
         },
-        confidence: `${topConfidence}%`,
+        confidence: topConfidence ? `${topConfidence}%` : (isMatchLocked ? null : "84%"),
       };
     });
 
@@ -72,6 +111,9 @@ router.get("/live", async (req: Request, res: Response) => {
       type: "live",
       d,
       count: convertedMatches.length,
+      userTier: isPremiumUser ? "premium" : "free",
+      freeTipsLimit: FREE_DAILY_TIPS_LIMIT,
+      freeTipsUsed: isPremiumUser ? 0 : Math.min(convertedMatches.length, FREE_DAILY_TIPS_LIMIT),
       matches: convertedMatches,
       liveUpdates,
     });
@@ -119,9 +161,14 @@ router.get("/", async (req: Request, res: Response) => {
     const status = (req.query.status as string) ?? undefined;
     const search = (req.query.search as string) ?? undefined;
 
-    const fixtures = await fixtureService.getFixtures(d, { country, league, status: status as any, search });
+    const token = getAuthToken(req);
+    const user = await authService.getCurrentUser(token);
+    const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
-    const convertedMatches: MatchData[] = fixtures.map((f) => {
+    const fixtures = await fixtureService.getFixtures(d, { country, league, status: status as any, search });
+    const sanitizedFixtures = accessControlService.filterFixturesList(fixtures, user);
+
+    const convertedMatches: MatchData[] = sanitizedFixtures.map((f, idx) => {
       const p1x2 = f.predictions?.find((p) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
       const pGoals = f.predictions?.find((p) => p.market === "OVER_UNDER");
       const pBtts = f.predictions?.find((p) => p.market === "BTTS");
@@ -129,9 +176,16 @@ router.get("/", async (req: Request, res: Response) => {
         ? [...f.predictions].sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0]
         : null;
 
-      const topConfidence = f.predictions && f.predictions.length > 0
+      const isMatchLocked = Boolean(
+        pBest?.isLocked ||
+        (f.predictions && f.predictions.length > 0 && f.predictions.every((p) => p.isLocked))
+      );
+
+      const lockReason = pBest?.lockReason || (f.predictions && f.predictions[0]?.lockReason) || (isMatchLocked ? "free_limit_reached" : null);
+
+      const topConfidence = f.predictions && f.predictions.length > 0 && !isMatchLocked
         ? Math.max(...f.predictions.map((p) => p.confidence || 80))
-        : 84;
+        : null;
 
       return {
         id: f.id,
@@ -149,18 +203,37 @@ router.get("/", async (req: Request, res: Response) => {
         awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
         elapsed: f.elapsed,
         isLive: f.status === "LIVE",
+        isLocked: isMatchLocked,
+        lockReason,
+        freeTipIndex: idx,
         odds: {
           home: f.odds?.home ? String(f.odds.home) : "1.75",
           draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
           away: f.odds?.away ? String(f.odds.away) : "4.20",
         },
         predictions: {
-          pickScore: { pick: p1x2?.selection || null, odd: p1x2?.odd ? String(p1x2.odd) : null },
-          goals: { pick: pGoals?.selection || null, odd: pGoals?.odd ? String(pGoals.odd) : null },
-          btts: { pick: pBtts?.selection || null, odd: pBtts?.odd ? String(pBtts.odd) : null },
-          bestTip: { pick: pBest?.selection || p1x2?.selection || null, odd: pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null },
+          pickScore: {
+            pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
+            odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(p1x2?.isLocked),
+          },
+          goals: {
+            pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
+            odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+            isLocked: Boolean(pGoals?.isLocked),
+          },
+          btts: {
+            pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
+            odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+            isLocked: Boolean(pBtts?.isLocked),
+          },
+          bestTip: {
+            pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
+            odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(pBest?.isLocked),
+          },
         },
-        confidence: `${topConfidence}%`,
+        confidence: topConfidence ? `${topConfidence}%` : (isMatchLocked ? null : "84%"),
       };
     });
 
@@ -169,6 +242,9 @@ router.get("/", async (req: Request, res: Response) => {
       type: "all",
       d,
       count: convertedMatches.length,
+      userTier: isPremiumUser ? "premium" : "free",
+      freeTipsLimit: FREE_DAILY_TIPS_LIMIT,
+      freeTipsUsed: isPremiumUser ? 0 : Math.min(convertedMatches.length, FREE_DAILY_TIPS_LIMIT),
       lastSyncedAt: new Date().toISOString(),
       matches: convertedMatches,
     });
@@ -208,3 +284,4 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 export default router;
+

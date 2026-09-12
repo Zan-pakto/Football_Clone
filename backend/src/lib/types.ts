@@ -8,6 +8,7 @@ export interface PredictionCell {
   pick: string | null;
   odd: string | null;
   trust?: string | null;
+  isLocked?: boolean;
 }
 
 export interface Predictions {
@@ -15,6 +16,7 @@ export interface Predictions {
   goals: PredictionCell;
   btts: PredictionCell;
   bestTip: PredictionCell;
+  isLocked?: boolean;
 }
 
 export interface MatchData {
@@ -39,6 +41,9 @@ export interface MatchData {
   isLive?: boolean;
   elapsed?: string | null;
   queryTags?: string | null;
+  isLocked?: boolean;
+  lockReason?: "free_limit_reached" | "live_kickoff_locked" | "premium_exclusive" | string | null;
+  freeTipIndex?: number;
 }
 
 export interface LeagueGroup {

@@ -78,14 +78,42 @@ export default async function HomePage() {
           ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
           : null;
 
+        const isMatchLocked = Boolean(
+          pBest?.isLocked ||
+          (f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked))
+        );
+
         return {
-          pickScore: { pick: p1x2?.selection || null, odd: p1x2?.odd ? String(p1x2.odd) : null },
-          goals: { pick: pGoals?.selection || null, odd: pGoals?.odd ? String(pGoals.odd) : null },
-          btts: { pick: pBtts?.selection || null, odd: pBtts?.odd ? String(pBtts.odd) : null },
-          bestTip: { pick: pBest?.selection || p1x2?.selection || null, odd: pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null },
+          pickScore: {
+            pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
+            odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(p1x2?.isLocked),
+          },
+          goals: {
+            pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
+            odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+            isLocked: Boolean(pGoals?.isLocked),
+          },
+          btts: {
+            pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
+            odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+            isLocked: Boolean(pBtts?.isLocked),
+          },
+          bestTip: {
+            pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
+            odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(pBest?.isLocked),
+          },
+          isLocked: isMatchLocked,
         };
       })(),
+      isLocked: Boolean(
+        f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked)
+      ),
+      lockReason: f.predictions && f.predictions[0]?.lockReason,
       confidence: (() => {
+        const isMatchLocked = f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked);
+        if (isMatchLocked) return null;
         const top = f.predictions && f.predictions.length > 0
           ? Math.max(...f.predictions.map((p: any) => p.confidence || 80))
           : 84;

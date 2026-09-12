@@ -4,19 +4,25 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { MatchData } from "@/lib/types";
-import { Activity, RefreshCw, Radio } from "lucide-react";
+import { Activity, RefreshCw, Radio, Lock, ShieldCheck, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function LivePage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [userTier, setUserTier] = useState<"free" | "premium">("free");
 
   const fetchLiveMatches = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/matches/live?d=0");
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch("/api/matches/live?d=0", { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
+        if (data.userTier) setUserTier(data.userTier);
         setMatches(data.matches);
       }
     } catch (err) {
@@ -28,9 +34,13 @@ export default function LivePage() {
 
   const pollLiveUpdates = useCallback(async () => {
     try {
-      const res = await fetch("/api/matches/live?d=0");
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch("/api/matches/live?d=0", { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
+        if (data.userTier) setUserTier(data.userTier);
         setMatches(data.matches);
       }
     } catch (err) {
@@ -101,6 +111,99 @@ export default function LivePage() {
             Auto-polling every 15s
           </div>
         </div>
+
+        {/* ── In-Play Kickoff Lock Banner ── */}
+        {userTier === "free" ? (
+          <div
+            className="luxury-card"
+            style={{
+              padding: "14px 20px",
+              background: "linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)",
+              border: "1px solid var(--gold-border)",
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--gold-bg)",
+                  border: "1px solid var(--gold-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--gold)",
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={18} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                    In-Play Kickoff Lock Active
+                  </span>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "rgba(239, 68, 68, 0.15)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    color: "#f87171",
+                  }}>
+                    Live Predictions Protected
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "3px 0 0" }}>
+                  Live scores and elapsed match minutes update in real-time. For free users, AI picks are locked during match play and reveal automatically at full-time.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/pricing"
+              className="gold-btn"
+              style={{
+                padding: "8px 16px",
+                fontSize: 12,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Sparkles size={13} />
+              <span>Unlock Live VIP Picks</span>
+            </Link>
+          </div>
+        ) : (
+          <div
+            className="luxury-card"
+            style={{
+              padding: "12px 18px",
+              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)",
+              border: "1px solid rgba(16, 185, 129, 0.3)",
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <ShieldCheck size={18} color="var(--accent-green)" />
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-green)" }}>
+              VIP PRO Access Active — Unrestricted Real-Time In-Play AI Telemetry & Confidence Consensus
+            </span>
+          </div>
+        )}
 
         {/* Live Feed */}
         {loading ? (

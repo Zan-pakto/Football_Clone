@@ -1,7 +1,8 @@
 "use client";
 
 import { MatchData } from "@/lib/types";
-import { Check, X, Shield, Sparkles, Flame, Target } from "lucide-react";
+import { Check, X, Shield, Sparkles, Flame, Target, Lock, Radio } from "lucide-react";
+import Link from "next/link";
 
 interface MatchRowProps {
   match: MatchData;
@@ -109,39 +110,33 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
 }
 
 export default function MatchRow({ match }: MatchRowProps) {
-  const isFinished = match.status === "won" || match.status === "lost" || match.status === "fin" || match.elapsed === "FT" || Boolean(match.homeScore && match.awayScore);
+  const isFinished = match.status === "won" || match.status === "lost" || match.status === "fin" || match.elapsed === "FT" || (Boolean(match.homeScore && match.awayScore) && match.status !== "live");
   const isLive = match.isLive || match.status === "live" || match.status === "In Progress" || Boolean(match.elapsed && /^\d+['′]/.test(match.elapsed));
   const hasScores = match.homeScore !== null && match.awayScore !== null && match.homeScore !== "" && match.awayScore !== "";
 
+  const isLocked = Boolean(match.isLocked || match.predictions?.bestTip?.isLocked);
+
   // Calculate best tip win status
-  const bestTipWon = checkPredictionWon(
+  const bestTipWon = !isLocked && checkPredictionWon(
     match.predictions.bestTip.pick,
     match.homeScore,
     match.awayScore
   );
 
-  const isOverallWon = match.status === "won" || bestTipWon === true;
-  const isOverallLost = match.status === "lost" || (isFinished && bestTipWon === false);
+  const isOverallWon = !isLocked && (match.status === "won" || bestTipWon === true);
+  const isOverallLost = !isLocked && (match.status === "lost" || (isFinished && bestTipWon === false));
 
-  const accentColor = isLive
-    ? "var(--accent-green)"
-    : isOverallWon
-    ? "var(--accent-green)"
-    : isOverallLost
-    ? "var(--accent-red)"
-    : "var(--border-color)";
-
-  const href = match.url
+  const href = isLocked ? "/pricing" : (match.url
     ? match.url.startsWith("http")
       ? match.url
+      : match.url.startsWith("/match/")
+      ? match.url
       : `https://nerdytips.com${match.url}`
-    : "#";
+    : "#");
 
   return (
-    <a
+    <Link
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
       className="match-row-item block text-inherit no-underline transition-all duration-200"
       style={{
         position: "relative",
@@ -340,6 +335,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           odd={match.predictions.pickScore.odd}
           isWon={checkPredictionWon(match.predictions.pickScore.pick, match.homeScore, match.awayScore)}
           isFinished={isFinished}
+          isLocked={match.predictions.pickScore.isLocked || isLocked}
         />
 
         {/* GOALS PREDICTION */}
@@ -348,6 +344,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           odd={match.predictions.goals.odd}
           isWon={checkPredictionWon(match.predictions.goals.pick, match.homeScore, match.awayScore)}
           isFinished={isFinished}
+          isLocked={match.predictions.goals.isLocked || isLocked}
         />
 
         {/* BTTS PREDICTION */}
@@ -356,6 +353,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           odd={match.predictions.btts.odd}
           isWon={checkPredictionWon(match.predictions.btts.pick, match.homeScore, match.awayScore)}
           isFinished={isFinished}
+          isLocked={match.predictions.btts.isLocked || isLocked}
         />
 
         {/* BEST AI TIP */}
@@ -365,11 +363,22 @@ export default function MatchRow({ match }: MatchRowProps) {
           isWon={bestTipWon}
           isFinished={isFinished}
           isFeatured={true}
+          isLocked={match.predictions.bestTip.isLocked || isLocked}
+          lockReason={match.lockReason}
         />
 
         {/* CONFIDENCE SCORE */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          {match.confidence ? (
+          {isLocked ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--gold)", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 3 }}>
+                <Lock style={{ width: 9, height: 9 }} /> VIP
+              </span>
+              <div style={{ width: 36, height: 3, borderRadius: 999, background: "rgba(234, 179, 8, 0.2)", overflow: "hidden" }}>
+                <div style={{ width: "100%", height: "100%", background: "linear-gradient(90deg, #ca8a04, #eab308)", filter: "blur(0.5px)" }} />
+              </div>
+            </div>
+          ) : match.confidence ? (
             <div style={{
               display: "flex",
               flexDirection: "column",
@@ -444,7 +453,22 @@ export default function MatchRow({ match }: MatchRowProps) {
             </span>
           )}
 
-          {match.confidence && (
+          {isLocked ? (
+            <span style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: "var(--gold)",
+              background: "var(--gold-bg)",
+              border: "1px solid var(--gold-border)",
+              padding: "2px 8px",
+              borderRadius: 5,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}>
+              <Lock size={10} /> VIP Only
+            </span>
+          ) : match.confidence && (
             <span style={{
               fontSize: 11,
               fontWeight: 800,
@@ -471,8 +495,37 @@ export default function MatchRow({ match }: MatchRowProps) {
           </div>
         </div>
 
-        {/* Best Tip Pill */}
-        {match.predictions?.bestTip?.pick && (
+        {/* Best Tip or Locked VIP CTA Banner */}
+        {isLocked ? (
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderTop: "1px solid var(--border-color)",
+            paddingTop: 8,
+            background: "rgba(234, 179, 8, 0.05)",
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px dashed var(--gold-border)",
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", display: "flex", alignItems: "center", gap: 5 }}>
+              <Lock size={12} />
+              {match.lockReason === "live_kickoff_locked" ? "Kickoff Locked (Live)" : "7/7 Free Limit Reached"}
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                padding: "3px 10px",
+                borderRadius: 6,
+                background: "var(--gold)",
+                color: "var(--gold-btn-text)",
+              }}
+            >
+              Unlock VIP
+            </span>
+          </div>
+        ) : match.predictions?.bestTip?.pick && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-color)", paddingTop: 8 }}>
             <span style={{ fontSize: 11, color: "var(--text-dim)" }}>Best Algorithmic Tip</span>
             <span style={{
@@ -501,7 +554,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           .match-mobile { display: none !important; }
         }
       `}</style>
-    </a>
+    </Link>
   );
 }
 
@@ -512,13 +565,68 @@ function PredCell({
   isWon,
   isFinished,
   isFeatured = false,
+  isLocked = false,
+  lockReason,
 }: {
   rawPick: string | null | undefined;
   odd: string | null | undefined;
   isWon: boolean | null;
   isFinished: boolean;
   isFeatured?: boolean;
+  isLocked?: boolean;
+  lockReason?: string | null;
 }) {
+  if (isLocked) {
+    if (isFeatured) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 4px", width: "100%" }}>
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            background: "linear-gradient(135deg, rgba(234,179,8,0.18) 0%, rgba(202,138,4,0.1) 100%)",
+            border: "1px solid var(--gold)",
+            borderRadius: 8,
+            padding: "4px 8px",
+            width: "100%",
+            maxWidth: 96,
+            boxShadow: "0 0 10px rgba(234,179,8,0.1)",
+            transition: "all 0.15s ease",
+          }}>
+            <Lock style={{ width: 10, height: 10, color: "var(--gold)" }} />
+            <span style={{ fontSize: 10, fontWeight: 900, color: "var(--gold)", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
+              {lockReason === "live_kickoff_locked" ? "VIP LOCK" : "VIP TIP"}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 4px", width: "100%" }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
+          background: "var(--odds-box-bg)",
+          border: "1px dashed var(--border-color)",
+          borderRadius: 8,
+          padding: "4px 6px",
+          width: "100%",
+          maxWidth: 76,
+          opacity: 0.75,
+        }}>
+          <Lock style={{ width: 9, height: 9, color: "var(--text-dim)" }} />
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-dim)", filter: "blur(0.5px)", letterSpacing: "1px" }}>
+            •••
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const cleanPick = cleanPickLabel(rawPick);
 
   if (!cleanPick) {
@@ -627,3 +735,4 @@ function PredCell({
     </div>
   );
 }
+

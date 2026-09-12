@@ -31,3 +31,9 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+.agent/
+.agents/
+.claude/
+.codex/
+.gemini/
+.impeccable

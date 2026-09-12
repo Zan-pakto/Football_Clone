@@ -48,6 +48,7 @@ export interface Prediction {
   odd?: number | null;
   isPremium: boolean;
   isLocked?: boolean;
+  lockReason?: "free_limit_reached" | "live_kickoff_locked" | "premium_exclusive" | string;
   status: SettlementStatus;
   source: string;
 }

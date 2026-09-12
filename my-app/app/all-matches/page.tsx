@@ -6,7 +6,8 @@ import DateSelector from "@/components/DateSelector";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { checkPredictionWon } from "@/components/MatchRow";
 import { MatchData } from "@/lib/types";
-import { RefreshCw, Search, Globe, ShieldCheck, Flame, Radio, Filter, CheckCircle2, ChevronRight } from "lucide-react";
+import { RefreshCw, Search, Globe, ShieldCheck, Flame, Radio, Filter, CheckCircle2, ChevronRight, Lock, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function AllMatchesPage() {
   const [d, setD] = useState("0");
@@ -17,14 +18,24 @@ export default function AllMatchesPage() {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showMobileRegions, setShowMobileRegions] = useState(false);
+  const [userTier, setUserTier] = useState<"free" | "premium">("free");
+  const [freeTipsLimit, setFreeTipsLimit] = useState(7);
+  const [freeTipsUsed, setFreeTipsUsed] = useState(0);
 
   const fetchMatches = useCallback(async (dayVal: string, forceSync = false) => {
     try {
       setLoading(true);
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
       const url = `/api/matches?d=${dayVal}${forceSync ? "&sync=true" : ""}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
+        if (data.userTier) setUserTier(data.userTier);
+        if (data.freeTipsLimit) setFreeTipsLimit(data.freeTipsLimit);
+        if (typeof data.freeTipsUsed === "number") setFreeTipsUsed(data.freeTipsUsed);
+
         setMatches((prev) => {
           if (prev.length === 0) return data.matches;
           const prevMap = new Map(prev.map((m) => [m.id, m]));
@@ -50,9 +61,13 @@ export default function AllMatchesPage() {
 
   const pollLiveMatches = useCallback(async () => {
     try {
-      const res = await fetch(`/api/matches/live?d=${d}`);
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch(`/api/matches/live?d=${d}`, { headers });
       const data = await res.json();
       if (data.success && data.liveUpdates && Object.keys(data.liveUpdates).length > 0) {
+        if (data.userTier) setUserTier(data.userTier);
         setMatches((prev) =>
           prev.map((m) => {
             const live = data.liveUpdates[m.id];
@@ -285,6 +300,105 @@ export default function AllMatchesPage() {
             ))}
           </div>
         </div>
+
+        {/* ── Daily Free Tips Quota Banner ── */}
+        {userTier === "free" ? (
+          <div
+            className="luxury-card"
+            style={{
+              marginBottom: 20,
+              padding: "14px 20px",
+              background: "linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)",
+              border: "1px solid var(--gold-border)",
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--gold-bg)",
+                  border: "1px solid var(--gold-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--gold)",
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={18} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                    Free Tier: 7 Free Daily Tips Active
+                  </span>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "var(--gold-bg)",
+                    border: "1px solid var(--gold-border)",
+                    color: "var(--gold)",
+                  }}>
+                    7 / 7 Tips Unlocked Today
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "3px 0 0" }}>
+                  First 7 matches have full AI predictions unlocked. Subsequent matches and live in-play picks require VIP PRO.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/pricing"
+              className="gold-btn"
+              style={{
+                padding: "8px 16px",
+                fontSize: 12,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Sparkles size={13} />
+              <span>Unlock All 150+ Matches</span>
+            </Link>
+          </div>
+        ) : (
+          <div
+            className="luxury-card"
+            style={{
+              marginBottom: 20,
+              padding: "12px 18px",
+              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)",
+              border: "1px solid rgba(16, 185, 129, 0.3)",
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ShieldCheck size={18} color="var(--accent-green)" />
+              <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-green)" }}>
+                VIP PRO Subscriber Active — 100% Unlocked Global AI Predictions & In-Play Telemetry
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* ── Two-Column Layout (Sidebar + Match Feed) ── */}
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>

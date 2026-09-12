@@ -8,7 +8,8 @@ const router = Router();
 function getAuthToken(req: Request): string | undefined {
   const authHeader = req.headers.authorization;
   const cookieToken = req.cookies?.auth_token;
-  return authHeader?.replace("Bearer ", "") || cookieToken;
+  const queryToken = req.query?.token as string | undefined;
+  return authHeader?.replace("Bearer ", "") || cookieToken || queryToken;
 }
 
 // GET /api/fixtures/live

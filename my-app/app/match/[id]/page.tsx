@@ -180,22 +180,44 @@ export default async function MatchDetailPage(props: { params: Promise<{ id: str
                   <div
                     key={idx}
                     style={{
-                      background: "var(--surface-raised)",
+                      background: "linear-gradient(135deg, rgba(234, 179, 8, 0.05) 0%, rgba(15, 23, 42, 0.7) 100%)",
                       border: "1px dashed var(--gold-border)",
-                      borderRadius: 10,
-                      padding: "16px",
+                      borderRadius: 12,
+                      padding: "20px 16px",
                       textAlign: "center",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
                     }}
                   >
-                    <Lock size={20} color="var(--gold)" style={{ margin: "0 auto 8px" }} />
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
-                      {p.market} Prediction Locked
+                    <div style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: "50%",
+                      background: "var(--gold-bg)",
+                      border: "1px solid var(--gold-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 4,
+                    }}>
+                      <Lock size={16} color="var(--gold)" />
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                      {p.market} Prediction
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 6 }}>
+                      {p.lockReason === "live_kickoff_locked"
+                        ? "Locked during live in-play (VIP Only)"
+                        : "7/7 Daily Free Limit Reached"}
                     </div>
                     <Link
                       href="/pricing"
                       className="gold-btn"
                       style={{
-                        padding: "6px 14px",
+                        padding: "6px 16px",
                         fontSize: 11,
                         textDecoration: "none",
                       }}
