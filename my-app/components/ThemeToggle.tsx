@@ -65,7 +65,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--gold)";
+        e.currentTarget.style.borderColor = "var(--accent-emerald)";
         e.currentTarget.style.transform = "translateY(-1px)";
       }}
       onMouseLeave={(e) => {
@@ -80,7 +80,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: isDark ? "var(--gold)" : "#f59e0b",
+          color: isDark ? "var(--accent-emerald)" : "var(--accent-cyan)",
           transition: "transform 0.3s ease",
         }}
       >

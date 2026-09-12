@@ -119,7 +119,7 @@ function NavigationLoaderContent() {
         opacity: isNavigating ? 1 : 0,
       }}
     >
-      {/* Top Gold Progress Bar */}
+      {/* Top Emerald Progress Bar */}
       <div
         style={{
           position: "fixed",
@@ -136,14 +136,14 @@ function NavigationLoaderContent() {
           style={{
             height: "100%",
             width: `${progress}%`,
-            background: "var(--gold-gradient)",
-            boxShadow: "0 0 14px var(--gold-glow)",
+            background: "var(--accent-emerald-gradient)",
+            boxShadow: "0 0 14px var(--accent-emerald-glow)",
             transition: "width 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         />
       </div>
 
-      {/* Central Luxury Card - Stable constant dimensions */}
+      {/* Central Card */}
       <div
         style={{
           display: "flex",
@@ -152,9 +152,9 @@ function NavigationLoaderContent() {
           gap: 20,
           padding: "36px 44px",
           background: "var(--surface)",
-          border: "1px solid var(--gold-border)",
+          border: "1px solid var(--accent-emerald-border)",
           borderRadius: 22,
-          boxShadow: "0 28px 70px rgba(0,0,0,0.18), 0 0 0 1px var(--gold-border)",
+          boxShadow: "0 28px 70px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-emerald-border)",
           textAlign: "center",
           width: "100%",
           maxWidth: 380,
@@ -164,7 +164,7 @@ function NavigationLoaderContent() {
           transform: "none",
         }}
       >
-        {/* Animated Gold Emblem */}
+        {/* Animated Emerald Emblem */}
         <div style={{ position: "relative", width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div
             style={{
@@ -172,8 +172,8 @@ function NavigationLoaderContent() {
               inset: -5,
               borderRadius: "50%",
               border: "1.5px solid transparent",
-              borderTopColor: "var(--gold)",
-              borderRightColor: "var(--gold-border)",
+              borderTopColor: "var(--accent-emerald)",
+              borderRightColor: "var(--accent-emerald-border)",
               animation: "spinSlow 1.3s linear infinite",
             }}
           />
@@ -182,15 +182,15 @@ function NavigationLoaderContent() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
+              background: "var(--accent-emerald-bg)",
+              border: "1px solid var(--accent-emerald-border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 16px var(--gold-glow)",
+              boxShadow: "0 0 16px var(--accent-emerald-glow)",
             }}
           >
-            <span style={{ fontFamily: "var(--font-display)", color: "var(--gold)", fontWeight: 800, fontSize: 18, letterSpacing: "-0.5px" }}>
+            <span style={{ fontFamily: "var(--font-display)", color: "var(--accent-emerald)", fontWeight: 800, fontSize: 18, letterSpacing: "-0.5px" }}>
               JT
             </span>
           </div>
@@ -199,14 +199,14 @@ function NavigationLoaderContent() {
         {/* Brand Text & Status Tips */}
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-            JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
+            JOLLOF<span style={{ color: "var(--accent-emerald)" }}>TIPS</span>
           </div>
           <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {LOADING_TIPS[tipIndex]}
           </p>
         </div>
 
-        {/* Pulsing Gold Dots */}
+        {/* Pulsing Emerald Dots */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {[0, 0.18, 0.36].map((delay, i) => (
             <div
@@ -215,7 +215,7 @@ function NavigationLoaderContent() {
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "var(--gold)",
+                background: "var(--accent-emerald)",
                 animation: `dotBounce 0.8s ease-in-out ${delay}s infinite`,
               }}
             />

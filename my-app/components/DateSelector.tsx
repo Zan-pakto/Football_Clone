@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import React from "react";
 
 interface DateSelectorProps {
   currentD: string;
@@ -10,7 +10,7 @@ interface DateSelectorProps {
 function getDateLabel(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
@@ -30,18 +30,12 @@ export default function DateSelector({ currentD, onSelectD }: DateSelectorProps)
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 10,
-        padding: "3px",
+        gap: 6,
+        padding: "4px",
         overflowX: "auto",
-        boxShadow: "var(--shadow-subtle)",
+        maxWidth: "100%",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", padding: "0 8px", color: "var(--text-dim)" }}>
-        <Calendar style={{ width: 14, height: 14 }} />
-      </div>
       {DATE_OPTIONS.map((item) => {
         const isActive = currentD === item.d;
         return (
@@ -49,18 +43,30 @@ export default function DateSelector({ currentD, onSelectD }: DateSelectorProps)
             key={item.d}
             onClick={() => onSelectD(item.d)}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: isActive ? 800 : 500,
-              color: isActive ? "var(--gold-btn-text)" : "var(--text-secondary)",
-              background: isActive ? "var(--gold)" : "transparent",
-              border: isActive ? "1px solid var(--gold)" : "1px solid transparent",
-              boxShadow: isActive ? "0 2px 10px var(--gold-glow)" : "none",
+              padding: "7px 18px",
+              borderRadius: 14,
+              fontSize: 13,
+              fontWeight: isActive ? 700 : 500,
+              color: isActive ? "#FFFFFF" : "var(--text-secondary)",
+              background: isActive ? "var(--accent-indigo)" : "transparent",
+              border: "none",
+              boxShadow: isActive ? "0 4px 18px var(--accent-indigo-glow)" : "none",
               cursor: "pointer",
               whiteSpace: "nowrap",
               transition: "all 0.15s ease",
               flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.color = "#FFFFFF";
+                e.currentTarget.style.background = "var(--surface-raised)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "transparent";
+              }
             }}
           >
             {item.label}

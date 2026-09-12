@@ -115,11 +115,11 @@ export default function LivePage() {
         {/* ── In-Play Kickoff Lock Banner ── */}
         {userTier === "free" ? (
           <div
-            className="luxury-card"
+            className="tech-card"
             style={{
               padding: "14px 20px",
-              background: "linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)",
-              border: "1px solid var(--gold-border)",
+              background: "linear-gradient(135deg, rgba(0, 245, 155, 0.06) 0%, rgba(13, 20, 36, 0.9) 100%)",
+              border: "1px solid var(--accent-emerald-border)",
               borderRadius: 14,
               display: "flex",
               alignItems: "center",
@@ -134,12 +134,12 @@ export default function LivePage() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: "var(--gold-bg)",
-                  border: "1px solid var(--gold-border)",
+                  background: "var(--accent-emerald-bg)",
+                  border: "1px solid var(--accent-emerald-border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "var(--gold)",
+                  color: "var(--accent-emerald)",
                   flexShrink: 0,
                 }}
               >
@@ -155,15 +155,15 @@ export default function LivePage() {
                     fontWeight: 800,
                     padding: "2px 8px",
                     borderRadius: 999,
-                    background: "rgba(239, 68, 68, 0.15)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    color: "#f87171",
+                    background: "rgba(244, 63, 94, 0.15)",
+                    border: "1px solid rgba(244, 63, 94, 0.3)",
+                    color: "var(--accent-red)",
                   }}>
-                    Live Predictions Protected
+                    Picks Masked at Kickoff
                   </span>
                 </div>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "3px 0 0" }}>
-                  Live scores and elapsed match minutes update in real-time. For free users, AI picks are locked during match play and reveal automatically at full-time.
+                  Free users can view real-time scores and clock telemetry. Full in-play AI picks unlock with VIP PRO or upon full-time whistle.
                 </p>
               </div>
             </div>

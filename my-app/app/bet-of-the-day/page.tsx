@@ -165,7 +165,7 @@ export default function BetOfTheDayPage() {
     const text = topSlipPicks
       .map((p, i) => `${i + 1}. ${p.match} -> Pick: ${p.pick}`)
       .join("\n");
-    const full = `🔥 JollofTips Banker Slip of the Day (Total Odds: ${combinedOdds}):\n${text}\n\nStake: $${stake} | Potential Win: $${potentialWin}`;
+    const full = `[JollofTips] Banker Slip of the Day (Total Odds: ${combinedOdds}):\n${text}\n\nStake: $${stake} | Potential Win: $${potentialWin}`;
     navigator.clipboard.writeText(full);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

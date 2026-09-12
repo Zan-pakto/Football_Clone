@@ -17,103 +17,101 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
   return (
     <div
-      className="luxury-card"
       style={{
         overflow: "hidden",
         marginBottom: "16px",
+        background: "#141132",
+        border: "1px solid rgba(167, 159, 255, 0.12)",
+        borderRadius: "14px",
+        boxShadow: "0 8px 24px -8px rgba(0, 0, 0, 0.5)",
       }}
     >
-      {/* ── League Header ── */}
+      {/* ── League Header (Exact NerdyTips Style) ── */}
       <div
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 18px",
-          background: "var(--surface-raised)",
-          borderBottom: isOpen ? "1px solid var(--border-color)" : "none",
+          padding: "11px 18px",
+          background: "#1b183d",
+          borderBottom: isOpen ? "1px solid rgba(167, 159, 255, 0.1)" : "none",
           cursor: "pointer",
           userSelect: "none",
           transition: "background 0.15s ease",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-          {/* League icon */}
+          {/* Country flag icon */}
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: "8px",
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
+              width: 20,
+              height: 20,
+              borderRadius: "4px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              overflow: "hidden",
             }}
           >
             {flagUrl ? (
               <img
                 src={flagUrl}
                 alt={country}
-                style={{ width: 14, height: 14, objectFit: "contain" }}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             ) : (
-              <Trophy style={{ width: 13, height: 13, color: "var(--gold)" }} />
+              <Trophy style={{ width: 14, height: 14, color: "#8b7ff5" }} />
             )}
           </div>
 
-          {/* League name */}
-          <span
-            style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {leagueName}
-          </span>
-
-          {/* Country badge */}
-          <span
-            style={{
-              fontSize: "11px",
-              color: "var(--text-dim)",
-              fontWeight: 600,
-              background: "var(--surface)",
-              border: "1px solid var(--border-color)",
-              padding: "2px 8px",
-              borderRadius: "6px",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            {country}
-          </span>
+          {/* League title + Country subtitle */}
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: "13.5px",
+                fontWeight: 800,
+                color: "#FFFFFF",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                lineHeight: 1.2,
+              }}
+            >
+              {leagueName}
+            </span>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#7874a4",
+                fontWeight: 600,
+                lineHeight: 1.2,
+              }}
+            >
+              {country}
+            </span>
+          </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-          {/* Match count */}
+          {/* Match count badge */}
           <span
             style={{
               fontSize: "11px",
               fontWeight: 800,
-              color: "var(--gold)",
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
-              padding: "2px 10px",
+              color: "#a79fff",
+              background: "rgba(124, 108, 245, 0.15)",
+              border: "1px solid rgba(124, 108, 245, 0.3)",
+              padding: "2px 8px",
               borderRadius: "999px",
             }}
           >
             {matches.length}
           </span>
           {isOpen
-            ? <ChevronUp style={{ width: 14, height: 14, color: "var(--text-dim)" }} />
-            : <ChevronDown style={{ width: 14, height: 14, color: "var(--text-dim)" }} />
+            ? <ChevronUp style={{ width: 14, height: 14, color: "#7874a4" }} />
+            : <ChevronDown style={{ width: 14, height: 14, color: "#7874a4" }} />
           }
         </div>
       </div>
@@ -121,43 +119,41 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       {/* ── Table ── */}
       {isOpen && (
         <div style={{ width: "100%", overflowX: "auto" }}>
-          <div style={{ minWidth: 860 }}>
-            {/* Column headers */}
+          <div style={{ minWidth: 840 }}>
+            {/* Column headers (Desktop only, matching MatchRow grid) */}
             <div
               className="lg-col-headers"
               style={{
                 display: "grid",
-                gridTemplateColumns: "60px minmax(200px, 1.3fr) 140px 88px 92px 76px 110px 76px",
+                gridTemplateColumns: "56px minmax(190px, 1.4fr) 138px 66px 66px 58px 76px 56px",
                 padding: "8px 18px",
-                background: "var(--surface)",
-                borderBottom: "1px solid var(--border-color)",
-                fontSize: "9px",
+                background: "#141132",
+                borderBottom: "1px solid rgba(167, 159, 255, 0.08)",
+                fontSize: "10px",
                 fontWeight: 800,
-                color: "var(--text-dim)",
+                color: "#7874a4",
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.06em",
                 alignItems: "center",
+                gap: 6,
               }}
             >
-              <div style={{ textAlign: "center" }}>TIME</div>
-              <div style={{ paddingLeft: "10px" }}>MATCH FIXTURE</div>
+              <div style={{ textAlign: "center" }}>HOUR</div>
+              <div style={{ paddingLeft: "6px" }}>MATCHES</div>
               <div style={{ textAlign: "center" }}>
                 <span>1 &nbsp;·&nbsp; X &nbsp;·&nbsp; 2</span>
               </div>
-              <div style={{ textAlign: "center" }}>1X2 TIP</div>
-              <div style={{ textAlign: "center" }}>GOALS</div>
+              <div style={{ textAlign: "center" }}>1X2</div>
+              <div style={{ textAlign: "center" }}>O/U</div>
               <div style={{ textAlign: "center" }}>BTTS</div>
-              <div style={{ textAlign: "center", color: "var(--gold)" }}>BEST TIP</div>
-              <div style={{ textAlign: "center" }}>CONFIDENCE</div>
+              <div style={{ textAlign: "center", color: "#8b7ff5" }}>BEST TIP</div>
+              <div style={{ textAlign: "center" }}>CONF</div>
             </div>
 
             {/* Match rows */}
             <div>
-              {matches.map((match, idx) => (
-                <div
-                  key={match.id}
-                  style={{ borderTop: idx > 0 ? "1px solid var(--border-subtle)" : "none" }}
-                >
+              {matches.map((match) => (
+                <div key={match.id}>
                   <MatchRow match={match} />
                 </div>
               ))}
@@ -168,7 +164,9 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
       <style>{`
         .lg-col-headers { display: none !important; }
-        @media (min-width: 768px) { .lg-col-headers { display: grid !important; } }
+        @media (min-width: 768px) {
+          .lg-col-headers { display: grid !important; }
+        }
       `}</style>
     </div>
   );

@@ -9,13 +9,13 @@ interface MatchRowProps {
 }
 
 /**
- * Clean & format raw verbose picks (e.g. "1 (Arsenal Win)" -> "1", "Over 2.5 Goals" -> "Over 2.5")
+ * Format raw verbose picks (e.g. "1 (Arsenal Win)" -> "1", "Over 2.5 Goals" -> "O2.5", "Under 3.5" -> "U3.5")
  */
 export function cleanPickLabel(rawPick: string | null | undefined): string | null {
   if (!rawPick) return null;
   const p = rawPick.trim();
 
-  // 1X2 patterns: "1 (Arsenal Win)" -> "1", "1X (Liverpool or Draw)" -> "1X", "12 (No Draw)" -> "12"
+  // 1X2 patterns
   const doubleChanceMatch = p.match(/^(1X|X2|12)\b/i);
   if (doubleChanceMatch) return doubleChanceMatch[1].toUpperCase();
 
@@ -24,12 +24,12 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
     return singleMatch[1].toUpperCase();
   }
 
-  // Goals: "Over 2.5 Goals" -> "Over 2.5", "Under 2.5" -> "Under 2.5"
-  const overUnderMatch = p.match(/^(Over|Under|O|U|\+|\-)\s*([0-9.]+)/i);
-  if (overUnderMatch) {
-    const type = overUnderMatch[1].toLowerCase().startsWith("o") || overUnderMatch[1] === "+" ? "Over" : "Under";
-    return `${type} ${overUnderMatch[2]}`;
-  }
+  // Goals: "Over 2.5 Goals" -> "O2.5", "Under 3.5" -> "U3.5"
+  const overUnderMatch = p.match(/^(?:Over|O|\+)\s*([0-9.]+)/i);
+  if (overUnderMatch) return `O${overUnderMatch[1]}`;
+
+  const underMatch = p.match(/^(?:Under|U|\-)\s*([0-9.]+)/i);
+  if (underMatch) return `U${underMatch[1]}`;
 
   // BTTS
   if (/^(Yes|GG|Both Teams To Score|BTTS Yes)$/i.test(p)) return "Yes";
@@ -39,8 +39,7 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   const scoreMatch = p.match(/^(\d+)[:\-]\s*(\d+)$/);
   if (scoreMatch) return `${scoreMatch[1]}-${scoreMatch[2]}`;
 
-  // Fallback trimmed if short
-  return p.length > 10 ? p.substring(0, 9) + "…" : p;
+  return p.length > 8 ? p.substring(0, 7) + "…" : p;
 }
 
 /**
@@ -60,7 +59,6 @@ export function checkPredictionWon(
 
   const pick = pickText.trim();
 
-  // Combined conditions
   if (pick.includes("&") || pick.toLowerCase().includes(" and ")) {
     const parts = pick.split(/&| and /i).map((p) => p.trim());
     const results = parts.map((part) => checkSinglePredictionWon(part, h, a));
@@ -75,13 +73,11 @@ export function checkPredictionWon(
 function checkSinglePredictionWon(pick: string, h: number, a: number): boolean | null {
   const p = pick.trim();
 
-  // Exact Score
   const scoreMatch = p.match(/^(\d+)[:\-]\s*(\d+)$/);
   if (scoreMatch) {
     return h === parseInt(scoreMatch[1], 10) && a === parseInt(scoreMatch[2], 10);
   }
 
-  // 1X2 & Double Chance
   if (/^1\b/i.test(p) && !p.startsWith("1X") && !p.startsWith("12")) return h > a;
   if (/^X\b/i.test(p) && !p.startsWith("X2")) return h === a;
   if (/^2\b/i.test(p)) return h < a;
@@ -89,7 +85,6 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
   if (/^X2/i.test(p)) return a >= h;
   if (/^12/i.test(p)) return h !== a;
 
-  // Goals Over / Under
   const overMatch = p.match(/^(?:O|Over|\+)\s*([0-9.]+)/i);
   if (overMatch) {
     const line = parseFloat(overMatch[1]);
@@ -102,7 +97,6 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
     return (h + a) < line;
   }
 
-  // BTTS
   if (/^(Yes|GG|Both Teams To Score|BTTS Yes)$/i.test(p)) return h > 0 && a > 0;
   if (/^(No|NG|BTTS No|No BTTS)$/i.test(p)) return h === 0 || a === 0;
 
@@ -110,135 +104,205 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
 }
 
 export default function MatchRow({ match }: MatchRowProps) {
-  const isFinished = match.status === "won" || match.status === "lost" || match.status === "fin" || match.elapsed === "FT" || (Boolean(match.homeScore && match.awayScore) && match.status !== "live");
-  const isLive = match.isLive || match.status === "live" || match.status === "In Progress" || Boolean(match.elapsed && /^\d+['′]/.test(match.elapsed));
-  const hasScores = match.homeScore !== null && match.awayScore !== null && match.homeScore !== "" && match.awayScore !== "";
+  const isLive = match.isLive || match.status === "live";
+  const isFinished = match.status === "won" || match.status === "lost" || match.status === "FINISHED";
+  const isLocked = match.isLocked;
 
-  const isLocked = Boolean(match.isLocked || match.predictions?.bestTip?.isLocked);
+  const hasScores = match.homeScore !== null && match.homeScore !== undefined &&
+                    match.awayScore !== null && match.awayScore !== undefined;
 
-  // Calculate best tip win status
-  const bestTipWon = !isLocked && checkPredictionWon(
-    match.predictions.bestTip.pick,
-    match.homeScore,
-    match.awayScore
-  );
+  // Stacked time (e.g. 18 on top, 15 on bottom)
+  const formatStackedTime = (timeStr: string | null | undefined) => {
+    if (!timeStr) return { top: "--", bottom: "--" };
+    if (timeStr.includes(":")) {
+      const [hh, mm] = timeStr.split(":");
+      return { top: hh, bottom: mm };
+    }
+    return { top: timeStr, bottom: "" };
+  };
 
-  const isOverallWon = !isLocked && (match.status === "won" || bestTipWon === true);
-  const isOverallLost = !isLocked && (match.status === "lost" || (isFinished && bestTipWon === false));
+  const stackedTime = formatStackedTime(match.kickTime);
 
-  const href = isLocked ? "/pricing" : (match.url
+  // Confidence Rating
+  const numericConfidence = (() => {
+    if (!match.confidence) return "7.5";
+    const clean = match.confidence.replace("%", "").trim();
+    const val = parseFloat(clean);
+    if (isNaN(val)) return "7.5";
+    if (val > 10) return (val / 10).toFixed(1);
+    return val.toFixed(1);
+  })();
+
+  const numConfVal = parseFloat(numericConfidence);
+  const ratingColor = numConfVal >= 7.5 ? "#2fd08a" : numConfVal >= 6.0 ? "#8b7ff5" : "#e0a75f";
+
+  // Check winning status for each prediction pill
+  const p1x2Clean = cleanPickLabel(match.predictions.pickScore.pick);
+  const pGoalsClean = cleanPickLabel(match.predictions.goals.pick);
+  const pBttsClean = cleanPickLabel(match.predictions.btts.pick);
+  const pBestClean = cleanPickLabel(match.predictions.bestTip.pick);
+
+  const is1x2Won = hasScores && isFinished ? checkPredictionWon(p1x2Clean, match.homeScore, match.awayScore) : null;
+  const isGoalsWon = hasScores && isFinished ? checkPredictionWon(pGoalsClean, match.homeScore, match.awayScore) : null;
+  const isBttsWon = hasScores && isFinished ? checkPredictionWon(pBttsClean, match.homeScore, match.awayScore) : null;
+  const isBestWon = hasScores && isFinished ? checkPredictionWon(pBestClean, match.homeScore, match.awayScore) : null;
+
+  // 1X2 odds favorite calculation
+  const oddsHome = parseFloat(match.odds.home || "0");
+  const oddsDraw = parseFloat(match.odds.draw || "0");
+  const oddsAway = parseFloat(match.odds.away || "0");
+  const minOdd = Math.min(...[oddsHome, oddsDraw, oddsAway].filter((o) => o > 1.0));
+
+  const href = isLocked
+    ? "/pricing"
+    : match.url
     ? match.url.startsWith("http")
       ? match.url
       : match.url.startsWith("/match/")
       ? match.url
       : `https://nerdytips.com${match.url}`
-    : "#");
+    : "#";
 
   return (
     <Link
       href={href}
-      className="match-row-item block text-inherit no-underline transition-all duration-200"
+      className="nt-row-link block text-inherit no-underline"
       style={{
         position: "relative",
-        background: isLive
-          ? "var(--accent-green-bg)"
-          : "var(--bg-card)",
-        borderLeft: isLive ? "2px solid var(--accent-green)" : isOverallWon ? "2px solid var(--accent-green)" : isOverallLost ? "2px solid var(--accent-red)" : "2px solid transparent",
-        borderBottom: "none",
+        background: isLive ? "rgba(255, 93, 120, 0.04)" : "#100d28",
+        borderBottom: "1px solid rgba(167, 159, 255, 0.08)",
+        transition: "background 0.15s ease",
       }}
     >
-      {/* ── Desktop Row Grid ── */}
+      {/* Finished match win indicator accent line on the left edge */}
+      {isFinished && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            background: isBestWon === true ? "#2fd08a" : isBestWon === false ? "#fb7185" : "rgba(167, 159, 255, 0.2)",
+          }}
+        />
+      )}
+
+      {/* ── Desktop Row Grid (Exact NerdyTips Table Structure) ── */}
       <div
-        className="match-desktop tabular-nums"
         style={{
           display: "grid",
-          gridTemplateColumns: "64px minmax(200px, 1.3fr) 140px 88px 92px 76px 110px 76px",
+          gridTemplateColumns: "56px minmax(190px, 1.4fr) 138px 66px 66px 58px 76px 56px",
           alignItems: "center",
           padding: "10px 18px",
-          minHeight: 62,
-          gap: 0,
+          minHeight: 56,
+          gap: 6,
         }}
       >
-        {/* TIME / STATUS */}
+        {/* 1. STACKED TIME / LIVE STATUS */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           {isLive ? (
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 10,
-              fontWeight: 900,
-              color: "var(--accent-green)",
-              background: "var(--accent-green-bg)",
-              border: "1px solid var(--accent-green-border)",
-              padding: "2px 7px",
-              borderRadius: 6,
-            }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              {match.elapsed || "LIVE"}
+            <div
+              style={{
+                display: "inline-flex",
+                flexDirection: "column",
+                alignItems: "center",
+                fontSize: 10.5,
+                fontWeight: 900,
+                color: "#ff5d78",
+                lineHeight: 1.15,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#ff5d78",
+                  boxShadow: "0 0 8px #ff5d78",
+                  display: "inline-block",
+                  marginBottom: 3,
+                }}
+              />
+              <span>{match.elapsed || "LIVE"}</span>
             </div>
           ) : (
-            <div style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: isFinished ? "var(--text-dim)" : "var(--text-secondary)",
-              background: "var(--surface-raised)",
-              border: "1px solid var(--border-color)",
-              padding: "3px 8px",
-              borderRadius: 5,
-              letterSpacing: "0.04em",
-            }}>
-              {isFinished ? match.elapsed || "FT" : match.kickTime || "–"}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1.15,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>
+                {isFinished ? "FT" : stackedTime.top}
+              </span>
+              {!isFinished && stackedTime.bottom && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", fontFamily: "var(--font-mono)" }}>
+                  {stackedTime.bottom}
+                </span>
+              )}
             </div>
           )}
         </div>
 
-        {/* MATCH FIXTURE (Teams + Crests + Scores) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingRight: 16, paddingLeft: 10 }}>
+        {/* 2. MATCH FIXTURE (Home / Away with Logos and Scores) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingLeft: 6, paddingRight: 10, minWidth: 0 }}>
           {/* Home Team */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               {match.homeLogo ? (
                 <img
                   src={match.homeLogo}
-                  alt={match.homeTeam}
-                  style={{ width: 17, height: 17, objectFit: "contain", flexShrink: 0, borderRadius: "50%" }}
+                  alt=""
+                  style={{ width: 18, height: 18, objectFit: "contain", flexShrink: 0 }}
                   onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                 />
               ) : (
-                <div style={{
-                  width: 17,
-                  height: 17,
-                  borderRadius: "50%",
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border-color)",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 8,
-                  fontWeight: 700,
-                  color: "var(--text-dim)"
-                }}>
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: "#1b183d",
+                    border: "1px solid rgba(167, 159, 255, 0.2)",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 8,
+                    fontWeight: 800,
+                    color: "#a79fff",
+                  }}
+                >
                   {match.homeTeam.charAt(0)}
                 </div>
               )}
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {match.homeTeam}
               </span>
             </div>
             {hasScores && (
-              <span style={{
-                fontSize: 13,
-                fontWeight: 900,
-                color: isLive ? "var(--accent-green)" : "var(--text-primary)",
-                flexShrink: 0,
-                padding: "1px 6px",
-                borderRadius: 4,
-                background: isLive ? "var(--accent-green-bg)" : "var(--surface-raised)",
-                minWidth: 20,
-                textAlign: "center",
-              }}>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 900,
+                  color: isLive ? "#2fd08a" : "#FFFFFF",
+                  fontFamily: "var(--font-mono)",
+                  flexShrink: 0,
+                }}
+              >
                 {match.homeScore}
               </span>
             )}
@@ -250,489 +314,314 @@ export default function MatchRow({ match }: MatchRowProps) {
               {match.awayLogo ? (
                 <img
                   src={match.awayLogo}
-                  alt={match.awayTeam}
-                  style={{ width: 17, height: 17, objectFit: "contain", flexShrink: 0, borderRadius: "50%" }}
+                  alt=""
+                  style={{ width: 18, height: 18, objectFit: "contain", flexShrink: 0 }}
                   onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                 />
               ) : (
-                <div style={{
-                  width: 17,
-                  height: 17,
-                  borderRadius: "50%",
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border-color)",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 8,
-                  fontWeight: 700,
-                  color: "var(--text-dim)"
-                }}>
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: "#1b183d",
+                    border: "1px solid rgba(167, 159, 255, 0.2)",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 8,
+                    fontWeight: 800,
+                    color: "#a79fff",
+                  }}
+                >
                   {match.awayTeam.charAt(0)}
                 </div>
               )}
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {match.awayTeam}
               </span>
             </div>
             {hasScores && (
-              <span style={{
-                fontSize: 13,
-                fontWeight: 900,
-                color: isLive ? "var(--accent-green)" : "var(--text-primary)",
-                flexShrink: 0,
-                padding: "1px 6px",
-                borderRadius: 4,
-                background: isLive ? "var(--accent-green-bg)" : "var(--surface-raised)",
-                minWidth: 20,
-                textAlign: "center",
-              }}>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 900,
+                  color: isLive ? "#2fd08a" : "#FFFFFF",
+                  fontFamily: "var(--font-mono)",
+                  flexShrink: 0,
+                }}
+              >
                 {match.awayScore}
               </span>
             )}
           </div>
         </div>
 
-        {/* 1 X 2 ODDS CHIPS */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 4,
-          padding: "0 6px",
-        }}>
-          {[
-            { label: "1", val: match.odds.home },
-            { label: "X", val: match.odds.draw },
-            { label: "2", val: match.odds.away }
-          ].map((item, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "var(--odds-box-bg)",
-                border: "1px solid var(--border-color)",
-                borderRadius: 6,
-                padding: "3px 4px",
-              }}
-            >
-              <span style={{ fontSize: 8, fontWeight: 700, color: "var(--text-dim)", letterSpacing: "0.06em", lineHeight: 1 }}>
-                {item.label}
-              </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.1 }}>
-                {item.val || "–"}
-              </span>
-            </div>
-          ))}
+        {/* 3. 1 X 2 ODDS PILLS */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {/* Home Odd */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              height: 32,
+              borderRadius: 7,
+              background: oddsHome === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+              border: oddsHome === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color: oddsHome === minOdd ? "#ffffff" : "#a79fff",
+            }}
+          >
+            {oddsHome === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
+            <span>{match.odds.home || "1.80"}</span>
+          </div>
+
+          {/* Draw Odd */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              height: 32,
+              borderRadius: 7,
+              background: oddsDraw === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+              border: oddsDraw === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color: oddsDraw === minOdd ? "#ffffff" : "#a79fff",
+            }}
+          >
+            <span>{match.odds.draw || "3.50"}</span>
+          </div>
+
+          {/* Away Odd */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              height: 32,
+              borderRadius: 7,
+              background: oddsAway === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+              border: oddsAway === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color: oddsAway === minOdd ? "#ffffff" : "#a79fff",
+            }}
+          >
+            {oddsAway === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
+            <span>{match.odds.away || "4.20"}</span>
+          </div>
         </div>
 
-        {/* 1X2 PREDICTION */}
-        <PredCell
-          rawPick={match.predictions.pickScore.pick}
+        {/* 4. 1X2 TIP PILL */}
+        <NerdyTipPill
+          pick={p1x2Clean}
           odd={match.predictions.pickScore.odd}
-          isWon={checkPredictionWon(match.predictions.pickScore.pick, match.homeScore, match.awayScore)}
-          isFinished={isFinished}
+          isWon={is1x2Won}
           isLocked={match.predictions.pickScore.isLocked || isLocked}
         />
 
-        {/* GOALS PREDICTION */}
-        <PredCell
-          rawPick={match.predictions.goals.pick}
+        {/* 5. GOALS TIP PILL */}
+        <NerdyTipPill
+          pick={pGoalsClean}
           odd={match.predictions.goals.odd}
-          isWon={checkPredictionWon(match.predictions.goals.pick, match.homeScore, match.awayScore)}
-          isFinished={isFinished}
+          isWon={isGoalsWon}
           isLocked={match.predictions.goals.isLocked || isLocked}
         />
 
-        {/* BTTS PREDICTION */}
-        <PredCell
-          rawPick={match.predictions.btts.pick}
+        {/* 6. BTTS TIP PILL */}
+        <NerdyTipPill
+          pick={pBttsClean}
           odd={match.predictions.btts.odd}
-          isWon={checkPredictionWon(match.predictions.btts.pick, match.homeScore, match.awayScore)}
-          isFinished={isFinished}
+          isWon={isBttsWon}
           isLocked={match.predictions.btts.isLocked || isLocked}
         />
 
-        {/* BEST AI TIP */}
-        <PredCell
-          rawPick={match.predictions.bestTip.pick}
+        {/* 7. BEST TIP PILL (Prominent Star Capsule) */}
+        <NerdyTipPill
+          pick={pBestClean}
           odd={match.predictions.bestTip.odd}
-          isWon={bestTipWon}
-          isFinished={isFinished}
-          isFeatured={true}
+          isBest={true}
+          isWon={isBestWon}
           isLocked={match.predictions.bestTip.isLocked || isLocked}
-          lockReason={match.lockReason}
         />
 
-        {/* CONFIDENCE SCORE */}
+        {/* 8. CONFIDENCE RATING */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           {isLocked ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--gold)", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 3 }}>
-                <Lock style={{ width: 9, height: 9 }} /> VIP
-              </span>
-              <div style={{ width: 36, height: 3, borderRadius: 999, background: "rgba(234, 179, 8, 0.2)", overflow: "hidden" }}>
-                <div style={{ width: "100%", height: "100%", background: "linear-gradient(90deg, #ca8a04, #eab308)", filter: "blur(0.5px)" }} />
-              </div>
-            </div>
-          ) : match.confidence ? (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-            }}>
-              <span style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "-0.01em",
-                color: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                  ? "var(--accent-green)"
-                  : parseFloat(match.confidence) >= 60 || parseFloat(match.confidence) >= 6.0
-                  ? "var(--gold)"
-                  : "var(--text-secondary)",
-              }}>
-                {match.confidence}
-              </span>
-              <div style={{
-                width: 36,
-                height: 3,
-                borderRadius: 999,
-                background: "var(--border-color)",
-                overflow: "hidden",
-              }}>
-                <div style={{
-                  width: `${Math.min(100, parseFloat(match.confidence) * (parseFloat(match.confidence) <= 10 ? 10 : 1))}%`,
-                  height: "100%",
-                  background: parseFloat(match.confidence) >= 75 || parseFloat(match.confidence) >= 7.5
-                    ? "var(--accent-green)"
-                    : "var(--gold)",
-                  borderRadius: 999,
-                }} />
-              </div>
-            </div>
-          ) : (
-            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>–</span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Mobile Responsive Card ── */}
-      <div className="match-mobile" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* Status + Confidence */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {isLive ? (
-            <span style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 10,
-              fontWeight: 900,
-              color: "var(--accent-green)",
-              background: "var(--accent-green-bg)",
-              border: "1px solid var(--accent-green-border)",
-              padding: "2px 8px",
-              borderRadius: 6,
-            }}>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              LIVE {match.elapsed || ""}
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#8b7ff5", display: "flex", alignItems: "center", gap: 3 }}>
+              <Lock size={10} /> VIP
             </span>
           ) : (
-            <span style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: "var(--text-secondary)",
-              background: "var(--surface-raised)",
-              padding: "2px 8px",
-              borderRadius: 5,
-            }}>
-              {match.elapsed || match.kickTime || "FT"}
-            </span>
-          )}
-
-          {isLocked ? (
-            <span style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: "var(--gold)",
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
-              padding: "2px 8px",
-              borderRadius: 5,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-            }}>
-              <Lock size={10} /> VIP Only
-            </span>
-          ) : match.confidence && (
-            <span style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: "var(--gold)",
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
-              padding: "2px 8px",
-              borderRadius: 5,
-            }}>
-              {match.confidence} Conf
-            </span>
-          )}
-        </div>
-
-        {/* Teams & Scores */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{match.homeTeam}</span>
-            {hasScores && <span style={{ fontSize: 14, fontWeight: 900, color: "var(--text-primary)" }}>{match.homeScore}</span>}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{match.awayTeam}</span>
-            {hasScores && <span style={{ fontSize: 14, fontWeight: 900, color: "var(--text-primary)" }}>{match.awayScore}</span>}
-          </div>
-        </div>
-
-        {/* Best Tip or Locked VIP CTA Banner */}
-        {isLocked ? (
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderTop: "1px solid var(--border-color)",
-            paddingTop: 8,
-            background: "rgba(234, 179, 8, 0.05)",
-            padding: "8px 10px",
-            borderRadius: 8,
-            border: "1px dashed var(--gold-border)",
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", display: "flex", alignItems: "center", gap: 5 }}>
-              <Lock size={12} />
-              {match.lockReason === "live_kickoff_locked" ? "Kickoff Locked (Live)" : "7/7 Free Limit Reached"}
-            </span>
             <span
               style={{
-                fontSize: 11,
+                fontSize: 14.5,
                 fontWeight: 800,
-                padding: "3px 10px",
-                borderRadius: 6,
-                background: "var(--gold)",
-                color: "var(--gold-btn-text)",
+                color: ratingColor,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "-0.02em",
               }}
             >
-              Unlock VIP
+              {numericConfidence}
             </span>
-          </div>
-        ) : match.predictions?.bestTip?.pick && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-color)", paddingTop: 8 }}>
-            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>Best Algorithmic Tip</span>
-            <span style={{
-              fontSize: 12,
-              fontWeight: 800,
-              padding: "3px 10px",
-              borderRadius: 6,
-              background: "var(--gold-bg)",
-              border: "1px solid var(--gold-border)",
-              color: "var(--gold)",
-            }}>
-              {cleanPickLabel(match.predictions.bestTip.pick)} @ {match.predictions.bestTip.odd || "–"}
-            </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <style>{`
-        .match-row-item:hover {
-          background: var(--bg-card-hover) !important;
-        }
-        .match-desktop { display: none !important; }
-        .match-mobile { display: flex !important; }
-        @media (min-width: 768px) {
-          .match-desktop { display: grid !important; }
-          .match-mobile { display: none !important; }
+        .nt-row-link:hover {
+          background: #19153a !important;
         }
       `}</style>
     </Link>
   );
 }
 
-/* ── Prediction Cell Component ── */
-function PredCell({
-  rawPick,
+/**
+ * Authentic NerdyTips 2-line Tip Capsule Component
+ */
+function NerdyTipPill({
+  pick,
   odd,
-  isWon,
-  isFinished,
-  isFeatured = false,
+  isBest = false,
+  isWon = null,
   isLocked = false,
-  lockReason,
 }: {
-  rawPick: string | null | undefined;
+  pick: string | null | undefined;
   odd: string | null | undefined;
-  isWon: boolean | null;
-  isFinished: boolean;
-  isFeatured?: boolean;
+  isBest?: boolean;
+  isWon?: boolean | null;
   isLocked?: boolean;
-  lockReason?: string | null;
 }) {
   if (isLocked) {
-    if (isFeatured) {
-      return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 4px", width: "100%" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 4,
-            background: "linear-gradient(135deg, rgba(234,179,8,0.18) 0%, rgba(202,138,4,0.1) 100%)",
-            border: "1px solid var(--gold)",
-            borderRadius: 8,
-            padding: "4px 8px",
-            width: "100%",
-            maxWidth: 96,
-            boxShadow: "0 0 10px rgba(234,179,8,0.1)",
-            transition: "all 0.15s ease",
-          }}>
-            <Lock style={{ width: 10, height: 10, color: "var(--gold)" }} />
-            <span style={{ fontSize: 10, fontWeight: 900, color: "var(--gold)", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
-              {lockReason === "live_kickoff_locked" ? "VIP LOCK" : "VIP TIP"}
-            </span>
-          </div>
-        </div>
-      );
-    }
-
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 4px", width: "100%" }}>
-        <div style={{
+      <div
+        style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 3,
-          background: "var(--odds-box-bg)",
-          border: "1px dashed var(--border-color)",
+          height: 38,
+          background: isBest ? "rgba(124, 108, 245, 0.15)" : "#1b183d",
+          border: isBest ? "1px solid rgba(124, 108, 245, 0.35)" : "1px solid rgba(167, 159, 255, 0.1)",
           borderRadius: 8,
-          padding: "4px 6px",
-          width: "100%",
-          maxWidth: 76,
-          opacity: 0.75,
-        }}>
-          <Lock style={{ width: 9, height: 9, color: "var(--text-dim)" }} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-dim)", filter: "blur(0.5px)", letterSpacing: "1px" }}>
-            •••
-          </span>
-        </div>
+          opacity: 0.85,
+        }}
+      >
+        <Lock size={11} color="#8b7ff5" />
       </div>
     );
   }
 
-  const cleanPick = cleanPickLabel(rawPick);
-
-  if (!cleanPick) {
+  if (!pick) {
     return (
-      <div style={{ textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 38 }}>
-        <span style={{
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: 38,
+          background: "#1b183d",
+          border: "1px solid rgba(167, 159, 255, 0.08)",
+          borderRadius: 8,
+          color: "#7874a4",
           fontSize: 11,
-          color: "var(--text-dim)",
-          background: "var(--surface-raised)",
-          padding: "2px 8px",
-          borderRadius: 4,
-        }}>
-          –
-        </span>
+        }}
+      >
+        –
       </div>
     );
   }
 
-  const isGreen = isFinished && isWon === true;
-  const isRed = isFinished && isWon === false;
+  // Determine styling based on won/lost/pending state
+  let bg = "#1b183d";
+  let border = "1px solid rgba(167, 159, 255, 0.12)";
+  let pickColor = "#FFFFFF";
+  let oddColor = "#a79fff";
+  let shadow = "none";
 
-  const cardBg = isGreen
-    ? "var(--accent-green-bg)"
-    : isRed
-    ? "var(--accent-red-bg)"
-    : isFeatured
-    ? "var(--gold-bg)"
-    : "var(--odds-box-bg)";
-
-  const cardBorder = isGreen
-    ? "1px solid var(--accent-green-border)"
-    : isRed
-    ? "1px solid var(--accent-red-border)"
-    : isFeatured
-    ? "1px solid var(--gold-border)"
-    : "1px solid var(--border-color)";
-
-  const pickColor = isGreen
-    ? "var(--accent-green)"
-    : isRed
-    ? "var(--accent-red)"
-    : isFeatured
-    ? "var(--gold)"
-    : "var(--text-primary)";
-
-  const oddColor = isGreen
-    ? "var(--accent-green)"
-    : isRed
-    ? "var(--accent-red)"
-    : isFeatured
-    ? "var(--gold-dim)"
-    : "var(--text-secondary)";
+  if (isWon === true) {
+    bg = "rgba(47, 208, 138, 0.18)";
+    border = "1px solid rgba(47, 208, 138, 0.55)";
+    pickColor = "#2fd08a";
+    oddColor = "#2fd08a";
+    if (isBest) shadow = "0 0 12px -2px rgba(47, 208, 138, 0.4)";
+  } else if (isWon === false) {
+    bg = "rgba(251, 113, 133, 0.1)";
+    border = "1px solid rgba(251, 113, 133, 0.3)";
+    pickColor = "#fb7185";
+    oddColor = "#fb7185";
+  } else if (isBest) {
+    bg = "rgba(124, 108, 245, 0.22)";
+    border = "1px solid rgba(124, 108, 245, 0.55)";
+    pickColor = "#FFFFFF";
+    oddColor = "#8b7ff5";
+    shadow = "0 0 14px -2px rgba(124, 108, 245, 0.35)";
+  }
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "0 4px",
-      minWidth: 0,
-      width: "100%",
-    }}>
-      <div style={{
+    <div
+      style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: cardBg,
-        border: cardBorder,
+        height: 38,
+        padding: "2px 6px",
         borderRadius: 8,
-        padding: "3px 6px",
-        width: "100%",
-        maxWidth: isFeatured ? 96 : 76,
-        transition: "transform 0.15s ease",
-      }}>
-        {/* Pick Label */}
-        <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "center" }}>
-          {isGreen && <Check style={{ width: 10, height: 10, color: "var(--accent-green)", strokeWidth: 3 }} />}
-          {isRed && <X style={{ width: 10, height: 10, color: "var(--accent-red)", strokeWidth: 3 }} />}
-          <span style={{
-            fontSize: 11,
-            fontWeight: 800,
-            color: pickColor,
-            letterSpacing: "-0.01em",
-            whiteSpace: "nowrap",
-            lineHeight: 1.2,
-          }}>
-            {cleanPick}
-          </span>
-        </div>
-
-        {/* Odd Number */}
-        {odd && (
-          <span style={{
+        background: bg,
+        border: border,
+        boxShadow: shadow,
+        lineHeight: 1.15,
+        transition: "all 0.15s ease",
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: pickColor,
+        }}
+      >
+        {pick}
+      </span>
+      {odd && (
+        <span
+          style={{
             fontSize: 10,
             fontWeight: 700,
             color: oddColor,
-            lineHeight: 1,
-            marginTop: 2,
-          }}>
-            {odd}
-          </span>
-        )}
-      </div>
+            fontFamily: "var(--font-mono)",
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            marginTop: 1,
+          }}
+        >
+          <span style={{ fontSize: 8 }}>{isBest ? "▴" : "▾"}</span> {odd}
+        </span>
+      )}
     </div>
   );
 }
-

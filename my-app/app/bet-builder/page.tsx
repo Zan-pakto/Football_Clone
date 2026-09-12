@@ -143,7 +143,7 @@ export default function BetBuilderPage() {
     const text = generatedSlip
       .map((p, i) => `${i + 1}. [${p.countryLeague}] ${p.homeTeam} vs ${p.awayTeam} -> ${p.pick} @ ${p.odds}`)
       .join("\n");
-    const full = `🎯 JollofTips Bet Builder Slip (${generatedSlip.length} picks · Total Odds: ${calculatedTotalOdds}):\n${text}`;
+    const full = `[JollofTips] Bet Builder Slip (${generatedSlip.length} picks · Total Odds: ${calculatedTotalOdds}):\n${text}`;
     navigator.clipboard.writeText(full);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

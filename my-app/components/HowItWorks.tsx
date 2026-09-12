@@ -149,10 +149,10 @@ export default function HowItWorks() {
                 {/* Left Telemetry Pills */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, width: 80 }}>
                   {[
-                    { icon: "📊", label: "01" },
+                    { icon: "POI", label: "01" },
                     { icon: "xG", label: "02" },
-                    { icon: "⚡", label: "03" },
-                    { icon: "📈", label: "04" },
+                    { icon: "SIM", label: "03" },
+                    { icon: "VAL", label: "04" },
                   ].map((item, i) => (
                     <div
                       key={i}
