@@ -7,9 +7,19 @@ const router = Router();
 
 function getAuthToken(req: Request): string | undefined {
   const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, "").trim();
+  if (bearerToken && bearerToken !== "null" && bearerToken !== "undefined" && bearerToken.length > 10) {
+    return bearerToken;
+  }
   const cookieToken = req.cookies?.auth_token;
+  if (cookieToken && cookieToken !== "null" && cookieToken !== "undefined") {
+    return cookieToken;
+  }
   const queryToken = req.query?.token as string | undefined;
-  return authHeader?.replace("Bearer ", "") || cookieToken || queryToken;
+  if (queryToken && queryToken !== "null" && queryToken !== "undefined" && queryToken.length > 10) {
+    return queryToken;
+  }
+  return undefined;
 }
 
 // GET /api/fixtures/live

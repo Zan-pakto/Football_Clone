@@ -13,6 +13,7 @@ import fixturesRoutes from "./routes/fixtures.routes";
 import matchesRoutes from "./routes/matches.routes";
 import syncRoutes from "./routes/sync.routes";
 import healthRoutes from "./routes/health.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,13 +37,20 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "stripe-signature"],
   })
 );
 
 // Standard Middleware
 app.use(cookieParser());
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.text({ type: ["text/*", "application/json"], limit: "10mb" }));
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -84,6 +92,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/fixtures", fixturesRoutes);
 app.use("/api/matches", matchesRoutes);
 app.use("/api/sync", syncRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

@@ -65,6 +65,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
       });
       const data = await res.json();
       if (data.success && data.isLoggedIn && data.user) {
+        if (data.token && typeof window !== "undefined") {
+          localStorage.setItem("jt_auth_token", data.token);
+        }
         setIsLoggedIn(true);
         setCurrentUser(data.user);
       } else {

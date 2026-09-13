@@ -286,20 +286,40 @@ model Session {
 }
 
 model Subscription {
-  id        String             @id @default(uuid())
-  userId    String             @map("user_id")
-  plan      String             @default("PREMIUM_MONTHLY") // "FREE" | "PREMIUM_MONTHLY" | "PREMIUM_ANNUAL"
-  status    SubscriptionStatus @default(ACTIVE)
-  startedAt DateTime           @default(now()) @map("started_at")
-  expiresAt DateTime?          @map("expires_at")
-  createdAt DateTime           @default(now()) @map("created_at")
-  updatedAt DateTime           @updatedAt @map("updated_at")
+  id                String             @id @default(uuid())
+  userId            String             @map("user_id")
+  plan              String             @default("VIP_MONTHLY") // "FREE" | "VIP_MONTHLY" | "VIP_ANNUAL"
+  status            SubscriptionStatus @default(ACTIVE)
+
+  // Decoupled Payment Fields
+  provider          String             @default("stripe") // "stripe" | "mock" | "paystack"
+  providerSubId     String?            @unique @map("provider_sub_id")
+  providerCustId    String?            @map("provider_cust_id")
+  cancelAtPeriodEnd Boolean            @default(false) @map("cancel_at_period_end")
+  currentPeriodEnd  DateTime?          @map("current_period_end")
+
+  startedAt         DateTime           @default(now()) @map("started_at")
+  expiresAt         DateTime?          @map("expires_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
+  @@index([providerSubId])
   @@map("subscriptions")
+}
+
+model PaymentWebhookEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique @map("event_id")
+  provider    String   @default("stripe")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@index([eventId])
+  @@map("payment_webhook_events")
 }
 
 model ApiUsage {

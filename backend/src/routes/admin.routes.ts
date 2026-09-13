@@ -7,8 +7,15 @@ const router = Router();
 
 function getAuthToken(req: Request): string | undefined {
   const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.replace(/^Bearer\s+/i, "").trim();
+  if (bearerToken && bearerToken !== "null" && bearerToken !== "undefined" && bearerToken.length > 10) {
+    return bearerToken;
+  }
   const cookieToken = req.cookies?.auth_token;
-  return authHeader?.replace("Bearer ", "") || cookieToken;
+  if (cookieToken && cookieToken !== "null" && cookieToken !== "undefined") {
+    return cookieToken;
+  }
+  return undefined;
 }
 
 // GET /api/admin
