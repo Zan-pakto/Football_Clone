@@ -32,6 +32,7 @@ interface NavbarProps {
 const navLinks = [
   { href: "/bet-of-the-day", label: "Bet of the day", icon: Flame },
   { href: "/all-matches", label: "All Matches", icon: Activity },
+  { href: "/rollovers", label: "Rollover", icon: TrendingUp },
   { href: "/bet-builder", label: "Bet Builder", icon: Zap },
   { href: "/leagues", label: "Leagues", icon: Trophy },
   { href: "/progress", label: "Progress", icon: TrendingUp },

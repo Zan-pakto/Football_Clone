@@ -15,6 +15,7 @@ export default function Footer() {
       { label: "Leagues", href: "/leagues" },
     ],
     Tools: [
+      { label: "Rollovers", href: "/rollovers" },
       { label: "Hit & Win", href: "/hit-and-win" },
       { label: "Progress Tracker", href: "/progress" },
       { label: "Live Matches", href: "/all-matches" },

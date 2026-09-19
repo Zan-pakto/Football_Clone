@@ -115,6 +115,7 @@ model Fixture {
   odds        Odds[]
   lineups     Lineup[]
   settlements PredictionSettlement[]
+  rolloverSteps RolloverStep[]
 
   @@index([leagueId, matchDate])
   @@index([matchDate])
@@ -335,3 +336,71 @@ model ApiUsage {
   @@index([date])
   @@map("api_usage")
 }
+
+enum RolloverType {
+  AI
+  MANUAL
+}
+
+enum RolloverStatus {
+  ACTIVE
+  COMPLETED
+  LOST
+  CANCELLED
+}
+
+enum RolloverStepStatus {
+  PENDING
+  ACTIVE
+  WON
+  LOST
+  VOID
+}
+
+model Rollover {
+  id             String         @id @default(uuid())
+  name           String
+  type           RolloverType   @default(MANUAL)
+  targetSteps    Int            @default(5) @map("target_steps")
+  startingAmount Float          @default(500) @map("starting_amount")
+  currentAmount  Float          @default(500) @map("current_amount")
+  status         RolloverStatus @default(ACTIVE)
+  isPublished    Boolean        @default(true) @map("is_published")
+  description    String?
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  steps          RolloverStep[]
+
+  @@index([type])
+  @@index([status])
+  @@index([isPublished])
+  @@map("rollovers")
+}
+
+model RolloverStep {
+  id           String             @id @default(uuid())
+  rolloverId   String             @map("rollover_id")
+  stepNumber   Int                @map("step_number")
+  match        String
+  prediction   String
+  odds         Float              @default(1.50)
+  status       RolloverStepStatus @default(PENDING)
+  matchDate    String?            @map("match_date")
+  kickoffTime  DateTime?          @map("kickoff_time")
+  stakeAmount  Float?             @map("stake_amount")
+  returnAmount Float?             @map("return_amount")
+  resultNote   String?            @map("result_note")
+  fixtureId    String?            @map("fixture_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  rollover     Rollover           @relation(fields: [rolloverId], references: [id], onDelete: Cascade)
+  fixture      Fixture?           @relation(fields: [fixtureId], references: [id], onDelete: SetNull)
+
+  @@unique([rolloverId, stepNumber])
+  @@index([rolloverId])
+  @@index([status])
+  @@map("rollover_steps")
+}
+

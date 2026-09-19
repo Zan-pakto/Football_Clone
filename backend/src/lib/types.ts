@@ -81,3 +81,42 @@ export interface LiveSyncResult {
   matches: Record<string, LiveMatchUpdate>;
   error?: string;
 }
+
+export type RolloverType = "AI" | "MANUAL";
+export type RolloverStatus = "ACTIVE" | "COMPLETED" | "LOST" | "CANCELLED";
+export type RolloverStepStatus = "PENDING" | "ACTIVE" | "WON" | "LOST" | "VOID";
+
+export interface RolloverStep {
+  id: string;
+  rolloverId: string;
+  stepNumber: number;
+  match: string;
+  prediction: string;
+  odds: number;
+  status: RolloverStepStatus;
+  matchDate?: string | null;
+  kickoffTime?: string | null;
+  stakeAmount?: number | null;
+  returnAmount?: number | null;
+  resultNote?: string | null;
+  fixtureId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Rollover {
+  id: string;
+  name: string;
+  type: RolloverType;
+  startingAmount: number;
+  currentAmount: number;
+  targetSteps: number;
+  status: RolloverStatus;
+  isPublished: boolean;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  steps: RolloverStep[];
+  currentStepIndex?: number;
+  potentialReturn?: number;
+}

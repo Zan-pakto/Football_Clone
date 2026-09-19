@@ -14,6 +14,7 @@ import matchesRoutes from "./routes/matches.routes";
 import syncRoutes from "./routes/sync.routes";
 import healthRoutes from "./routes/health.routes";
 import paymentRoutes from "./routes/payment.routes";
+import rolloversRoutes from "./routes/rollovers.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -93,6 +94,7 @@ app.use("/api/fixtures", fixturesRoutes);
 app.use("/api/matches", matchesRoutes);
 app.use("/api/sync", syncRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/rollovers", rolloversRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

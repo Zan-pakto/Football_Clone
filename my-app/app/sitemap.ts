@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/all-matches",
     "/bet-of-the-day",
+    "/rollovers",
     "/bet-builder",
     "/leagues",
     "/progress",
