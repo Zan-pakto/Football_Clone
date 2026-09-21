@@ -69,7 +69,8 @@ export default function AllMatchesPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const url = `/api/matches?d=${dayVal}${forceSync ? "&sync=true" : ""}`;
+      const tz = -new Date().getTimezoneOffset();
+      const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}`;
       const res = await fetch(url, { headers });
       if (!res.ok) {
         setLoading(false);

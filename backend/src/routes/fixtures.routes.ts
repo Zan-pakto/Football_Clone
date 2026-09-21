@@ -58,6 +58,7 @@ router.get("/track-record", async (_req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const date = (req.query.date as string) || (req.query.d as string) || "0";
+    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "330";
     const country = (req.query.country as string) || undefined;
     const league = (req.query.league as string) || undefined;
     const status = (req.query.status as any) || undefined;
@@ -69,7 +70,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     // 1. Check if high-volume synchronized matches exist in store
     const { store } = await import("../lib/db/store");
-    const storeData = await store.getMatches(date);
+    const storeData = await store.getMatches(date, undefined, tz);
 
     if (storeData && storeData.matches && storeData.matches.length > 0) {
       let filtered = storeData.matches;

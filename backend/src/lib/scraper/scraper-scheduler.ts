@@ -23,7 +23,7 @@ export class ScraperScheduler {
   /**
    * Run synchronization for specified days (default: yesterday, today, tomorrow)
    */
-  async sync(days: string[] = ["-1", "0", "1"]): Promise<SyncStats> {
+  async sync(days: string[] = ["-1", "0", "1"], tz?: string | number | null): Promise<SyncStats> {
     if (this.isRunning) {
       console.log("[ScraperScheduler] Sync already in progress, skipping duplicate trigger.");
       return (
@@ -43,8 +43,9 @@ export class ScraperScheduler {
     const breakdown: Record<string, number> = {};
 
     try {
-      console.log(`[ScraperScheduler] Initiating sync for days: [${days.join(", ")}]...`);
-      const cycleResults = await nerdyTipsScraper.runAuthenticatedCycle(days);
+      const activeTz = tz || process.env.TIMEZONE_OFFSET || "330";
+      console.log(`[ScraperScheduler] Initiating sync for days: [${days.join(", ")}] (tz=${activeTz})...`);
+      const cycleResults = await nerdyTipsScraper.runAuthenticatedCycle(days, activeTz);
 
       for (const [d, matches] of Object.entries(cycleResults)) {
         if (matches.length > 0) {

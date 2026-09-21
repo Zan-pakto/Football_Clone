@@ -80,7 +80,8 @@ export default function BetOfTheDayPage() {
     async function loadBankers() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/matches?d=${selectedDate}`);
+        const tz = -new Date().getTimezoneOffset();
+        const res = await fetch(`/api/matches?d=${selectedDate}&tz=${tz}`);
         if (!res.ok) return;
         const contentType = res.headers.get("content-type") || "";
         if (!contentType.includes("json")) return;

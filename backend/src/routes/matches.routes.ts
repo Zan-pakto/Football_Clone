@@ -202,6 +202,7 @@ router.post("/live", async (req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const d = (req.query.d as string) ?? "0";
+    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "330";
     const country = (req.query.country as string) ?? undefined;
     const league = (req.query.league as string) ?? undefined;
     const status = (req.query.status as string) ?? undefined;
@@ -216,7 +217,7 @@ router.get("/", async (req: Request, res: Response) => {
       try {
         const { nerdyTipsScraper } = await import("../lib/scraper/nerdytips-scraper");
         const { normalizeScrapedMatchToMatchData } = await import("../lib/scraper/nerdytips-normalizer");
-        const fresh = await nerdyTipsScraper.scrapeDay(d);
+        const fresh = await nerdyTipsScraper.scrapeDay(d, null, tz);
         if (fresh.length > 0) {
           const normalized = fresh.map(normalizeScrapedMatchToMatchData);
           await store.saveMatches(normalized, d);
@@ -227,7 +228,7 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     // 1. Check if we have high-volume synchronized matches in store
-    const storeData = await store.getMatches(d);
+    const storeData = await store.getMatches(d, undefined, tz);
     let convertedMatches: MatchData[] = [];
 
     if (storeData && storeData.matches && storeData.matches.length > 0) {

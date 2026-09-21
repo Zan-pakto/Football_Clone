@@ -143,8 +143,15 @@ export class NerdyTipsScraper {
   /**
    * Scrape a single day with authenticated session support and lazy placeholder rows
    */
-  async scrapeDay(dParam: string, cookieHeader?: string | null): Promise<ScrapedMatch[]> {
+  async scrapeDay(
+    dParam: string,
+    cookieHeader?: string | null,
+    tz?: string | number | null
+  ): Promise<ScrapedMatch[]> {
     const url = `${this.baseUrl}/all-matches?d=${dParam}`;
+    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "330");
+    const tzCookie = `tz_offset_v2=${activeTz}; timezone_manual=1;`;
+
     const headers: Record<string, string> = {
       "User-Agent": this.userAgent,
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
@@ -157,10 +164,8 @@ export class NerdyTipsScraper {
       "Sec-Fetch-Site": "none",
       "Sec-Fetch-User": "?1",
       "Upgrade-Insecure-Requests": "1",
+      Cookie: cookieHeader ? `${cookieHeader}; ${tzCookie}` : tzCookie,
     };
-    if (cookieHeader) {
-      headers["Cookie"] = cookieHeader;
-    }
 
     try {
       const res = await fetch(url, { headers });
@@ -174,10 +179,10 @@ export class NerdyTipsScraper {
 
       // Extract placeholder keys for lazy-loaded leagues
       const keys = [...html.matchAll(/data-lg-k="([a-zA-Z0-9]+)"/g)].map((m) => m[1]);
-      console.log(`[NerdyTipsScraper] d=${dParam}: Found ${initialMatches.length} initial matches, ${keys.length} league keys to expand.`);
+      console.log(`[NerdyTipsScraper] d=${dParam} (tz=${activeTz}): Found ${initialMatches.length} initial matches, ${keys.length} league keys to expand.`);
 
       const extraHtmlChunks: string[] = [];
-      const BATCH_SIZE = 25;
+      const BATCH_SIZE = 30;
 
       const rowHeaders: Record<string, string> = {
         "User-Agent": this.userAgent,
@@ -192,45 +197,49 @@ export class NerdyTipsScraper {
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
+        Cookie: cookieHeader ? `${cookieHeader}; ${tzCookie}` : tzCookie,
       };
-      if (cookieHeader) rowHeaders["Cookie"] = cookieHeader;
 
       const batches: string[][] = [];
       for (let i = 0; i < keys.length; i += BATCH_SIZE) {
         batches.push(keys.slice(i, i + BATCH_SIZE));
       }
 
-      // Concurrently fetch all batch rows with automatic retry on rate limit
-      const rowResults = await Promise.allSettled(
-        batches.map(async (batch, idx) => {
-          const rowsUrl = `${this.baseUrl}/all-matches/rows?g=${batch.join(",")}&d=${dParam}`;
-          let attempts = 0;
-          while (attempts < 2) {
-            attempts++;
-            try {
-              const rowsRes = await fetch(rowsUrl, { headers: rowHeaders });
-              if (rowsRes.ok) {
-                const data = (await rowsRes.json()) as any;
-                if (data && data.groups) {
-                  return Object.values(data.groups).map(String);
+      // Fetch batches with controlled concurrency (4 parallel requests at a time) to prevent cloud network timeouts
+      const CHUNK_CONCURRENCY = 4;
+      for (let i = 0; i < batches.length; i += CHUNK_CONCURRENCY) {
+        const slice = batches.slice(i, i + CHUNK_CONCURRENCY);
+        const chunkResults = await Promise.allSettled(
+          slice.map(async (batch, idx) => {
+            const rowsUrl = `${this.baseUrl}/all-matches/rows?g=${batch.join(",")}&d=${dParam}`;
+            let attempts = 0;
+            while (attempts < 2) {
+              attempts++;
+              try {
+                const rowsRes = await fetch(rowsUrl, { headers: rowHeaders });
+                if (rowsRes.ok) {
+                  const data = (await rowsRes.json()) as any;
+                  if (data && data.groups) {
+                    return Object.values(data.groups).map(String);
+                  }
+                  return [];
+                } else {
+                  console.warn(`[NerdyTipsScraper] Batch ${i + idx + 1}/${batches.length} HTTP ${rowsRes.status} on attempt ${attempts}`);
+                  if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
                 }
-                return [];
-              } else {
-                console.warn(`[NerdyTipsScraper] Batch ${idx + 1}/${batches.length} HTTP ${rowsRes.status} on attempt ${attempts}`);
+              } catch (e: any) {
+                console.warn(`[NerdyTipsScraper] Batch ${i + idx + 1} network error on attempt ${attempts}:`, e.message);
                 if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
               }
-            } catch (e: any) {
-              console.warn(`[NerdyTipsScraper] Batch ${idx + 1} network error on attempt ${attempts}:`, e.message);
-              if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
             }
-          }
-          return [];
-        })
-      );
+            return [];
+          })
+        );
 
-      for (const r of rowResults) {
-        if (r.status === "fulfilled" && Array.isArray(r.value)) {
-          extraHtmlChunks.push(...r.value);
+        for (const r of chunkResults) {
+          if (r.status === "fulfilled" && Array.isArray(r.value)) {
+            extraHtmlChunks.push(...r.value);
+          }
         }
       }
 
@@ -243,7 +252,7 @@ export class NerdyTipsScraper {
       }
 
       const allMatches = Array.from(uniqueMap.values());
-      console.log(`[NerdyTipsScraper] d=${dParam}: Total matches captured: ${allMatches.length} (${initialMatches.length} initial + ${extraMatches.length} expanded).`);
+      console.log(`[NerdyTipsScraper] d=${dParam} (tz=${activeTz}): Total matches captured: ${allMatches.length} (${initialMatches.length} initial + ${extraMatches.length} expanded).`);
 
       // Sort: Upcoming first, then Live, then Finished
       allMatches.sort((a, b) => {
@@ -262,7 +271,8 @@ export class NerdyTipsScraper {
    * Run a complete multi-day scrape session with automatic login & logout
    */
   async runAuthenticatedCycle(
-    days: string[] = ["-1", "0", "1"]
+    days: string[] = ["-1", "0", "1"],
+    tz?: string | number | null
   ): Promise<Record<string, ScrapedMatch[]>> {
     console.log("[NerdyTipsScraper] Starting 12-hour sync cycle...");
 
@@ -277,10 +287,10 @@ export class NerdyTipsScraper {
     const results: Record<string, ScrapedMatch[]> = {};
 
     try {
-      // Step 2: Fetch all requested days with the session cookie
+      // Step 2: Fetch all requested days with the session cookie and timezone
       for (const d of days) {
         console.log(`[NerdyTipsScraper] Scraping day d=${d}...`);
-        const matches = await this.scrapeDay(d, authResult.cookieHeader);
+        const matches = await this.scrapeDay(d, authResult.cookieHeader, tz);
         results[d] = matches;
         console.log(`[NerdyTipsScraper] Day d=${d}: Captured ${matches.length} matches.`);
 

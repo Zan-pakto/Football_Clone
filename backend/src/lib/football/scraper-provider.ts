@@ -192,7 +192,7 @@ export class ScraperFootballProvider implements FootballDataProvider {
     if (!data.matches || data.matches.length === 0) {
       try {
         console.log(`[ScraperFootballProvider] Cold start: scraping d=${date} on-demand from NerdyTips...`);
-        const scraped = await nerdyTipsScraper.scrapeDay(date);
+        const scraped = await nerdyTipsScraper.scrapeDay(date, null, process.env.TIMEZONE_OFFSET || "330");
         if (scraped.length > 0) {
           const normalized = scraped.map(normalizeScrapedMatchToMatchData);
           await store.saveMatches(normalized, date);

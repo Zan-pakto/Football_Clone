@@ -190,7 +190,8 @@ class MatchStore {
 
   async getMatches(
     d: string = "0",
-    filters?: { country?: string; league?: string; status?: string; search?: string }
+    filters?: { country?: string; league?: string; status?: string; search?: string },
+    tz?: string | number | null
   ): Promise<{ matches: MatchData[]; total: number; lastScrapedAt: string | null; lastSyncedAt: string | null }> {
     let matches: MatchData[] = [];
     const targetDate = resolveDateString(d);
@@ -263,13 +264,13 @@ class MatchStore {
       }
     }
 
-    // 3. Cold-start auto-scrape: if both cache and DB are empty, scrape on-demand
+    // 3. Cold-start auto-scrape: if both cache and DB are empty, scrape on-demand with user timezone
     if (matches.length === 0) {
       try {
         const { nerdyTipsScraper } = await import("../scraper/nerdytips-scraper");
         const { normalizeScrapedMatchToMatchData } = await import("../scraper/nerdytips-normalizer");
-        console.log(`[MatchStore] Cold start: auto-scraping live data for d=${d} from NerdyTips...`);
-        const scraped = await nerdyTipsScraper.scrapeDay(d);
+        console.log(`[MatchStore] Cold start: auto-scraping live data for d=${d} (tz=${tz || 'default'}) from NerdyTips...`);
+        const scraped = await nerdyTipsScraper.scrapeDay(d, null, tz);
         if (scraped && scraped.length > 0) {
           const normalized = scraped.map(normalizeScrapedMatchToMatchData);
           await this.saveMatches(normalized, d);
