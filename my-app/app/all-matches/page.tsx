@@ -168,21 +168,30 @@ export default function AllMatchesPage() {
 
   /* ── Derived stats ── */
   const statCounts = useMemo(() => {
+    const isPastDay = parseInt(d, 10) < 0;
+    const isFutureDay = parseInt(d, 10) > 0;
     let predicted = 0, upcoming = 0, live = 0, won = 0;
+
     matches.forEach((m) => {
-      const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
+      const isLiveM = !isPastDay && Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
       const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
-      const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
-      const isWon   = m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
-      const isUp    = !isLiveM && !isFin;
+      const isFin   = isPastDay || m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
+      const isWon   = !isFutureDay && (m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true));
+      const isUp    = isFutureDay || (!isLiveM && !isFin);
 
       if (m.predictions?.bestTip?.pick || m.confidence) predicted++;
       if (isUp) upcoming++;
       if (isLiveM) live++;
       if (isWon) won++;
     });
-    return { predicted: predicted || matches.length, upcoming: upcoming || Math.max(0, matches.length - 20), live, won };
-  }, [matches]);
+
+    return {
+      predicted: predicted || matches.length,
+      upcoming: isPastDay ? 0 : (isFutureDay ? matches.length : upcoming),
+      live: isPastDay || isFutureDay ? 0 : live,
+      won: isFutureDay ? 0 : won,
+    };
+  }, [matches, d]);
 
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -264,26 +273,33 @@ export default function AllMatchesPage() {
       }
 
       // Top Stat Cards Filter
+      const isPastDay = parseInt(d, 10) < 0;
+      const isFutureDay = parseInt(d, 10) > 0;
+
       if (activeFilter === "predicted") {
         return Boolean(m.predictions?.bestTip?.pick || m.confidence);
       }
       if (activeFilter === "upcoming") {
+        if (isPastDay) return false;
+        if (isFutureDay) return true;
         const isLiveM = Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
         const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
-        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
         return !isLiveM && !isFin;
       }
       if (activeFilter === "live") {
+        if (isPastDay || isFutureDay) return false;
         return Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
       }
       if (activeFilter === "won") {
+        if (isFutureDay) return false;
         const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
-        const isFin   = m.status === "won" || m.status === "lost" || m.status === "fin" || m.elapsed === "FT" || hasScores;
+        const isFin   = isPastDay || m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
         return m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
       }
       return true;
     });
-  }, [matches, selectedCountry, searchTerm, activeFilter, modalFilters]);
+  }, [matches, selectedCountry, searchTerm, activeFilter, modalFilters, d]);
 
   const groupedByLeague = useMemo(() => {
     const map = new Map<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }>();
@@ -309,7 +325,20 @@ export default function AllMatchesPage() {
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 20px 80px" }}>
         {/* ── 1. Top Centered Date Selector ── */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-          <DateSelector currentD={d} onSelectD={(newD) => { setD(newD); setSelectedCountry("all"); }} />
+          <DateSelector
+            currentD={d}
+            onSelectD={(newD) => {
+              setD(newD);
+              setSelectedCountry("all");
+              const nextIsPast = parseInt(newD, 10) < 0;
+              const nextIsFuture = parseInt(newD, 10) > 0;
+              if (nextIsPast && (activeFilter === "upcoming" || activeFilter === "live")) {
+                setActiveFilter("predicted");
+              } else if (nextIsFuture && (activeFilter === "won" || activeFilter === "live")) {
+                setActiveFilter("predicted");
+              }
+            }}
+          />
         </div>
 
         {/* ── 2. Two-Column Dashboard Layout (Left Sidebar + Right Content) ── */}
