@@ -287,72 +287,77 @@ router.get("/:id", async (req: Request, res: Response) => {
       }
     }
 
-    // Fallback: If not in store, fetch directly from NerdyTips match insight
-    let insight: any = null;
+    // Fetch match details directly from NerdyTips scraper
+    let matchDetails: any = null;
     const { nerdyTipsScraper } = await import("../lib/scraper/nerdytips-scraper");
     try {
-      insight = await nerdyTipsScraper.getMatchInsight(id);
+      matchDetails = await nerdyTipsScraper.getMatchDetails(id);
     } catch (e: any) {
-      console.warn("Could not fetch AI insight for fixture " + id, e.message);
+      console.warn("Could not fetch match details for fixture " + id, e.message);
     }
 
-    if (!fixture && insight) {
-      // Parse team names from articleTitle e.g. "Marseille vs Paris S Prediction and Ligue 1 Best Bets"
-      let homeName = "Home Team";
-      let awayName = "Away Team";
-      let leagueName = "League";
-      const titleMatch = insight.articleTitle.match(/^(.*?)\s+vs\s+(.*?)\s+Prediction(?:\s+and\s+(.*?)(?:\s+Best\s+Bets)?)?/i);
-      if (titleMatch) {
-        homeName = titleMatch[1].trim();
-        awayName = titleMatch[2].trim();
-        leagueName = titleMatch[3] ? titleMatch[3].trim() : "League";
-      }
+    if (!fixture && matchDetails) {
+      const hTeam = matchDetails.hero.homeTeam;
+      const aTeam = matchDetails.hero.awayTeam;
+      const leagueName = matchDetails.hero.leagueName || "League";
+      const countryName = matchDetails.hero.country || "International";
+
+      const pHome = matchDetails.hero.odds1x2?.find((o: any) => o.label === "1");
+      const pDraw = matchDetails.hero.odds1x2?.find((o: any) => o.label === "X");
+      const pAway = matchDetails.hero.odds1x2?.find((o: any) => o.label === "2");
+      const best = matchDetails.tips.bestTip;
 
       fixture = {
         id,
         externalId: id,
-        leagueId: leagueName,
+        leagueId: leagueName.toLowerCase().replace(/\s+/g, "-"),
         league: {
-          id: leagueName,
+          id: leagueName.toLowerCase().replace(/\s+/g, "-"),
           name: leagueName,
           externalId: leagueName,
           isActive: true,
           country: {
-            id: "world",
-            name: "International",
-            flag: null,
+            id: countryName.toLowerCase().replace(/\s+/g, "-"),
+            name: countryName,
+            flag: matchDetails.hero.countryFlag,
           },
         },
-        homeTeamId: homeName,
-        awayTeamId: awayName,
+        homeTeamId: hTeam.name.toLowerCase().replace(/\s+/g, "-"),
+        awayTeamId: aTeam.name.toLowerCase().replace(/\s+/g, "-"),
         homeTeam: {
-          id: homeName,
-          name: homeName,
-          externalId: homeName,
+          id: hTeam.name.toLowerCase().replace(/\s+/g, "-"),
+          name: hTeam.name,
+          externalId: hTeam.name,
+          logo: hTeam.logo,
         },
         awayTeam: {
-          id: awayName,
-          name: awayName,
-          externalId: awayName,
+          id: aTeam.name.toLowerCase().replace(/\s+/g, "-"),
+          name: aTeam.name,
+          externalId: aTeam.name,
+          logo: aTeam.logo,
         },
-        matchDate: new Date().toISOString().split("T")[0],
-        kickoffTime: "20:00",
-        status: (insight.actualStats && insight.actualStats.length > 0 ? "FINISHED" : "UPCOMING") as any,
-        homeScore: null,
-        awayScore: null,
+        matchDate: matchDetails.hero.date || new Date().toISOString().split("T")[0],
+        kickoffTime: matchDetails.hero.time || "20:00",
+        status: (matchDetails.hero.status === "Finished"
+          ? "FINISHED"
+          : matchDetails.hero.status === "Live"
+          ? "LIVE"
+          : "UPCOMING") as any,
+        homeScore: matchDetails.hero.homeScore !== null ? parseInt(matchDetails.hero.homeScore, 10) : null,
+        awayScore: matchDetails.hero.awayScore !== null ? parseInt(matchDetails.hero.awayScore, 10) : null,
         odds: {
-          home: 1.85,
-          draw: 3.40,
-          away: 3.80,
+          home: pHome ? parseFloat(pHome.odd) || 1.85 : 1.85,
+          draw: pDraw ? parseFloat(pDraw.odd) || 3.40 : 3.40,
+          away: pAway ? parseFloat(pAway.odd) || 3.80 : 3.80,
           bookmaker: "Consensus",
         },
         predictions: [
           {
             fixtureId: id,
             market: "1X2" as any,
-            selection: "1",
-            confidence: 76,
-            odd: 1.85,
+            selection: best?.pick || (pAway?.isTip ? "2" : pHome?.isTip ? "1" : "1"),
+            confidence: best ? parseInt(best.confidence, 10) || 75 : 75,
+            odd: best ? parseFloat(best.odd) || 1.85 : 1.85,
             isPremium: false,
             status: "PENDING" as any,
             source: "NERDYTIPS_AI",
@@ -365,9 +370,31 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: "Fixture not found" });
     }
 
+    // Enrich existing fixture with team logos/market value if available from matchDetails
+    if (matchDetails) {
+      if (matchDetails.hero.homeTeam.logo && !fixture.homeTeam?.logo) {
+        if (fixture.homeTeam) fixture.homeTeam.logo = matchDetails.hero.homeTeam.logo;
+      }
+      if (matchDetails.hero.awayTeam.logo && !fixture.awayTeam?.logo) {
+        if (fixture.awayTeam) fixture.awayTeam.logo = matchDetails.hero.awayTeam.logo;
+      }
+      if (matchDetails.hero.countryFlag) {
+        if (!(fixture as any).league) (fixture as any).league = {};
+        if (!(fixture as any).league.country) (fixture as any).league.country = {};
+        (fixture as any).league.country.flag = matchDetails.hero.countryFlag;
+      }
+    }
+
     const sanitized = accessControlService.filterFixtureForUser(fixture, user, 0);
-    if (insight) {
-      (sanitized as any).aiInsight = insight;
+    if (matchDetails) {
+      (sanitized as any).matchDetails = matchDetails;
+      (sanitized as any).aiInsight = {
+        matchId: id,
+        articleTitle: `${matchDetails.hero.homeTeam.name} vs ${matchDetails.hero.awayTeam.name} Prediction`,
+        sections: [],
+        predictedStats: matchDetails.statistics.map((s: any) => ({ stat: s.label, home: s.home, away: s.away })),
+        actualStats: matchDetails.statistics.map((s: any) => ({ stat: s.label, home: s.home, away: s.away })),
+      };
     }
 
     return res.json({
