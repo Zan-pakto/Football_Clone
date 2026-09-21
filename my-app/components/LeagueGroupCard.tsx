@@ -116,10 +116,10 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
         </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Table / Match Cards Feed ── */}
       {isOpen && (
-        <div style={{ width: "100%", overflowX: "auto" }}>
-          <div style={{ minWidth: 840 }}>
+        <div className="lg-table-scroll-container">
+          <div className="lg-table-content">
             {/* Column headers (Desktop only, matching MatchRow grid) */}
             <div
               className="lg-col-headers"
@@ -146,8 +146,8 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
               <div style={{ textAlign: "center" }}>1X2</div>
               <div style={{ textAlign: "center" }}>O/U</div>
               <div style={{ textAlign: "center" }}>BTTS</div>
-              <div style={{ textAlign: "center", color: "#8b7ff5" }}>BEST TIP</div>
-              <div style={{ textAlign: "center" }}>CONF</div>
+              <div style={{ textAlign: "center", color: "#ffb020" }}>★ BEST TIP</div>
+              <div style={{ textAlign: "center" }}>RATING</div>
             </div>
 
             {/* Match rows */}
@@ -164,8 +164,12 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
       <style>{`
         .lg-col-headers { display: none !important; }
+        .lg-table-scroll-container { width: 100%; overflow-x: visible; }
+        .lg-table-content { width: 100%; }
         @media (min-width: 768px) {
           .lg-col-headers { display: grid !important; }
+          .lg-table-scroll-container { overflow-x: auto !important; }
+          .lg-table-content { min-width: 840px !important; }
         }
       `}</style>
     </div>

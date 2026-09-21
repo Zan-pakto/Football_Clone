@@ -21,7 +21,6 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
   liveCount?: number;
@@ -64,6 +63,17 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
         headers,
         credentials: "include",
       });
+      if (!res.ok) {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        return;
+      }
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        return;
+      }
       const data = await res.json();
       if (data.success && data.isLoggedIn && data.user) {
         if (data.token && typeof window !== "undefined") {
@@ -319,9 +329,6 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             >
               <Search size={16} />
             </button>
-
-            {/* Theme Toggle Button */}
-            <ThemeToggle />
 
             {/* Desktop VIP Access (Hidden on mobile to prevent overflow) */}
             <Link

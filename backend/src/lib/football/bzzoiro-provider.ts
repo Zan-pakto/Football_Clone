@@ -11,7 +11,6 @@ import {
   League,
   Country,
 } from "./types";
-import { mockFootballProvider } from "./mock-provider";
 
 interface BzzoiroEvent {
   id: number;
@@ -57,6 +56,13 @@ interface BzzoiroEvent {
     }>;
   };
   has_xg?: boolean;
+  highlights?: Array<{
+    kind: string;
+    title: string;
+    url: string;
+    thumbnail: string;
+    published_at: string;
+  }>;
 }
 
 interface BzzoiroLeague {
@@ -66,11 +72,74 @@ interface BzzoiroLeague {
   is_active: boolean;
 }
 
+export interface BzzoiroPredictionItem {
+  id: number;
+  created_at: string;
+  event: {
+    id: number;
+    event_date: string;
+    status: string;
+    home_team_id: number;
+    home_team: string;
+    away_team_id: number;
+    away_team: string;
+    league_id: number;
+    league_name?: string;
+  };
+  markets: {
+    match_result?: {
+      prob_home?: number;
+      prob_draw?: number;
+      prob_away?: number;
+      predicted?: "H" | "D" | "A";
+    };
+    expected_goals?: {
+      home?: number;
+      away?: number;
+    };
+    over_under?: {
+      prob_over_15?: number;
+      prob_over_25?: number;
+      prob_over_35?: number;
+    };
+    btts?: {
+      prob_yes?: number;
+    };
+    score?: {
+      most_likely?: string;
+    };
+    draw_no_bet?: {
+      prob_home?: number;
+    };
+    corners?: {
+      prob_over_85?: number;
+      prob_over_95?: number;
+      prob_over_105?: number;
+    };
+  };
+  recommendations?: {
+    favorite?: string;
+    favorite_prob?: number;
+    bet_favorite?: boolean;
+    over_15?: boolean;
+    over_25?: boolean;
+    over_35?: boolean;
+    btts?: boolean;
+    winner?: boolean;
+  };
+  model?: {
+    confidence?: number;
+    version?: string;
+  };
+}
+
 export class BzzoiroFootballProvider implements FootballDataProvider {
   private apiKey: string;
   private baseUrl: string;
   private leaguesCache: Map<number, BzzoiroLeague> = new Map();
   private leaguesCachedAt: number = 0;
+  private predictionsCache: Map<string, Map<number, BzzoiroPredictionItem>> = new Map();
+  private predictionsCachedAt: Map<string, number> = new Map();
 
   constructor() {
     this.apiKey = process.env.BZZOIRO_API_KEY || "5dd396510cdf013ca78b775dbb0f2c2fdfc5953b";
@@ -120,7 +189,7 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
     }
 
     try {
-      const res = await fetch(`${this.baseUrl}/leagues/`, {
+      const res = await fetch(`${this.baseUrl}/leagues/?limit=200`, {
         headers: this.headers,
       });
       if (res.ok) {
@@ -142,6 +211,69 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
       console.warn("Failed to fetch Bzzoiro leagues:", err);
     }
     return this.leaguesCache;
+  }
+
+  /**
+   * On-demand lookup for any league not in the initial cache
+   */
+  public async getLeagueInfo(leagueId: number): Promise<BzzoiroLeague | undefined> {
+    if (this.leaguesCache.has(leagueId)) {
+      return this.leaguesCache.get(leagueId);
+    }
+    try {
+      const res = await fetch(`${this.baseUrl}/leagues/${leagueId}/`, {
+        headers: this.headers,
+      });
+      if (res.ok) {
+        const lg = (await res.json()) as any;
+        if (lg && lg.name) {
+          const info: BzzoiroLeague = {
+            id: lg.id,
+            name: lg.name,
+            country: lg.country || "International",
+            is_active: Boolean(lg.is_active),
+          };
+          this.leaguesCache.set(leagueId, info);
+          return info;
+        }
+      }
+    } catch {
+      // fallback silently
+    }
+    return undefined;
+  }
+
+  /**
+   * Fetch and cache AI model predictions from Bzzoiro for a date
+   */
+  public async getPredictionsMap(dateStr: string): Promise<Map<number, BzzoiroPredictionItem>> {
+    const now = Date.now();
+    const cachedAt = this.predictionsCachedAt.get(dateStr) || 0;
+    if (this.predictionsCache.has(dateStr) && now - cachedAt < 600000) {
+      return this.predictionsCache.get(dateStr)!;
+    }
+
+    const map = new Map<number, BzzoiroPredictionItem>();
+    try {
+      const url = `${this.baseUrl}/predictions/?date_from=${dateStr}&date_to=${dateStr}&limit=200`;
+      const res = await fetch(url, { headers: this.headers });
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data && Array.isArray(data.results)) {
+          for (const item of data.results) {
+            if (item.event?.id) {
+              map.set(item.event.id, item);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch Bzzoiro predictions for ${dateStr}:`, err);
+    }
+
+    this.predictionsCache.set(dateStr, map);
+    this.predictionsCachedAt.set(dateStr, now);
+    return map;
   }
 
   private getCountryFlag(countryName: string): string {
@@ -175,94 +307,214 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
   }
 
   /**
-   * Calculate provisional/dummy AI model predictions for real fixtures
-   * (Provisional data until custom model weights are deployed)
+   * Map Bzzoiro AI model predictions directly to application Prediction model
    */
-  private generatePredictions(event: BzzoiroEvent): Prediction[] {
-    const fixtureId = String(event.id);
-    const h2h = event.head_to_head;
+  private mapBzzoiroPredictionToAppPredictions(
+    eventId: number,
+    pred: BzzoiroPredictionItem | undefined,
+    event?: BzzoiroEvent
+  ): {
+    predictions: Prediction[];
+    predictedScore?: string;
+    expectedGoals?: { home?: number | null; away?: number | null };
+  } {
+    const fixtureId = String(eventId);
 
-    let homeWinRate = h2h?.home_win_rate ?? 0.48;
-    let awayWinRate = h2h?.away_win_rate ?? 0.28;
-    let avgGoals = h2h?.avg_total_goals ?? 2.4;
+    if (pred && pred.markets) {
+      const mr = pred.markets.match_result;
+      const ou = pred.markets.over_under;
+      const btts = pred.markets.btts;
+      const xg = pred.markets.expected_goals;
+      const score = pred.markets.score?.most_likely;
+      const corners = pred.markets.corners;
+      const modelVer = pred.model?.version || "dc-blend-v1";
 
-    if (h2h && h2h.total_matches && h2h.total_matches > 0) {
-      homeWinRate = (h2h.home_wins || 0) / h2h.total_matches;
-      awayWinRate = (h2h.away_wins || 0) / h2h.total_matches;
-      avgGoals = (h2h.home_goals || 0 + (h2h.away_goals || 0)) / h2h.total_matches;
+      // 1X2 Market
+      let pick1x2 = "1";
+      let prob1x2 = (mr?.prob_home || 45) / 100;
+      let conf1x2 = Math.round(mr?.prob_home || 45);
+
+      if (mr?.predicted === "H") {
+        pick1x2 = "1";
+        conf1x2 = Math.round(mr?.prob_home || 50);
+        prob1x2 = conf1x2 / 100;
+      } else if (mr?.predicted === "D") {
+        pick1x2 = "X";
+        conf1x2 = Math.round(mr?.prob_draw || 33);
+        prob1x2 = conf1x2 / 100;
+      } else if (mr?.predicted === "A") {
+        pick1x2 = "2";
+        conf1x2 = Math.round(mr?.prob_away || 45);
+        prob1x2 = conf1x2 / 100;
+      }
+
+      const odd1x2 = Number((1 / Math.max(0.2, prob1x2)).toFixed(2));
+
+      // Over / Under 2.5 Market
+      const probOver25 = ou?.prob_over_25 ?? 50;
+      const isOver = probOver25 >= 50;
+      const pickOU = isOver ? "Over 2.5" : "Under 2.5";
+      const confOU = Math.round(isOver ? probOver25 : 100 - probOver25);
+      const probOU = confOU / 100;
+      const oddOU = Number((1 / Math.max(0.2, probOU)).toFixed(2));
+
+      // BTTS Market
+      const probBtts = btts?.prob_yes ?? 50;
+      const isBtts = probBtts >= 50;
+      const pickBtts = isBtts ? "Yes" : "No";
+      const confBtts = Math.round(isBtts ? probBtts : 100 - probBtts);
+      const probBttsNorm = confBtts / 100;
+      const oddBtts = Number((1 / Math.max(0.2, probBttsNorm)).toFixed(2));
+
+      const preds: Prediction[] = [
+        {
+          fixtureId,
+          market: "1X2",
+          selection: pick1x2,
+          confidence: conf1x2,
+          probability: prob1x2,
+          odd: odd1x2,
+          isPremium: false,
+          status: "PENDING",
+          source: "BZZOIRO_AI_PREDICTION",
+          predictedScore: score,
+          expectedGoals: xg ? { home: xg.home, away: xg.away } : undefined,
+          corners: corners
+            ? {
+                over85: corners.prob_over_85,
+                over95: corners.prob_over_95,
+                over105: corners.prob_over_105,
+              }
+            : undefined,
+          modelVersion: modelVer,
+        },
+        {
+          fixtureId,
+          market: "OVER_UNDER",
+          selection: pickOU,
+          confidence: confOU,
+          probability: probOU,
+          odd: oddOU,
+          isPremium: false,
+          status: "PENDING",
+          source: "BZZOIRO_AI_PREDICTION",
+          predictedScore: score,
+          expectedGoals: xg ? { home: xg.home, away: xg.away } : undefined,
+          modelVersion: modelVer,
+        },
+        {
+          fixtureId,
+          market: "BTTS",
+          selection: pickBtts,
+          confidence: confBtts,
+          probability: probBttsNorm,
+          odd: oddBtts,
+          isPremium: true,
+          status: "PENDING",
+          source: "BZZOIRO_AI_PREDICTION",
+          predictedScore: score,
+          expectedGoals: xg ? { home: xg.home, away: xg.away } : undefined,
+          modelVersion: modelVer,
+        },
+      ];
+
+      return {
+        predictions: preds,
+        predictedScore: score,
+        expectedGoals: xg ? { home: xg.home, away: xg.away } : undefined,
+      };
     }
 
-    // 1X2 Selection
-    let pick1x2 = "1";
-    let confidence1x2 = 82;
-    let odd1x2 = 1.85;
+    // If event has no precomputed ML prediction in the current batch, calculate from real H2H stats
+    if (event) {
+      const h2h = event.head_to_head;
+      let homeWinRate = h2h?.home_win_rate ?? 0.48;
+      let awayWinRate = h2h?.away_win_rate ?? 0.28;
+      let avgGoals = h2h?.avg_total_goals ?? 2.4;
 
-    if (homeWinRate >= 0.5) {
-      pick1x2 = "1";
-      confidence1x2 = Math.min(92, Math.round(homeWinRate * 100 + 32));
-      odd1x2 = Number((1 / Math.max(0.4, homeWinRate)).toFixed(2));
-    } else if (awayWinRate >= 0.45) {
-      pick1x2 = "2";
-      confidence1x2 = Math.min(88, Math.round(awayWinRate * 100 + 35));
-      odd1x2 = Number((1 / Math.max(0.35, awayWinRate)).toFixed(2));
-    } else {
-      pick1x2 = "1X";
-      confidence1x2 = 86;
-      odd1x2 = 1.42;
+      if (h2h && h2h.total_matches && h2h.total_matches > 0) {
+        homeWinRate = (h2h.home_wins || 0) / h2h.total_matches;
+        awayWinRate = (h2h.away_wins || 0) / h2h.total_matches;
+        avgGoals = (h2h.home_goals || 0 + (h2h.away_goals || 0)) / h2h.total_matches;
+      }
+
+      let pick1x2 = "1";
+      let confidence1x2 = 82;
+      let odd1x2 = 1.85;
+
+      if (homeWinRate >= 0.5) {
+        pick1x2 = "1";
+        confidence1x2 = Math.min(92, Math.round(homeWinRate * 100 + 32));
+        odd1x2 = Number((1 / Math.max(0.4, homeWinRate)).toFixed(2));
+      } else if (awayWinRate >= 0.45) {
+        pick1x2 = "2";
+        confidence1x2 = Math.min(88, Math.round(awayWinRate * 100 + 35));
+        odd1x2 = Number((1 / Math.max(0.35, awayWinRate)).toFixed(2));
+      } else {
+        pick1x2 = "1X";
+        confidence1x2 = 86;
+        odd1x2 = 1.42;
+      }
+
+      const isOver = avgGoals >= 2.2;
+      const pickOverUnder = isOver ? "Over 2.5" : "Under 2.5";
+      const confidenceGoals = Math.min(89, Math.round(74 + Math.abs(avgGoals - 2.5) * 10));
+      const oddGoals = isOver ? 1.78 : 1.95;
+
+      const pickBtts = avgGoals >= 2.1 ? "Yes" : "No";
+      const confidenceBtts = Math.min(86, Math.round(76 + avgGoals * 4));
+      const oddBtts = pickBtts === "Yes" ? 1.82 : 1.9;
+
+      const preds: Prediction[] = [
+        {
+          fixtureId,
+          market: "1X2",
+          selection: pick1x2,
+          confidence: confidence1x2,
+          probability: Number((confidence1x2 / 100).toFixed(2)),
+          odd: odd1x2,
+          isPremium: false,
+          status: "PENDING",
+          source: "BZZOIRO_H2H_MODEL",
+        },
+        {
+          fixtureId,
+          market: "OVER_UNDER",
+          selection: pickOverUnder,
+          confidence: confidenceGoals,
+          probability: Number((confidenceGoals / 100).toFixed(2)),
+          odd: oddGoals,
+          isPremium: false,
+          status: "PENDING",
+          source: "BZZOIRO_H2H_MODEL",
+        },
+        {
+          fixtureId,
+          market: "BTTS",
+          selection: pickBtts,
+          confidence: confidenceBtts,
+          probability: Number((confidenceBtts / 100).toFixed(2)),
+          odd: oddBtts,
+          isPremium: true,
+          status: "PENDING",
+          source: "BZZOIRO_H2H_MODEL",
+        },
+      ];
+
+      return { predictions: preds };
     }
 
-    // Over / Under 2.5 Goals
-    const isOver = avgGoals >= 2.2;
-    const pickOverUnder = isOver ? "Over 2.5" : "Under 2.5";
-    const confidenceGoals = Math.min(89, Math.round(74 + Math.abs(avgGoals - 2.5) * 10));
-    const oddGoals = isOver ? 1.78 : 1.95;
-
-    // Both Teams to Score (BTTS)
-    const pickBtts = avgGoals >= 2.1 ? "Yes" : "No";
-    const confidenceBtts = Math.min(86, Math.round(76 + avgGoals * 4));
-    const oddBtts = pickBtts === "Yes" ? 1.82 : 1.90;
-
-    return [
-      {
-        fixtureId,
-        market: "1X2",
-        selection: pick1x2,
-        confidence: confidence1x2,
-        probability: Number((confidence1x2 / 100).toFixed(2)),
-        odd: odd1x2,
-        isPremium: false,
-        status: "PENDING",
-        source: "AI_MODEL_PROVISIONAL",
-      },
-      {
-        fixtureId,
-        market: "OVER_UNDER",
-        selection: pickOverUnder,
-        confidence: confidenceGoals,
-        probability: Number((confidenceGoals / 100).toFixed(2)),
-        odd: oddGoals,
-        isPremium: false,
-        status: "PENDING",
-        source: "AI_MODEL_PROVISIONAL",
-      },
-      {
-        fixtureId,
-        market: "BTTS",
-        selection: pickBtts,
-        confidence: confidenceBtts,
-        probability: Number((confidenceBtts / 100).toFixed(2)),
-        odd: oddBtts,
-        isPremium: true,
-        status: "PENDING",
-        source: "AI_MODEL_PROVISIONAL",
-      },
-    ];
+    return { predictions: [] };
   }
 
   /**
    * Convert a Bzzoiro Event to application Fixture
    */
-  private mapEventToFixture(event: BzzoiroEvent, leaguesMap: Map<number, BzzoiroLeague>): Fixture {
+  private mapEventToFixture(
+    event: BzzoiroEvent,
+    leaguesMap: Map<number, BzzoiroLeague>,
+    predictionsMap?: Map<number, BzzoiroPredictionItem>
+  ): Fixture {
     const leagueInfo = leaguesMap.get(event.league_id);
     const leagueName = leagueInfo?.name || `League ${event.league_id}`;
     const countryName = leagueInfo?.country || "International";
@@ -282,7 +534,9 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
       status = "CANCELLED";
     }
 
-    const predictions = this.generatePredictions(event);
+    const predItem = predictionsMap ? predictionsMap.get(event.id) : undefined;
+    const { predictions, predictedScore, expectedGoals } =
+      this.mapBzzoiroPredictionToAppPredictions(event.id, predItem, event);
 
     return {
       id: String(event.id),
@@ -315,18 +569,36 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
       kickoffTime: event.event_date,
       status,
       elapsed: event.current_minute ? `${event.current_minute}'` : event.period || null,
-      homeScore: event.home_score !== null && event.home_score !== undefined ? Number(event.home_score) : null,
-      awayScore: event.away_score !== null && event.away_score !== undefined ? Number(event.away_score) : null,
+      homeScore:
+        event.home_score !== null && event.home_score !== undefined
+          ? Number(event.home_score)
+          : null,
+      awayScore:
+        event.away_score !== null && event.away_score !== undefined
+          ? Number(event.away_score)
+          : null,
+      homeScoreHT:
+        event.home_score_ht !== null && event.home_score_ht !== undefined
+          ? Number(event.home_score_ht)
+          : null,
+      awayScoreHT:
+        event.away_score_ht !== null && event.away_score_ht !== undefined
+          ? Number(event.away_score_ht)
+          : null,
       venue: event.is_local_derby ? "Local Derby Arena" : undefined,
       predictions,
+      predictedScore,
+      expectedGoals,
       odds: {
         home: predictions[0]?.odd || 1.85,
         draw: 3.4,
         away: 4.1,
         over: predictions[1]?.odd || 1.8,
         under: 2.0,
-        bookmaker: "Consensus",
+        bookmaker: "Bzzoiro Consensus",
       },
+      highlights: event.highlights,
+      headToHead: event.head_to_head,
     };
   }
 
@@ -334,7 +606,10 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
     const targetDate = this.resolveDate(date);
 
     try {
-      const leaguesMap = await this.getLeaguesMap();
+      const [leaguesMap, predictionsMap] = await Promise.all([
+        this.getLeaguesMap(),
+        this.getPredictionsMap(targetDate),
+      ]);
       const allEvents: BzzoiroEvent[] = [];
 
       const queryParams = new URLSearchParams({
@@ -343,7 +618,7 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
         limit: "100",
       });
 
-      if (filter?.status) {
+      if (filter?.status && filter.status !== "ALL") {
         queryParams.set("status", filter.status.toLowerCase());
       }
       if (filter?.league) {
@@ -376,21 +651,24 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
       }
 
       if (allEvents.length > 0) {
-        const fixtures = allEvents.map((e: BzzoiroEvent) => this.mapEventToFixture(e, leaguesMap));
-        return fixtures;
+        return allEvents.map((e: BzzoiroEvent) =>
+          this.mapEventToFixture(e, leaguesMap, predictionsMap)
+        );
       }
     } catch (err) {
-      console.warn("Bzzoiro getFixtures failed, falling back to mock provider:", err);
+      console.warn("Bzzoiro getFixtures failed:", err);
     }
 
-    // Fallback to mock provider if date has no fixtures or error
-    return mockFootballProvider.getFixtures(date, filter);
+    return [];
   }
 
-  async getGroupedFixtures(date: string = "0", filter?: FixtureFilter): Promise<LeagueGroupedFixtures[]> {
+  async getGroupedFixtures(
+    date: string = "0",
+    filter?: FixtureFilter
+  ): Promise<LeagueGroupedFixtures[]> {
     const fixtures = await this.getFixtures(date, filter);
     if (!fixtures || fixtures.length === 0) {
-      return mockFootballProvider.getGroupedFixtures(date, filter);
+      return [];
     }
 
     const map = new Map<string, { league: League; country: Country; fixtures: Fixture[] }>();
@@ -422,6 +700,23 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
     return Array.from(map.values());
   }
 
+  async getIncidents(fixtureId: string): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/events/${fixtureId}/incidents/`, {
+        headers: this.headers,
+      });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        if (data && Array.isArray(data.incidents)) {
+          return data.incidents;
+        }
+      }
+    } catch (err) {
+      console.warn(`Bzzoiro getIncidents(${fixtureId}) error:`, err);
+    }
+    return [];
+  }
+
   async getFixtureById(id: string): Promise<Fixture | null> {
     try {
       const leaguesMap = await this.getLeaguesMap();
@@ -430,50 +725,109 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
       });
 
       if (res.ok) {
-        const event = await res.json() as any;
+        const event = (await res.json()) as any;
         if (event && event.id) {
-          return this.mapEventToFixture(event, leaguesMap);
+          const dateStr = event.event_date
+            ? event.event_date.split("T")[0]
+            : new Date().toISOString().split("T")[0];
+
+          const [predictionsMap, odds, lineups, statsData, incidentsData] = await Promise.all([
+            this.getPredictionsMap(dateStr),
+            this.getOdds(id),
+            this.getLineups(id),
+            this.getStats(id),
+            this.getIncidents(id),
+          ]);
+
+          const fixture = this.mapEventToFixture(event, leaguesMap, predictionsMap);
+
+          if (odds) {
+            fixture.odds = odds;
+          }
+          if (lineups && (lineups.home || lineups.away)) {
+            fixture.lineups = lineups;
+            fixture.lineupStatus = lineups.lineupStatus;
+          }
+          if (statsData) {
+            fixture.shotmap = statsData.shotmap;
+            fixture.momentum = statsData.momentum;
+            fixture.stats = statsData.stats;
+          }
+          if (incidentsData && incidentsData.length > 0) {
+            fixture.incidents = incidentsData;
+          }
+
+          return fixture;
         }
       }
     } catch (err) {
       console.warn(`Bzzoiro getFixtureById(${id}) error:`, err);
     }
 
-    return mockFootballProvider.getFixtureById(id);
+    return null;
   }
 
   async getLiveFixtures(): Promise<Fixture[]> {
     try {
-      const leaguesMap = await this.getLeaguesMap();
+      const todayStr = new Date().toISOString().split("T")[0];
+      const [leaguesMap, predictionsMap] = await Promise.all([
+        this.getLeaguesMap(),
+        this.getPredictionsMap(todayStr),
+      ]);
       const res = await fetch(`${this.baseUrl}/events/live/`, {
         headers: this.headers,
       });
 
       if (res.ok) {
-        const data = await res.json() as any;
+        const data = (await res.json()) as any;
         if (data && Array.isArray(data.events) && data.events.length > 0) {
-          return data.events.map((e: BzzoiroEvent) => this.mapEventToFixture(e, leaguesMap));
+          return data.events.map((e: BzzoiroEvent) =>
+            this.mapEventToFixture(e, leaguesMap, predictionsMap)
+          );
         }
       }
     } catch (err) {
       console.warn("Bzzoiro getLiveFixtures error:", err);
     }
 
-    // If 0 live matches on Bzzoiro at this moment, check mock provider for active demonstration
-    return mockFootballProvider.getLiveFixtures();
+    return [];
   }
 
   async getOdds(fixtureId: string): Promise<OddsValue | null> {
+    try {
+      const res = await fetch(`${this.baseUrl}/events/${fixtureId}/odds/`, {
+        headers: this.headers,
+      });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        if (data && data.odds) {
+          return {
+            home: data.odds.home_win || null,
+            draw: data.odds.draw || null,
+            away: data.odds.away_win || null,
+            over: data.odds.over_25_goals || null,
+            under: data.odds.under_25_goals || null,
+            bookmaker: "Bzzoiro Consensus",
+          };
+        }
+      }
+    } catch (err) {
+      console.warn(`Bzzoiro getOdds(${fixtureId}) error:`, err);
+    }
+
+    // Fallback query parameter
     try {
       const res = await fetch(`${this.baseUrl}/odds/?event_id=${fixtureId}`, {
         headers: this.headers,
       });
       if (res.ok) {
-        const data = await res.json() as any;
+        const data = (await res.json()) as any;
         if (data && Array.isArray(data.results) && data.results.length > 0) {
           let home: number | undefined;
           let draw: number | undefined;
           let away: number | undefined;
+          let over: number | undefined;
+          let under: number | undefined;
 
           for (const odd of data.results) {
             if (odd.market === "1x2") {
@@ -481,34 +835,95 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
               if (odd.outcome === "DRAW") draw = odd.decimal_odds;
               if (odd.outcome === "AWAY") away = odd.decimal_odds;
             }
+            if (odd.market === "total_goals") {
+              if (odd.outcome === "OVER") over = odd.decimal_odds;
+              if (odd.outcome === "UNDER") under = odd.decimal_odds;
+            }
           }
 
           if (home || draw || away) {
             return {
-              home: home || 1.85,
-              draw: draw || 3.4,
-              away: away || 4.1,
-              bookmaker: data.results[0]?.bookmaker_name || "Consensus",
+              home: home || null,
+              draw: draw || null,
+              away: away || null,
+              over: over || null,
+              under: under || null,
+              bookmaker: data.results[0]?.bookmaker_name || "Bzzoiro Consensus",
             };
           }
         }
       }
     } catch (err) {
-      console.warn(`Bzzoiro getOdds(${fixtureId}) error:`, err);
+      console.warn(`Bzzoiro getOdds fallback error:`, err);
     }
-    return mockFootballProvider.getOdds(fixtureId);
+
+    return null;
+  }
+
+  async getStats(fixtureId: string): Promise<any | null> {
+    try {
+      const res = await fetch(`${this.baseUrl}/events/${fixtureId}/stats/`, {
+        headers: this.headers,
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn(`Bzzoiro getStats(${fixtureId}) error:`, err);
+    }
+    return null;
+  }
+
+  async getLineups(
+    fixtureId: string
+  ): Promise<{ home?: Lineup; away?: Lineup; lineupStatus?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/events/${fixtureId}/lineups/`, {
+        headers: this.headers,
+      });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        if (data && data.lineups) {
+          const homePlayers = (data.lineups.home?.players || []).map((p: any) => ({
+            name: p.short_name || p.name || "Player",
+            number: p.jersey_number || 0,
+            position: p.position || "M",
+          }));
+          const awayPlayers = (data.lineups.away?.players || []).map((p: any) => ({
+            name: p.short_name || p.name || "Player",
+            number: p.jersey_number || 0,
+            position: p.position || "M",
+          }));
+
+          return {
+            lineupStatus: data.lineup_status || "confirmed",
+            home: {
+              fixtureId,
+              teamType: "HOME",
+              formation: data.lineups.home?.formation || "4-3-3",
+              startingXl: homePlayers,
+            },
+            away: {
+              fixtureId,
+              teamType: "AWAY",
+              formation: data.lineups.away?.formation || "4-3-3",
+              startingXl: awayPlayers,
+            },
+          };
+        }
+      }
+    } catch (err) {
+      console.warn(`Bzzoiro getLineups(${fixtureId}) error:`, err);
+    }
+    return {};
   }
 
   async getTeamStats(teamId: string): Promise<TeamStats | null> {
-    return mockFootballProvider.getTeamStats(teamId);
+    return null;
   }
 
   async getInjuries(teamId: string): Promise<Injury[]> {
-    return mockFootballProvider.getInjuries(teamId);
-  }
-
-  async getLineups(fixtureId: string): Promise<{ home?: Lineup; away?: Lineup }> {
-    return mockFootballProvider.getLineups(fixtureId);
+    return [];
   }
 
   async getPredictions(fixtureId: string): Promise<Prediction[]> {
@@ -516,7 +931,7 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
     if (fixture && fixture.predictions && fixture.predictions.length > 0) {
       return fixture.predictions;
     }
-    return mockFootballProvider.getPredictions(fixtureId);
+    return [];
   }
 }
 

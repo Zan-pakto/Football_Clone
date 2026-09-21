@@ -20,6 +20,9 @@ export default function LivePage() {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch("/api/matches/live?d=0", { headers });
+      if (!res.ok) return;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
         if (data.userTier) setUserTier(data.userTier);
@@ -38,6 +41,9 @@ export default function LivePage() {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch("/api/matches/live?d=0", { headers });
+      if (!res.ok) return;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
         if (data.userTier) setUserTier(data.userTier);

@@ -16,6 +16,9 @@ export default function LeaguesPage() {
     try {
       setLoading(true);
       const res = await fetch("/api/matches?d=0");
+      if (!res.ok) return;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
         setMatches(data.matches);

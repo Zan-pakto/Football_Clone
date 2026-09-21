@@ -51,6 +51,10 @@ export interface Prediction {
   lockReason?: "free_limit_reached" | "live_kickoff_locked" | "premium_exclusive" | string;
   status: SettlementStatus;
   source: string;
+  predictedScore?: string;
+  expectedGoals?: { home?: number | null; away?: number | null };
+  corners?: { over85?: number; over95?: number; over105?: number };
+  modelVersion?: string;
 }
 
 export interface TeamStats {
@@ -124,13 +128,12 @@ export interface Fixture {
   elapsed?: string | null;
   homeScore?: number | null;
   awayScore?: number | null;
+  homeScoreHT?: number | null;
+  awayScoreHT?: number | null;
   venue?: string | null;
   predictions?: Prediction[];
   odds?: OddsValue;
-  stats?: {
-    home?: TeamStats;
-    away?: TeamStats;
-  };
+  stats?: any;
   forms?: {
     home?: TeamForm;
     away?: TeamForm;
@@ -140,6 +143,14 @@ export interface Fixture {
     home?: Lineup;
     away?: Lineup;
   };
+  lineupStatus?: string;
+  predictedScore?: string;
+  expectedGoals?: { home?: number | null; away?: number | null };
+  momentum?: any;
+  shotmap?: any;
+  highlights?: any[];
+  headToHead?: any;
+  incidents?: any[];
   settlement?: PredictionSettlement;
 }
 

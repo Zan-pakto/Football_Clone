@@ -9,13 +9,23 @@ export interface PredictionCell {
   odd: string | null;
   trust?: string | null;
   isLocked?: boolean;
+  market?: string | null;
+  marketLabel?: string | null;
+  confidence?: number | null;
+  rating?: number | null;
+  isBest?: boolean;
 }
 
 export interface Predictions {
   pickScore: PredictionCell;
   goals: PredictionCell;
   btts: PredictionCell;
-  bestTip: PredictionCell;
+  bestTip: PredictionCell & {
+    market?: string | null;
+    marketLabel?: string | null;
+    rating?: number | null;
+  };
+  bestMarket?: "pickScore" | "goals" | "btts" | string | null;
   isLocked?: boolean;
 }
 
@@ -44,6 +54,8 @@ export interface MatchData {
   isLocked?: boolean;
   lockReason?: "free_limit_reached" | "live_kickoff_locked" | "premium_exclusive" | string | null;
   freeTipIndex?: number;
+  predictedScore?: string | null;
+  expectedGoals?: { home?: number | null; away?: number | null } | null;
 }
 
 export interface LeagueGroup {

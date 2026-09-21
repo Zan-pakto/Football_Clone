@@ -153,14 +153,20 @@ export default function MatchRow({ match }: MatchRowProps) {
   const oddsAway = parseFloat(match.odds.away || "0");
   const minOdd = Math.min(...[oddsHome, oddsDraw, oddsAway].filter((o) => o > 1.0));
 
+  // Determine which market won "Best Pick" for this match
+  const bestMarket = match.predictions?.bestMarket ||
+    (match.predictions?.bestTip?.market === "OVER_UNDER" ? "goals" :
+     match.predictions?.bestTip?.market === "BTTS" ? "btts" : "pickScore");
+
+  const bestMarketLabel = match.predictions?.bestTip?.marketLabel ||
+    (bestMarket === "goals" ? "O/U Goals" : bestMarket === "btts" ? "BTTS" : "1X2 Winner");
+
   const href = isLocked
     ? "/pricing"
-    : match.url
-    ? match.url.startsWith("http")
-      ? match.url
-      : match.url.startsWith("/match/")
-      ? match.url
-      : `https://nerdytips.com${match.url}`
+    : match.id
+    ? `/match/${match.id}`
+    : match.url && match.url.startsWith("/match/")
+    ? match.url
     : "#";
 
   return (
@@ -190,6 +196,7 @@ export default function MatchRow({ match }: MatchRowProps) {
 
       {/* ── Desktop Row Grid (Exact NerdyTips Table Structure) ── */}
       <div
+        className="nt-desktop-row"
         style={{
           display: "grid",
           gridTemplateColumns: "56px minmax(190px, 1.4fr) 138px 66px 66px 58px 76px 56px",
@@ -440,6 +447,9 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={p1x2Clean}
           odd={match.predictions.pickScore.odd}
           isWon={is1x2Won}
+          isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
+          marketTag="1X2"
+          rating={match.predictions.pickScore.rating}
           isLocked={match.predictions.pickScore.isLocked || isLocked}
         />
 
@@ -448,6 +458,9 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={pGoalsClean}
           odd={match.predictions.goals.odd}
           isWon={isGoalsWon}
+          isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
+          marketTag="O/U"
+          rating={match.predictions.goals.rating}
           isLocked={match.predictions.goals.isLocked || isLocked}
         />
 
@@ -456,14 +469,20 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={pBttsClean}
           odd={match.predictions.btts.odd}
           isWon={isBttsWon}
+          isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
+          marketTag="BTTS"
+          rating={match.predictions.btts.rating}
           isLocked={match.predictions.btts.isLocked || isLocked}
         />
 
-        {/* 7. BEST TIP PILL (Prominent Star Capsule) */}
+        {/* 7. BEST TIP PILL (Prominent Star Capsule with Market Tag) */}
         <NerdyTipPill
           pick={pBestClean}
           odd={match.predictions.bestTip.odd}
           isBest={true}
+          isHighlightPill={true}
+          marketTag={bestMarketLabel}
+          rating={match.predictions.bestTip.rating || (numericConfidence ? Number(numericConfidence) : 8.5)}
           isWon={isBestWon}
           isLocked={match.predictions.bestTip.isLocked || isLocked}
         />
@@ -490,9 +509,178 @@ export default function MatchRow({ match }: MatchRowProps) {
         </div>
       </div>
 
+      {/* ── Mobile Match Card View (< 768px, Touch Optimized) ── */}
+      <div
+        className="nt-mobile-row"
+        style={{
+          display: "none",
+          flexDirection: "column",
+          gap: 10,
+          padding: "12px 14px",
+        }}
+      >
+        {/* Top: Status / Time & Rating */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isLive ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255, 93, 120, 0.16)", color: "#ff5d78", fontWeight: 800, fontSize: 10.5 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff5d78" }} />
+                LIVE {match.elapsed || ""}
+              </span>
+            ) : (
+              <span style={{ color: "#7874a4", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
+                {isFinished ? "FULL TIME" : match.kickTime || "19:00"}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#7874a4" }}>RATING:</span>
+            <span style={{ fontSize: 13, fontWeight: 900, color: ratingColor, fontFamily: "var(--font-mono)" }}>
+              {numericConfidence ? `${numericConfidence}/10` : "8.5"}
+            </span>
+          </div>
+        </div>
+
+        {/* Middle: Teams & Scores */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Home */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              {match.homeLogo ? (
+                <img src={match.homeLogo} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} />
+              ) : (
+                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#1b183d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#a79fff" }}>
+                  {match.homeTeam.charAt(0)}
+                </span>
+              )}
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {match.homeTeam}
+              </span>
+            </div>
+            {hasScores && (
+              <span style={{ fontSize: 15, fontWeight: 900, color: isLive ? "#2fd08a" : "#ffffff", fontFamily: "var(--font-mono)" }}>
+                {match.homeScore}
+              </span>
+            )}
+          </div>
+
+          {/* Away */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              {match.awayLogo ? (
+                <img src={match.awayLogo} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} />
+              ) : (
+                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#1b183d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#a79fff" }}>
+                  {match.awayTeam.charAt(0)}
+                </span>
+              )}
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {match.awayTeam}
+              </span>
+            </div>
+            {hasScores && (
+              <span style={{ fontSize: 15, fontWeight: 900, color: isLive ? "#2fd08a" : "#ffffff", fontFamily: "var(--font-mono)" }}>
+                {match.awayScore}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Prominent ★ BEST TIP HIGHLIGHT BOX (Mobile First) */}
+        <div
+          style={{
+            padding: "9px 12px",
+            borderRadius: 10,
+            background: "linear-gradient(135deg, rgba(139, 127, 245, 0.22) 0%, rgba(30, 24, 70, 0.6) 100%)",
+            border: "1px solid rgba(139, 127, 245, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                background: "linear-gradient(135deg, #ffb020 0%, #ff8800 100%)",
+                color: "#000000",
+                fontSize: 9,
+                fontWeight: 900,
+                padding: "2px 6px",
+                borderRadius: 4,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
+              ★ BEST TIP
+            </span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#a79fff" }}>
+              {bestMarketLabel}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 900, color: "#ffffff" }}>
+              {pBestClean || "1"}
+            </span>
+            {match.predictions.bestTip.odd && (
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
+                @{match.predictions.bestTip.odd}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* All 3 Market Pills in equal grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+          <NerdyTipPill
+            pick={p1x2Clean}
+            odd={match.predictions.pickScore.odd}
+            isWon={is1x2Won}
+            isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
+            marketTag="1X2"
+            rating={match.predictions.pickScore.rating}
+            isLocked={match.predictions.pickScore.isLocked || isLocked}
+          />
+          <NerdyTipPill
+            pick={pGoalsClean}
+            odd={match.predictions.goals.odd}
+            isWon={isGoalsWon}
+            isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
+            marketTag="O/U"
+            rating={match.predictions.goals.rating}
+            isLocked={match.predictions.goals.isLocked || isLocked}
+          />
+          <NerdyTipPill
+            pick={pBttsClean}
+            odd={match.predictions.btts.odd}
+            isWon={isBttsWon}
+            isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
+            marketTag="BTTS"
+            rating={match.predictions.btts.rating}
+            isLocked={match.predictions.btts.isLocked || isLocked}
+          />
+        </div>
+      </div>
+
       <style>{`
         .nt-row-link:hover {
           background: #19153a !important;
+        }
+        .nt-desktop-row {
+          display: grid !important;
+        }
+        .nt-mobile-row {
+          display: none !important;
+        }
+        @media (max-width: 767px) {
+          .nt-desktop-row {
+            display: none !important;
+          }
+          .nt-mobile-row {
+            display: flex !important;
+          }
         }
       `}</style>
     </Link>
@@ -500,18 +688,24 @@ export default function MatchRow({ match }: MatchRowProps) {
 }
 
 /**
- * Authentic NerdyTips 2-line Tip Capsule Component
+ * Authentic NerdyTips 2-line Tip Capsule Component with Market & Rating Highlight
  */
 function NerdyTipPill({
   pick,
   odd,
+  marketTag,
+  rating,
   isBest = false,
+  isHighlightPill = false,
   isWon = null,
   isLocked = false,
 }: {
   pick: string | null | undefined;
   odd: string | null | undefined;
+  marketTag?: string | null;
+  rating?: number | null;
   isBest?: boolean;
+  isHighlightPill?: boolean;
   isWon?: boolean | null;
   isLocked?: boolean;
 }) {
@@ -523,8 +717,8 @@ function NerdyTipPill({
           alignItems: "center",
           justifyContent: "center",
           height: 38,
-          background: isBest ? "rgba(124, 108, 245, 0.15)" : "#1b183d",
-          border: isBest ? "1px solid rgba(124, 108, 245, 0.35)" : "1px solid rgba(167, 159, 255, 0.1)",
+          background: isHighlightPill ? "rgba(124, 108, 245, 0.15)" : "#1b183d",
+          border: isHighlightPill ? "1px solid rgba(124, 108, 245, 0.35)" : "1px solid rgba(167, 159, 255, 0.1)",
           borderRadius: 8,
           opacity: 0.85,
         }}
@@ -566,18 +760,26 @@ function NerdyTipPill({
     border = "1px solid rgba(47, 208, 138, 0.55)";
     pickColor = "#2fd08a";
     oddColor = "#2fd08a";
-    if (isBest) shadow = "0 0 12px -2px rgba(47, 208, 138, 0.4)";
+    if (isHighlightPill) shadow = "0 0 12px -2px rgba(47, 208, 138, 0.4)";
   } else if (isWon === false) {
     bg = "rgba(251, 113, 133, 0.1)";
     border = "1px solid rgba(251, 113, 133, 0.3)";
     pickColor = "#fb7185";
     oddColor = "#fb7185";
-  } else if (isBest) {
-    bg = "rgba(124, 108, 245, 0.22)";
-    border = "1px solid rgba(124, 108, 245, 0.55)";
+  } else if (isHighlightPill) {
+    // Dedicated Best Tip column
+    bg = "linear-gradient(135deg, rgba(139, 127, 245, 0.25) 0%, rgba(20, 17, 50, 0.7) 100%)";
+    border = "1px solid #8b7ff5";
     pickColor = "#FFFFFF";
-    oddColor = "#8b7ff5";
-    shadow = "0 0 14px -2px rgba(124, 108, 245, 0.35)";
+    oddColor = "#2fd08a";
+    shadow = "0 0 14px -2px rgba(139, 127, 245, 0.45)";
+  } else if (isBest) {
+    // This individual market pill won "Best Pick"
+    bg = "rgba(255, 176, 32, 0.14)";
+    border = "1px solid rgba(255, 176, 32, 0.75)";
+    pickColor = "#FFFFFF";
+    oddColor = "#ffb020";
+    shadow = "0 0 12px rgba(255, 176, 32, 0.3)";
   }
 
   return (
@@ -588,20 +790,68 @@ function NerdyTipPill({
         alignItems: "center",
         justifyContent: "center",
         height: 38,
-        padding: "2px 6px",
+        padding: "2px 5px",
         borderRadius: 8,
         background: bg,
         border: border,
         boxShadow: shadow,
         lineHeight: 1.15,
+        position: "relative",
         transition: "all 0.15s ease",
       }}
+      title={isBest ? `★ Top Rated Pick: ${marketTag || ""} (${pick}) @ ${odd}` : undefined}
     >
+      {/* Best Pick Tag Indicator on Winning Market Pill */}
+      {isBest && !isHighlightPill && (
+        <span
+          style={{
+            position: "absolute",
+            top: -6,
+            right: -4,
+            background: "linear-gradient(135deg, #ffb020 0%, #ff8800 100%)",
+            color: "#000000",
+            fontSize: 7.5,
+            fontWeight: 900,
+            borderRadius: 3,
+            padding: "1px 3px",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.6)",
+          }}
+        >
+          ★ BEST
+        </span>
+      )}
+
+      {/* Market Tag inside Highlight Pill */}
+      {isHighlightPill && marketTag && (
+        <span
+          style={{
+            fontSize: 8,
+            fontWeight: 900,
+            color: "#ffb020",
+            letterSpacing: "0.03em",
+            textTransform: "uppercase",
+            marginBottom: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            lineHeight: 1,
+          }}
+        >
+          <span>★</span> {marketTag}
+        </span>
+      )}
+
       <span
         style={{
-          fontSize: 11.5,
+          fontSize: isHighlightPill ? 11 : 11.5,
           fontWeight: 800,
           color: pickColor,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          maxWidth: "100%",
         }}
       >
         {pick}
@@ -609,7 +859,7 @@ function NerdyTipPill({
       {odd && (
         <span
           style={{
-            fontSize: 10,
+            fontSize: 9.5,
             fontWeight: 700,
             color: oddColor,
             fontFamily: "var(--font-mono)",
@@ -619,7 +869,7 @@ function NerdyTipPill({
             marginTop: 1,
           }}
         >
-          <span style={{ fontSize: 8 }}>{isBest ? "▴" : "▾"}</span> {odd}
+          <span style={{ fontSize: 7 }}>{isBest ? "▴" : "▾"}</span> {odd}
         </span>
       )}
     </div>

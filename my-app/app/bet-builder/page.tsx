@@ -74,6 +74,9 @@ export default function BetBuilderPage() {
       try {
         setLoading(true);
         const res = await fetch("/api/matches?d=0");
+        if (!res.ok) return;
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("json")) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.matches)) {
           const items: SlipItem[] = data.matches.map((m: MatchData) => {

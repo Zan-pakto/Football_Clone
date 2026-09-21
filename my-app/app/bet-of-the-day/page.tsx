@@ -81,6 +81,9 @@ export default function BetOfTheDayPage() {
       try {
         setLoading(true);
         const res = await fetch(`/api/matches?d=${selectedDate}`);
+        if (!res.ok) return;
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("json")) return;
         const data = await res.json();
         if (isMounted && data.success && Array.isArray(data.matches)) {
           setRawMatches(data.matches);

@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
-import LeagueGroupCard from "@/components/LeagueGroupCard";
+import HomeMatchesFeed from "@/components/HomeMatchesFeed";
 import Footer from "@/components/Footer";
 import {
   TrustStrip,
@@ -83,27 +83,54 @@ export default async function HomePage() {
           (f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked))
         );
 
+        const isGoalsBest = Boolean(pBest && pBest.market === "OVER_UNDER");
+        const isBttsBest = Boolean(pBest && pBest.market === "BTTS");
+        const is1x2Best = Boolean(pBest ? (!isGoalsBest && !isBttsBest) : true);
+        const bestMarket = isGoalsBest ? "goals" : isBttsBest ? "btts" : "pickScore";
+        const bestMarketLabel = isGoalsBest ? "O/U Goals" : isBttsBest ? "BTTS" : "1X2 Winner";
+
         return {
           pickScore: {
             pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
             odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
             isLocked: Boolean(p1x2?.isLocked),
+            market: "1X2",
+            marketLabel: "1X2 Winner",
+            confidence: p1x2?.confidence || null,
+            rating: p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null,
+            isBest: is1x2Best,
           },
           goals: {
             pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
             odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
             isLocked: Boolean(pGoals?.isLocked),
+            market: "OVER_UNDER",
+            marketLabel: "O/U Goals",
+            confidence: pGoals?.confidence || null,
+            rating: pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null,
+            isBest: isGoalsBest,
           },
           btts: {
             pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
             odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
             isLocked: Boolean(pBtts?.isLocked),
+            market: "BTTS",
+            marketLabel: "Both Teams Score",
+            confidence: pBtts?.confidence || null,
+            rating: pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null,
+            isBest: isBttsBest,
           },
           bestTip: {
             pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
             odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
             isLocked: Boolean(pBest?.isLocked),
+            market: pBest?.market || "1X2",
+            marketLabel: bestMarketLabel,
+            confidence: pBest?.confidence || null,
+            rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5,
+            isBest: true,
           },
+          bestMarket,
           isLocked: isMatchLocked,
         };
       })(),
@@ -320,37 +347,8 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Grouped Match Cards (Exact NerdyTips Table Structure) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {mappedGroups.length > 0 ? (
-            mappedGroups.map((group) => (
-              <LeagueGroupCard
-                key={group.leagueName}
-                leagueName={group.leagueName}
-                country={group.country}
-                flagUrl={group.flagUrl}
-                matches={group.matches as any}
-              />
-            ))
-          ) : (
-            <div
-              style={{
-                padding: "48px 24px",
-                textAlign: "center",
-                background: "#141132",
-                border: "1px solid rgba(167, 159, 255, 0.12)",
-                borderRadius: 14,
-              }}
-            >
-              <p style={{ color: "#a79fff", fontSize: "15px", margin: "0 0 16px" }}>
-                Real-time predictions are syncing with our live sports telemetry engine.
-              </p>
-              <Link href="/all-matches" className="btn-primary" style={{ padding: "10px 24px", fontSize: "13px" }}>
-                Browse All Match Fixtures
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Grouped Match Cards with Interactive Filter Bar & Modal */}
+        <HomeMatchesFeed initialGroups={mappedGroups as any} totalMatches={totalMatches} />
       </main>
 
       {/* ── 4. Trust / Statistics Strip ── */}

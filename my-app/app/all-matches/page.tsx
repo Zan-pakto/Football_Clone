@@ -6,6 +6,7 @@ import DateSelector from "@/components/DateSelector";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import { checkPredictionWon } from "@/components/MatchRow";
 import { MatchData } from "@/lib/types";
+import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/MatchFilterModal";
 import {
   RefreshCw,
   Search,
@@ -22,6 +23,7 @@ export default function AllMatchesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [activeFilter, setActiveFilter] = useState<"all" | "predicted" | "upcoming" | "live" | "won">("predicted");
+  const [modalFilters, setModalFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -39,6 +41,15 @@ export default function AllMatchesPage() {
 
       const url = `/api/matches?d=${dayVal}${forceSync ? "&sync=true" : ""}`;
       const res = await fetch(url, { headers });
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) {
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
         if (data.userTier) setUserTier(data.userTier);
@@ -74,6 +85,9 @@ export default function AllMatchesPage() {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch(`/api/matches/live?d=${d}`, { headers });
+      if (!res.ok) return;
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("json")) return;
       const data = await res.json();
       if (data.success && data.liveUpdates && Object.keys(data.liveUpdates).length > 0) {
         if (data.userTier) setUserTier(data.userTier);
@@ -138,13 +152,32 @@ export default function AllMatchesPage() {
     return Object.keys(countryCounts).sort((a, b) => countryCounts[b] - countryCounts[a]);
   }, [countryCounts]);
 
+  const availableLeagues = useMemo(() => {
+    const map = new Map<string, { name: string; country: string; count: number }>();
+    matches.forEach((m) => {
+      const key = m.leagueName;
+      if (!map.has(key)) {
+        map.set(key, { name: m.leagueName, country: m.country, count: 0 });
+      }
+      map.get(key)!.count++;
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [matches]);
+
   const filteredMatches = useMemo(() => {
     return matches.filter((m) => {
       if (selectedCountry !== "all" && (m.country || "International") !== selectedCountry) {
         return false;
       }
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase();
+
+      // Modal Leagues Filter
+      if (modalFilters.selectedLeagues.length > 0 && !modalFilters.selectedLeagues.includes(m.leagueName)) {
+        return false;
+      }
+
+      // Search Query
+      const q = (modalFilters.searchTerm || searchTerm).toLowerCase().trim();
+      if (q) {
         const home = m.homeTeam.toLowerCase();
         const away = m.awayTeam.toLowerCase();
         const league = (m.leagueName || "").toLowerCase();
@@ -153,6 +186,39 @@ export default function AllMatchesPage() {
           return false;
         }
       }
+
+      // Market Filter
+      if (modalFilters.market !== "all") {
+        if (modalFilters.market === "1x2" && !m.predictions?.pickScore?.pick) return false;
+        if (modalFilters.market === "over15" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
+        if (modalFilters.market === "over25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over 2.5"))) return false;
+        if (modalFilters.market === "under25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Under"))) return false;
+        if (modalFilters.market === "btts" && (!m.predictions?.btts?.pick || m.predictions.btts.pick !== "Yes")) return false;
+        if (modalFilters.market === "double_chance" && (!m.predictions?.pickScore?.pick || !["1X", "X2", "12"].includes(m.predictions.pickScore.pick))) return false;
+      }
+
+      // Rating Filter
+      if (modalFilters.minRating > 0) {
+        const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
+        const r = m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5);
+        if (r < modalFilters.minRating) return false;
+      }
+
+      // Category Filter (Modal)
+      if (modalFilters.category !== "all") {
+        const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
+        const bestRating = m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5);
+        const bestOdd = parseFloat(m.predictions?.bestTip?.odd || "1.75");
+
+        if (modalFilters.category === "top_tips" && bestRating < 8.2) return false;
+        if (modalFilters.category === "safe_picks" && (bestRating < 8.0 || bestOdd > 1.85)) return false;
+        if (modalFilters.category === "value_bets" && bestOdd < 2.0) return false;
+        if (modalFilters.category === "high_scoring" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
+        if (modalFilters.category === "live" && (!m.isLive && m.status !== "live")) return false;
+        if (modalFilters.category === "won" && m.status !== "won") return false;
+      }
+
+      // Top Stat Cards Filter
       if (activeFilter === "predicted") {
         return Boolean(m.predictions?.bestTip?.pick || m.confidence);
       }
@@ -172,7 +238,7 @@ export default function AllMatchesPage() {
       }
       return true;
     });
-  }, [matches, selectedCountry, searchTerm, activeFilter]);
+  }, [matches, selectedCountry, searchTerm, activeFilter, modalFilters]);
 
   const groupedByLeague = useMemo(() => {
     const map = new Map<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }>();
@@ -419,93 +485,14 @@ export default function AllMatchesPage() {
               </button>
             </div>
 
-            {/* ── 4. Dropdown Filter / Search Toolbar (Exact NerdyTips Row) ── */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {/* Default Sort */}
-                <button
-                  onClick={() => setSortField(sortField === "default" ? "rating" : "default")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "7px 14px",
-                    borderRadius: 10,
-                    background: "var(--surface)",
-                    border: "1px solid var(--border-color)",
-                    color: "#FFFFFF",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  <ArrowUpDown size={13} color="var(--text-dim)" />
-                  <span>{sortField === "rating" ? "Confidence Rating" : "Default"}</span>
-                  <ChevronDown size={13} color="var(--text-dim)" />
-                </button>
-
-                {/* Descending Sort */}
-                <button
-                  onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "7px 14px",
-                    borderRadius: 10,
-                    background: "var(--surface)",
-                    border: "1px solid var(--border-color)",
-                    color: "#FFFFFF",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  <ArrowUpDown size={13} color="var(--text-dim)" />
-                  <span>{sortOrder === "desc" ? "Descending" : "Ascending"}</span>
-                  <ChevronDown size={13} color="var(--text-dim)" />
-                </button>
-              </div>
-
-              {/* Search Bar */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 14px",
-                  borderRadius: 10,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border-color)",
-                  width: "100%",
-                  maxWidth: 240,
-                }}
-              >
-                <Search size={14} color="var(--text-dim)" />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    color: "#FFFFFF",
-                    fontSize: 12.5,
-                    width: "100%",
-                  }}
-                />
-              </div>
-            </div>
+            {/* ── 4. NerdyTips Master Filter Toolbar & Modal ── */}
+            <MatchFilterModal
+              filters={modalFilters}
+              onFilterChange={setModalFilters}
+              availableLeagues={availableLeagues}
+              totalMatchesCount={matches.length}
+              filteredCount={filteredMatches.length}
+            />
 
             {/* ── 5. League Groups Feed ── */}
             {loading ? (
