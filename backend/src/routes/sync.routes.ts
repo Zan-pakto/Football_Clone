@@ -52,4 +52,45 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/sync/nerdytips - Trigger 12-hour sync on demand
+router.post("/nerdytips", async (req: Request, res: Response) => {
+  try {
+    const { scraperScheduler } = await import("../lib/scraper/scraper-scheduler");
+    const days = req.body?.days || ["-1", "0", "1"];
+    // Run sync in background or await if requested
+    const waitForCompletion = req.query.wait === "true" || req.body?.wait === true;
+
+    if (waitForCompletion) {
+      const stats = await scraperScheduler.sync(days);
+      return res.json(stats);
+    } else {
+      scraperScheduler.sync(days).catch((err) =>
+        console.error("Background sync error:", err.message)
+      );
+      return res.json({
+        success: true,
+        message: "NerdyTips synchronization started in background",
+        days,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/sync/nerdytips/status
+router.get("/nerdytips/status", async (_req: Request, res: Response) => {
+  try {
+    const { scraperScheduler } = await import("../lib/scraper/scraper-scheduler");
+    return res.json({
+      success: true,
+      lastSync: scraperScheduler.lastStats,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;
+

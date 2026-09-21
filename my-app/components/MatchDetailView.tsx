@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Trophy,
@@ -23,6 +23,7 @@ import {
   Info,
   Play,
   Share2,
+  BookOpen,
 } from "lucide-react";
 
 interface MatchDetailViewProps {
@@ -33,6 +34,25 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
   const [activeNav, setActiveNav] = useState("tips");
   const [statsTab, setStatsTab] = useState<"cmp" | "pred" | "real">("cmp");
   const [previewExpanded, setPreviewExpanded] = useState(false);
+
+  // NerdyTips Match Insight state (AI article & predicted vs actual stats)
+  const [aiInsight, setAiInsight] = useState<any>(fixture.aiInsight || null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+
+  useEffect(() => {
+    if (!aiInsight && fixture?.id) {
+      setLoadingInsight(true);
+      fetch(`/api/fixtures/${fixture.id}/insight`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.insight) {
+            setAiInsight(data.insight);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingInsight(false));
+    }
+  }, [fixture?.id, aiInsight]);
 
   const isLive = fixture.status === "LIVE";
   const isFinished = fixture.status === "FINISHED";
@@ -101,6 +121,56 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
     yellowCards: { home: 2, away: 2 },
     fouls: { home: 10, away: 11 },
   }), [fixture, p1x2]);
+
+  // Combined Stats Rows from NerdyTips aiInsight (with fallback to computed stats)
+  const statsRows = useMemo(() => {
+    const pStats: Array<{ stat: string; home: string; away: string }> = aiInsight?.predictedStats || [];
+    const rStats: Array<{ stat: string; home: string; away: string }> = aiInsight?.actualStats || [];
+
+    if (pStats.length > 0) {
+      return pStats.map((item) => {
+        const real = rStats.find((r) => r.stat.toLowerCase().trim() === item.stat.toLowerCase().trim());
+        const hPred = item.home;
+        const aPred = item.away;
+        const hAct = real ? real.home : "-";
+        const aAct = real ? real.away : "-";
+
+        let hRatio = 50;
+        let aRatio = 50;
+
+        const parseVal = (v: string) => parseFloat(v.replace("%", "")) || 0;
+        const hVal = parseVal(statsTab === "real" && real ? real.home : item.home);
+        const aVal = parseVal(statsTab === "real" && real ? real.away : item.away);
+
+        if (hVal + aVal > 0) {
+          hRatio = Math.round((hVal / (hVal + aVal)) * 100);
+          aRatio = 100 - hRatio;
+        }
+
+        return {
+          label: item.stat,
+          hPred,
+          aPred,
+          hAct,
+          aAct,
+          hasReal: Boolean(real && real.home !== "-"),
+          hRatio,
+          aRatio,
+        };
+      });
+    }
+
+    return [
+      { label: "Expected Goals (xG)", hAct: actualStats.xg.home.toFixed(2), aAct: actualStats.xg.away.toFixed(2), hPred: predictedStats.xg.home.toFixed(2), aPred: predictedStats.xg.away.toFixed(2), hasReal: isFinished, hRatio: 55, aRatio: 45 },
+      { label: "Ball Possession", hAct: `${actualStats.possession.home}%`, aAct: `${actualStats.possession.away}%`, hPred: `${predictedStats.possession.home}%`, aPred: `${predictedStats.possession.away}%`, hasReal: isFinished, hRatio: Number(actualStats.possession.home), aRatio: Number(actualStats.possession.away) },
+      { label: "Total Shots", hAct: String(actualStats.shots.home), aAct: String(actualStats.shots.away), hPred: String(predictedStats.shots.home), aPred: String(predictedStats.shots.away), hasReal: isFinished, hRatio: 52, aRatio: 48 },
+      { label: "Shots on Target", hAct: String(actualStats.onTarget.home), aAct: String(actualStats.onTarget.away), hPred: String(predictedStats.onTarget.home), aPred: String(predictedStats.onTarget.away), hasReal: isFinished, hRatio: 55, aRatio: 45 },
+      { label: "Shots Off Target", hAct: String(actualStats.offTarget.home), aAct: String(actualStats.offTarget.away), hPred: String(predictedStats.offTarget.home), aPred: String(predictedStats.offTarget.away), hasReal: isFinished, hRatio: 50, aRatio: 50 },
+      { label: "Corners", hAct: String(actualStats.corners.home), aAct: String(actualStats.corners.away), hPred: String(predictedStats.corners.home), aPred: String(predictedStats.corners.away), hasReal: isFinished, hRatio: 46, aRatio: 54 },
+      { label: "Yellow Cards", hAct: String(actualStats.yellowCards.home), aAct: String(actualStats.yellowCards.away), hPred: String(predictedStats.yellowCards.home), aPred: String(predictedStats.yellowCards.away), hasReal: isFinished, hRatio: 50, aRatio: 50 },
+      { label: "Fouls", hAct: String(actualStats.fouls.home), aAct: String(actualStats.fouls.away), hPred: String(predictedStats.fouls.home), aPred: String(predictedStats.fouls.away), hasReal: isFinished, hRatio: 48, aRatio: 52 },
+    ];
+  }, [aiInsight, actualStats, predictedStats, statsTab, isFinished]);
 
   // Incidents grouping
   const incidents = useMemo(() => {
@@ -658,11 +728,16 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
 
       {/* ── 2. AI Editorial Match Preview Section ── */}
       <section id="preview" style={{ marginBottom: 32 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <Activity size={20} color="#8b7ff5" />
-          <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0, color: "#ffffff" }}>
-            AI Editorial Match Preview & Analysis
-          </h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <BookOpen size={20} color="#8b7ff5" />
+            <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0, color: "#ffffff" }}>
+              AI Editorial Match Preview & Analysis
+            </h2>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#a79fff" }}>
+            <Sparkles size={13} color="#8b7ff5" /> Live AI Engine: dc-blend-v1
+          </div>
         </div>
 
         <div
@@ -671,69 +746,148 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             background: "linear-gradient(180deg, #18153f 0%, #120f33 100%)",
             border: "1px solid rgba(167, 159, 255, 0.14)",
             padding: "24px 28px",
+            boxShadow: "0 16px 36px rgba(0,0,0,0.35)",
           }}
         >
-          <h3 style={{ fontSize: 18, fontWeight: 900, color: "#ffffff", marginBottom: 14 }}>
-            {fixture.homeTeam.name} vs {fixture.awayTeam.name} Prediction & Betting Analysis
+          {/* Article Title */}
+          <h3 style={{ fontSize: 18, fontWeight: 900, color: "#ffffff", marginBottom: 16, lineHeight: 1.3 }}>
+            {aiInsight?.articleTitle || `${fixture.homeTeam.name} vs ${fixture.awayTeam.name} Prediction & Tactical Breakdown`}
           </h3>
 
-          <p style={{ fontSize: 13, lineHeight: 1.7, color: "#c6c2e8", marginBottom: 14 }}>
-            This fixture features <b>{fixture.homeTeam.name}</b> hosting <b>{fixture.awayTeam.name}</b> in the{" "}
-            <b>{fixture.league?.name || "League"}</b> on{" "}
-            {new Date(fixture.kickoffTime).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}.
-            Our predictive AI blend (model version <code>dc-blend-v1</code>) has processed historical head-to-head metrics, team form, and tactical formations.
-          </p>
-
+          {/* Key AI Takeaways Box */}
           <div
             style={{
               padding: "16px 20px",
-              borderRadius: 12,
-              background: "rgba(10, 8, 29, 0.7)",
-              border: "1px solid rgba(167, 159, 255, 0.12)",
-              marginBottom: 16,
+              borderRadius: 14,
+              background: "rgba(10, 8, 29, 0.75)",
+              border: "1px solid rgba(167, 159, 255, 0.15)",
+              marginBottom: 20,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#ffb020", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-              Key AI Takeaways & Best Bets
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#ffb020", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
+              <Star size={14} fill="#ffb020" /> Key Match Insights & Prediction Blend
             </div>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#ffffff", lineHeight: 1.8 }}>
-              <li><b>Best Selection:</b> {bestTipExpl} (Odds: {bestTip?.odd ? Number(bestTip.odd).toFixed(2) : "1.85"})</li>
-              <li><b>Expected Goals (xG):</b> {fixture.homeTeam.name} ({actualStats.xg.home.toFixed(2)}) vs {fixture.awayTeam.name} ({actualStats.xg.away.toFixed(2)})</li>
-              <li><b>Predicted Final Score:</b> {fixture.predictedScore || "2-0"}</li>
-              <li><b>Goals Market:</b> {pGoals?.selection || "Over 2.5"} goals recommended</li>
-            </ul>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, fontSize: 13 }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: 8 }}>
+                <span style={{ color: "#7874a4", fontSize: 11, display: "block" }}>Best Selection</span>
+                <b style={{ color: "#2fd08a" }}>{bestTipExpl}</b>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: 8 }}>
+                <span style={{ color: "#7874a4", fontSize: 11, display: "block" }}>Projected xG</span>
+                <b style={{ color: "#ffffff" }}>{actualStats.xg.home.toFixed(2)} vs {actualStats.xg.away.toFixed(2)}</b>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: 8 }}>
+                <span style={{ color: "#7874a4", fontSize: 11, display: "block" }}>Goals Market</span>
+                <b style={{ color: "#ffffff" }}>{pGoals?.selection || "Over 2.5 Goals"}</b>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: 8 }}>
+                <span style={{ color: "#7874a4", fontSize: 11, display: "block" }}>AI Confidence</span>
+                <b style={{ color: "#8b7ff5" }}>{bestTip?.confidence || 75}% Confidence</b>
+              </div>
+            </div>
           </div>
 
-          {previewExpanded && (
-            <div style={{ fontSize: 13, lineHeight: 1.7, color: "#c6c2e8", marginTop: 14 }}>
-              <p>
-                <b>Tactical Outlook:</b> With projected ball possession leaning towards the favourites, the match is anticipated to see high-tempo flank progression and calculated set-piece routines. In past meetings, both sides have generated an average of{" "}
-                <b>{h2h.avg_total_goals ? h2h.avg_total_goals.toFixed(1) : "2.6"} goals per encounter</b>.
+          {/* Editorial Article Body */}
+          {aiInsight?.sections && aiInsight.sections.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* First Section (Always Visible) */}
+              <div>
+                {aiInsight.sections[0].heading && aiInsight.sections[0].heading !== "Match Overview" && (
+                  <h4 style={{ fontSize: 15, fontWeight: 800, color: "#a79fff", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 4, height: 16, borderRadius: 2, background: "#8b7ff5" }} />
+                    {aiInsight.sections[0].heading}
+                  </h4>
+                )}
+                {aiInsight.sections[0].paragraphs.map((para: string, pIdx: number) => (
+                  <p key={pIdx} style={{ fontSize: 13.5, lineHeight: 1.75, color: "#d1ccf8", margin: "0 0 10px 0" }}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+
+              {/* Remaining Sections (Collapsible for Clean UX) */}
+              {previewExpanded &&
+                aiInsight.sections.slice(1).map((sec: any, sIdx: number) => (
+                  <div key={sIdx} style={{ borderTop: "1px solid rgba(167, 159, 255, 0.1)", paddingTop: 16 }}>
+                    <h4 style={{ fontSize: 15, fontWeight: 800, color: "#a79fff", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 4, height: 16, borderRadius: 2, background: "#ff5d78" }} />
+                      {sec.heading}
+                    </h4>
+                    {sec.paragraphs.map((para: string, pIdx: number) => (
+                      <p key={pIdx} style={{ fontSize: 13.5, lineHeight: 1.75, color: "#d1ccf8", margin: "0 0 10px 0" }}>
+                        {para}
+                      </p>
+                    ))}
+                  </div>
+                ))}
+
+              {aiInsight.sections.length > 1 && (
+                <button
+                  onClick={() => setPreviewExpanded(!previewExpanded)}
+                  style={{
+                    alignSelf: "flex-start",
+                    marginTop: 4,
+                    background: "rgba(139, 127, 245, 0.12)",
+                    border: "1px solid rgba(139, 127, 245, 0.25)",
+                    borderRadius: 8,
+                    color: "#a79fff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {previewExpanded ? (
+                    <>Show Less <ChevronUp size={14} /></>
+                  ) : (
+                    <>Read Complete Match Breakdown ({aiInsight.sections.length - 1} more sections) <ChevronDown size={14} /></>
+                  )}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, lineHeight: 1.75, color: "#c6c2e8" }}>
+              <p style={{ margin: "0 0 12px 0" }}>
+                This fixture features <b>{fixture.homeTeam.name}</b> hosting <b>{fixture.awayTeam.name}</b> in the{" "}
+                <b>{fixture.league?.name || "League"}</b> on{" "}
+                {new Date(fixture.kickoffTime).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}.
+                Our predictive AI blend (model version <code>dc-blend-v1</code>) has processed historical head-to-head metrics, team form, and tactical formations.
               </p>
-              <p>
-                <b>Discipline & Cards:</b> Referees in this competition typically maintain close control. Expect under 4.5 total yellow cards and moderate foul counts across 90 minutes.
-              </p>
+              {previewExpanded && (
+                <div style={{ marginTop: 14 }}>
+                  <p style={{ margin: "0 0 10px 0" }}>
+                    <b>Tactical Outlook:</b> With projected ball possession leaning towards the favourites, the match is anticipated to see high-tempo flank progression and calculated set-piece routines. In past meetings, both sides have generated an average of{" "}
+                    <b>{h2h.avg_total_goals ? h2h.avg_total_goals.toFixed(1) : "2.6"} goals per encounter</b>.
+                  </p>
+                  <p style={{ margin: 0 }}>
+                    <b>Discipline & Cards:</b> Referees in this competition typically maintain close control. Expect under 4.5 total yellow cards and moderate foul counts across 90 minutes.
+                  </p>
+                </div>
+              )}
+              <button
+                onClick={() => setPreviewExpanded(!previewExpanded)}
+                style={{
+                  marginTop: 12,
+                  background: "transparent",
+                  border: "none",
+                  color: "#8b7ff5",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: 0,
+                }}
+              >
+                {previewExpanded ? <>Read Less <ChevronUp size={14} /></> : <>Read Full Match Breakdown <ChevronDown size={14} /></>}
+              </button>
             </div>
           )}
-
-          <button
-            onClick={() => setPreviewExpanded(!previewExpanded)}
-            style={{
-              marginTop: 12,
-              background: "transparent",
-              border: "none",
-              color: "#8b7ff5",
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: 0,
-            }}
-          >
-            {previewExpanded ? <>Read Less <ChevronUp size={14} /></> : <>Read Full Match Breakdown <ChevronDown size={14} /></>}
-          </button>
         </div>
       </section>
 
@@ -777,46 +931,66 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             background: "#161338",
             border: "1px solid rgba(167, 159, 255, 0.12)",
             padding: "20px 24px",
+            boxShadow: "0 16px 36px rgba(0,0,0,0.35)",
           }}
         >
           {/* Teams Header in Stats */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid rgba(167, 159, 255, 0.1)" }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{fixture.homeTeam.name}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", textTransform: "uppercase" }}>Metrics</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {statsTab === "cmp" ? "Predicted vs Actual" : statsTab === "pred" ? "AI Predicted Metrics" : "Actual Match Stats"}
+            </span>
             <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff" }}>{fixture.awayTeam.name}</span>
           </div>
 
           {/* Metric Rows */}
-          {[
-            { label: "Expected Goals (xG)", hAct: actualStats.xg.home.toFixed(2), aAct: actualStats.xg.away.toFixed(2), hPred: predictedStats.xg.home.toFixed(2), aPred: predictedStats.xg.away.toFixed(2), hRatio: 55, aRatio: 45 },
-            { label: "Ball Possession", hAct: `${actualStats.possession.home}%`, aAct: `${actualStats.possession.away}%`, hPred: `${predictedStats.possession.home}%`, aPred: `${predictedStats.possession.away}%`, hRatio: Number(actualStats.possession.home), aRatio: Number(actualStats.possession.away) },
-            { label: "Total Shots", hAct: actualStats.shots.home, aAct: actualStats.shots.away, hPred: predictedStats.shots.home, aPred: predictedStats.shots.away, hRatio: 52, aRatio: 48 },
-            { label: "Shots on Target", hAct: actualStats.onTarget.home, aAct: actualStats.onTarget.away, hPred: predictedStats.onTarget.home, aPred: predictedStats.onTarget.away, hRatio: 55, aRatio: 45 },
-            { label: "Shots Off Target", hAct: actualStats.offTarget.home, aAct: actualStats.offTarget.away, hPred: predictedStats.offTarget.home, aPred: predictedStats.offTarget.away, hRatio: 50, aRatio: 50 },
-            { label: "Corners", hAct: actualStats.corners.home, aAct: actualStats.corners.away, hPred: predictedStats.corners.home, aPred: predictedStats.corners.away, hRatio: 46, aRatio: 54 },
-            { label: "Yellow Cards", hAct: actualStats.yellowCards.home, aAct: actualStats.yellowCards.away, hPred: predictedStats.yellowCards.home, aPred: predictedStats.yellowCards.away, hRatio: 50, aRatio: 50 },
-            { label: "Fouls", hAct: actualStats.fouls.home, aAct: actualStats.fouls.away, hPred: predictedStats.fouls.home, aPred: predictedStats.fouls.away, hRatio: 48, aRatio: 52 },
-          ].map((row, idx) => (
-            <div key={idx} style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 4 }}>
+          {statsRows.map((row, idx) => (
+            <div key={idx} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 5 }}>
                 <div style={{ fontWeight: 800, color: "#ffffff", fontFamily: "var(--font-mono)" }}>
-                  {statsTab === "pred" ? row.hPred : row.hAct}
-                  {statsTab === "cmp" && <small style={{ color: "#7874a4", marginLeft: 4 }}>({row.hPred})</small>}
+                  {statsTab === "pred"
+                    ? row.hPred
+                    : statsTab === "real"
+                    ? row.hasReal
+                      ? row.hAct
+                      : "-"
+                    : row.hAct}
+                  {statsTab === "cmp" && (
+                    <small style={{ color: "#7874a4", marginLeft: 5 }}>
+                      (Pred: {row.hPred})
+                    </small>
+                  )}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#a79fff" }}>{row.label}</div>
                 <div style={{ fontWeight: 800, color: "#ffffff", fontFamily: "var(--font-mono)" }}>
-                  {statsTab === "cmp" && <small style={{ color: "#7874a4", marginRight: 4 }}>({row.aPred})</small>}
-                  {statsTab === "pred" ? row.aPred : row.aAct}
+                  {statsTab === "cmp" && (
+                    <small style={{ color: "#7874a4", marginRight: 5 }}>
+                      (Pred: {row.aPred})
+                    </small>
+                  )}
+                  {statsTab === "pred"
+                    ? row.aPred
+                    : statsTab === "real"
+                    ? row.hasReal
+                      ? row.aAct
+                      : "-"
+                    : row.aAct}
                 </div>
               </div>
 
               {/* Dual-Sided Bar */}
               <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
-                <div style={{ width: `${row.hRatio}%`, background: "#8b7ff5", transition: "width 0.4s" }} />
-                <div style={{ width: `${row.aRatio}%`, background: "#ff5d78", transition: "width 0.4s" }} />
+                <div style={{ width: `${row.hRatio}%`, background: "linear-gradient(90deg, #6c5ce7, #8b7ff5)", transition: "width 0.4s" }} />
+                <div style={{ width: `${row.aRatio}%`, background: "linear-gradient(90deg, #ff5d78, #e84393)", transition: "width 0.4s" }} />
               </div>
             </div>
           ))}
+
+          {statsTab === "real" && !statsRows.some((r) => r.hasReal && r.hAct !== "-") && (
+            <div style={{ textAlign: "center", padding: "12px", color: "#7874a4", fontSize: 12 }}>
+              Official in-match metrics update in real-time as play progresses.
+            </div>
+          )}
         </div>
       </section>
 

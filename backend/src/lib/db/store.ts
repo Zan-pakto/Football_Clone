@@ -197,66 +197,74 @@ class MatchStore {
     let matches: MatchData[] = [];
     const targetDate = resolveDateString(d);
 
-    try {
-      const dbFixtures = await prisma.fixture.findMany({
-        where: {
-          OR: [{ matchDate: targetDate }, { matchDate: d }],
-        },
-        include: {
-          homeTeam: true,
-          awayTeam: true,
-          league: { include: { country: true } },
-          predictions: true,
-          odds: true,
-        },
-        orderBy: { kickoffTime: "asc" },
-      });
-
-      if (dbFixtures.length > 0) {
-        matches = dbFixtures.map((df: any) => {
-          const live = this.liveCache.get(df.externalId);
-          let activeStatus = live?.status || df.status;
-          const activeElapsed = live?.elapsed || df.elapsed;
-          const computedIsLive = isMatchLive(activeStatus, activeElapsed);
-
-          return {
-            id: df.externalId,
-            url: `/match/${df.id}`,
-            leagueName: df.league?.name || "League",
-            country: df.league?.country?.name || "World",
-            flagUrl: df.league?.logo || null,
-            homeTeam: df.homeTeam.name,
-            awayTeam: df.awayTeam.name,
-            homeLogo: df.homeTeam.logo || null,
-            awayLogo: df.awayTeam.logo || null,
-            kickTime: df.kickoffTime ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
-            status: activeStatus.toLowerCase(),
-            homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : df.homeScore !== null ? String(df.homeScore) : null,
-            awayScore: live?.awayScore !== undefined && live.awayScore !== null ? String(live.awayScore) : df.awayScore !== null ? String(df.awayScore) : null,
-            elapsed: activeElapsed,
-            isLive: computedIsLive,
-            odds: {
-              home: "1.75",
-              draw: "3.50",
-              away: "4.20",
-            },
-            predictions: {
-              pickScore: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
-              goals: { pick: null, odd: null },
-              btts: { pick: null, odd: null },
-              bestTip: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
-            },
-            confidence: df.predictions?.[0]?.confidence ? `${df.predictions[0].confidence}%` : "84%",
-          };
+    // 1. Check in-memory store cache first (instant response, zero DB overhead)
+    const cached = this.cache.get(targetDate) || this.cache.get(d);
+    if (cached && cached.length > 0) {
+      matches = cached;
+    } else {
+      // 2. Query database only when cache is empty
+      try {
+        const dbFixtures = await prisma.fixture.findMany({
+          where: {
+            OR: [{ matchDate: targetDate }, { matchDate: d }],
+          },
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+            league: { include: { country: true } },
+            predictions: true,
+            odds: true,
+          },
+          orderBy: { kickoffTime: "asc" },
         });
+
+        if (dbFixtures.length > 0) {
+          matches = dbFixtures.map((df: any) => {
+            const live = this.liveCache.get(df.externalId);
+            let activeStatus = live?.status || df.status;
+            const activeElapsed = live?.elapsed || df.elapsed;
+            const computedIsLive = isMatchLive(activeStatus, activeElapsed);
+
+            return {
+              id: df.externalId,
+              url: `/match/${df.id}`,
+              leagueName: df.league?.name || "League",
+              country: df.league?.country?.name || "World",
+              flagUrl: df.league?.logo || null,
+              homeTeam: df.homeTeam.name,
+              awayTeam: df.awayTeam.name,
+              homeLogo: df.homeTeam.logo || null,
+              awayLogo: df.awayTeam.logo || null,
+              kickTime: df.kickoffTime ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
+              status: activeStatus.toLowerCase(),
+              homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : df.homeScore !== null ? String(df.homeScore) : null,
+              awayScore: live?.awayScore !== undefined && live.awayScore !== null ? String(live.awayScore) : df.awayScore !== null ? String(df.awayScore) : null,
+              elapsed: activeElapsed,
+              isLive: computedIsLive,
+              odds: {
+                home: "1.75",
+                draw: "3.50",
+                away: "4.20",
+              },
+              predictions: {
+                pickScore: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
+                goals: { pick: null, odd: null },
+                btts: { pick: null, odd: null },
+                bestTip: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
+              },
+              confidence: df.predictions?.[0]?.confidence ? `${df.predictions[0].confidence}%` : "84%",
+            };
+          });
+
+          // Populate cache so subsequent calls never touch the DB
+          this.cache.set(targetDate, matches);
+          this.cache.set(d, matches);
+        }
+      } catch (err) {
+        console.error("DB query failed, using in-memory cache:", err);
       }
-    } catch (err) {
-      console.error("DB query failed, using in-memory cache:", err);
     }
 
-    if (matches.length === 0) {
-      matches = this.cache.get(targetDate) || this.cache.get(d) || [];
-    }
 
     if (filters) {
       if (filters.country) {
@@ -288,6 +296,88 @@ class MatchStore {
       lastScrapedAt: this.lastSyncedAt,
       lastSyncedAt: this.lastSyncedAt,
     };
+  }
+
+  async findMatchById(id: string): Promise<MatchData | null> {
+    // 1. Search all in-memory date caches
+    for (const list of this.cache.values()) {
+      const found = list.find((m) => m.id === id || m.url?.includes(id));
+      if (found) return found;
+    }
+
+    // 2. Query Prisma database
+    try {
+      const df = await prisma.fixture.findFirst({
+        where: {
+          OR: [{ externalId: id }, { id }],
+        },
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          league: { include: { country: true } },
+          predictions: true,
+          odds: true,
+        },
+      });
+
+      if (df) {
+        const live = this.liveCache.get(df.externalId);
+        let activeStatus = live?.status || df.status;
+        const activeElapsed = live?.elapsed || df.elapsed;
+        const computedIsLive = isMatchLive(activeStatus, activeElapsed);
+
+        return {
+          id: df.externalId,
+          url: `/match/${df.id}`,
+          leagueName: df.league?.name || "League",
+          country: df.league?.country?.name || "World",
+          flagUrl: df.league?.logo || null,
+          homeTeam: df.homeTeam.name,
+          awayTeam: df.awayTeam.name,
+          homeLogo: df.homeTeam.logo || null,
+          awayLogo: df.awayTeam.logo || null,
+          kickTime: df.kickoffTime
+            ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : null,
+          status: activeStatus.toLowerCase(),
+          homeScore:
+            live?.homeScore !== undefined && live.homeScore !== null
+              ? String(live.homeScore)
+              : df.homeScore !== null
+              ? String(df.homeScore)
+              : null,
+          awayScore:
+            live?.awayScore !== undefined && live.awayScore !== null
+              ? String(live.awayScore)
+              : df.awayScore !== null
+              ? String(df.awayScore)
+              : null,
+          elapsed: activeElapsed,
+          isLive: computedIsLive,
+          odds: {
+            home: "1.75",
+            draw: "3.50",
+            away: "4.20",
+          },
+          predictions: {
+            pickScore: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
+            goals: { pick: null, odd: null },
+            btts: { pick: null, odd: null },
+            bestTip: {
+              pick: df.predictions?.[0]?.selection || "1",
+              odd: String(df.predictions?.[0]?.odd || "1.75"),
+              confidence: df.predictions?.[0]?.confidence || 75,
+            },
+          },
+          confidence: df.predictions?.[0]?.confidence ? `${df.predictions[0].confidence}%` : "84%",
+          isLocked: false,
+        };
+      }
+    } catch (err) {
+      console.warn("[MatchStore] findMatchById error:", err);
+    }
+
+    return null;
   }
 
   async getLiveMatches(d: string = "0"): Promise<MatchData[]> {

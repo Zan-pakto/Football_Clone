@@ -18,6 +18,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// Module-level persistent cache across page navigations (Zero DB calls on page switch)
+const clientAllMatchesCache = new Map<
+  string,
+  {
+    matches: MatchData[];
+    userTier: "free" | "premium";
+    freeTipsLimit: number;
+    freeTipsUsed: number;
+    cachedAt: number;
+  }
+>();
+
 export default function AllMatchesPage() {
   const [d, setD] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,16 +38,34 @@ export default function AllMatchesPage() {
   const [modalFilters, setModalFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
-  const [matches, setMatches] = useState<MatchData[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Instant render from client cache if user already visited
+  const initialCache = clientAllMatchesCache.get("0");
+  const [matches, setMatches] = useState<MatchData[]>(initialCache ? initialCache.matches : []);
+  const [loading, setLoading] = useState(!initialCache);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [userTier, setUserTier] = useState<"free" | "premium">("free");
-  const [freeTipsLimit, setFreeTipsLimit] = useState(7);
-  const [freeTipsUsed, setFreeTipsUsed] = useState(0);
+  const [userTier, setUserTier] = useState<"free" | "premium">(initialCache ? initialCache.userTier : "free");
+  const [freeTipsLimit, setFreeTipsLimit] = useState(initialCache ? initialCache.freeTipsLimit : 7);
+  const [freeTipsUsed, setFreeTipsUsed] = useState(initialCache ? initialCache.freeTipsUsed : 0);
 
   const fetchMatches = useCallback(async (dayVal: string, forceSync = false) => {
+    // 1. Instant cache hit: render immediately with ZERO network or DB latency
+    const cached = clientAllMatchesCache.get(dayVal);
+    if (cached && !forceSync) {
+      setMatches(cached.matches);
+      setUserTier(cached.userTier);
+      setFreeTipsLimit(cached.freeTipsLimit);
+      setFreeTipsUsed(cached.freeTipsUsed);
+      setLoading(false);
+
+      // If cached recently (within 5 mins), return without refetching
+      if (Date.now() - cached.cachedAt < 5 * 60 * 1000) {
+        return;
+      }
+    }
+
     try {
-      setLoading(true);
+      if (!cached) setLoading(true);
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -52,9 +82,13 @@ export default function AllMatchesPage() {
       }
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
-        if (data.userTier) setUserTier(data.userTier);
-        if (data.freeTipsLimit) setFreeTipsLimit(data.freeTipsLimit);
-        if (typeof data.freeTipsUsed === "number") setFreeTipsUsed(data.freeTipsUsed);
+        const uTier = data.userTier || "free";
+        const fLimit = data.freeTipsLimit || 7;
+        const fUsed = typeof data.freeTipsUsed === "number" ? data.freeTipsUsed : 0;
+
+        setUserTier(uTier);
+        setFreeTipsLimit(fLimit);
+        setFreeTipsUsed(fUsed);
 
         setMatches((prev) => {
           if (prev.length === 0) return data.matches;
@@ -71,6 +105,15 @@ export default function AllMatchesPage() {
             return fresh;
           });
         });
+
+        // Store into client memory cache so returning to this page is 100% instant
+        clientAllMatchesCache.set(dayVal, {
+          matches: data.matches,
+          userTier: uTier,
+          freeTipsLimit: fLimit,
+          freeTipsUsed: fUsed,
+          cachedAt: Date.now(),
+        });
       }
     } catch (err) {
       console.error("Failed to load matches:", err);
@@ -78,6 +121,7 @@ export default function AllMatchesPage() {
       setLoading(false);
     }
   }, []);
+
 
   const pollLiveMatches = useCallback(async () => {
     try {

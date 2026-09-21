@@ -122,7 +122,15 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🌐 Base URL: http://localhost:${PORT}`);
     console.log(`⚡ Football Provider: ${process.env.FOOTBALL_PROVIDER || "bzzoiro"}`);
     console.log(`=========================================`);
+
+    // Start 12-hour NerdyTips automated scraper & storage scheduler
+    import("./lib/scraper/scraper-scheduler")
+      .then(({ scraperScheduler }) => {
+        scraperScheduler.start();
+      })
+      .catch((e) => console.warn("[Server] Failed to start scraper scheduler:", e.message));
   });
 }
+
 
 export default app;

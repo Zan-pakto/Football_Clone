@@ -211,52 +211,100 @@ router.get("/", async (req: Request, res: Response) => {
     const user = await authService.getCurrentUser(token);
     const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
-    const fixtures = await fixtureService.getFixtures(d, { country, league, status: status as any, search });
-    const sanitizedFixtures = accessControlService.filterFixturesList(fixtures, user);
+    // 1. Check if we have high-volume synchronized matches in store
+    const storeData = await store.getMatches(d);
+    let convertedMatches: MatchData[] = [];
 
-    const convertedMatches: MatchData[] = sanitizedFixtures.map((f, idx) => {
-      const isMatchLocked = Boolean(
-        f.predictions && f.predictions.length > 0 && f.predictions.every((p) => p.isLocked)
-      );
+    if (storeData && storeData.matches && storeData.matches.length > 0) {
+      let filtered = storeData.matches;
+      if (country) {
+        filtered = filtered.filter((m) => m.country.toLowerCase().includes(country.toLowerCase()));
+      }
+      if (league) {
+        filtered = filtered.filter((m) => m.leagueName.toLowerCase().includes(league.toLowerCase()));
+      }
+      if (status) {
+        const sLower = status.toLowerCase();
+        filtered = filtered.filter((m) => m.status.toLowerCase() === sLower);
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(
+          (m) =>
+            m.homeTeam.toLowerCase().includes(q) ||
+            m.awayTeam.toLowerCase().includes(q) ||
+            m.leagueName.toLowerCase().includes(q) ||
+            m.country.toLowerCase().includes(q)
+        );
+      }
 
-      const pBest = f.predictions && f.predictions.length > 0
-        ? [...f.predictions].sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0]
-        : null;
+      // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT unlocked)
+      convertedMatches = filtered.map((m, idx) => {
+        const isLocked = !isPremiumUser && idx >= FREE_DAILY_TIPS_LIMIT;
+        return {
+          ...m,
+          isLocked,
+          lockReason: isLocked ? "free_limit_reached" : (m.isLocked ? "premium_exclusive" : null),
+          predictions: {
+            ...m.predictions,
+            bestTip: {
+              ...m.predictions.bestTip,
+              pick: isLocked ? null : m.predictions.bestTip.pick,
+              odd: isLocked ? null : m.predictions.bestTip.odd,
+              isLocked,
+            },
+          },
+        };
+      });
+    } else {
+      // 2. Fallback to fixtureService (Bzzoiro API)
+      const fixtures = await fixtureService.getFixtures(d, { country, league, status: status as any, search });
+      const sanitizedFixtures = accessControlService.filterFixturesList(fixtures, user);
 
-      const lockReason = pBest?.lockReason || (f.predictions && f.predictions[0]?.lockReason) || (isMatchLocked ? "free_limit_reached" : null);
+      convertedMatches = sanitizedFixtures.map((f, idx) => {
+        const isMatchLocked = Boolean(
+          f.predictions && f.predictions.length > 0 && f.predictions.every((p) => p.isLocked)
+        );
 
-      const { predictions, topConfidence } = buildMatchPredictions(f, isMatchLocked);
+        const pBest = f.predictions && f.predictions.length > 0
+          ? [...f.predictions].sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0]
+          : null;
 
-      return {
-        id: f.id,
-        url: `/match/${f.id}`,
-        leagueName: f.league?.name || "League",
-        country: f.league?.country?.name || "World",
-        flagUrl: f.league?.country?.flag || null,
-        homeTeam: f.homeTeam.name,
-        awayTeam: f.awayTeam.name,
-        homeLogo: f.homeTeam.logo || null,
-        awayLogo: f.awayTeam.logo || null,
-        kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
-        status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
-        homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
-        awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
-        elapsed: f.elapsed,
-        isLive: f.status === "LIVE",
-        isLocked: isMatchLocked,
-        lockReason,
-        freeTipIndex: idx,
-        odds: {
-          home: f.odds?.home ? String(f.odds.home) : "1.75",
-          draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
-          away: f.odds?.away ? String(f.odds.away) : "4.20",
-        },
-        predictions,
-        confidence: topConfidence ? `${topConfidence}%` : (isMatchLocked ? null : "84%"),
-        predictedScore: f.predictedScore || null,
-        expectedGoals: f.expectedGoals || null,
-      };
-    });
+        const lockReason = pBest?.lockReason || (f.predictions && f.predictions[0]?.lockReason) || (isMatchLocked ? "free_limit_reached" : null);
+        const { predictions, topConfidence } = buildMatchPredictions(f, isMatchLocked);
+
+        return {
+          id: f.id,
+          url: `/match/${f.id}`,
+          leagueName: f.league?.name || "League",
+          country: f.league?.country?.name || "World",
+          flagUrl: f.league?.country?.flag || null,
+          homeTeam: f.homeTeam.name,
+          awayTeam: f.awayTeam.name,
+          homeLogo: f.homeTeam.logo || null,
+          awayLogo: f.awayTeam.logo || null,
+          kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
+          status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
+          homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
+          awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
+          elapsed: f.elapsed,
+          isLive: f.status === "LIVE",
+          isLocked: isMatchLocked,
+          lockReason,
+          freeTipIndex: idx,
+          odds: {
+            home: f.odds?.home ? String(f.odds.home) : "1.75",
+            draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
+            away: f.odds?.away ? String(f.odds.away) : "4.20",
+          },
+          predictions,
+          confidence: topConfidence ? `${topConfidence}%` : (isMatchLocked ? null : "84%"),
+          predictedScore: f.predictedScore || null,
+          expectedGoals: f.expectedGoals || null,
+        };
+      });
+    }
+
 
     return res.json({
       success: true,
