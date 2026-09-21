@@ -15,40 +15,38 @@ class MatchStore {
   }
 
   /**
-   * Save matches to PostgreSQL (with fallback to in-memory store if DB is down)
+   * Save matches to in-memory cache immediately and persist to PostgreSQL safely
    */
   async saveMatches(matches: MatchData[], d: string = "0"): Promise<void> {
-    if (!matches || !Array.isArray(matches)) return;
+    if (!matches || !Array.isArray(matches) || matches.length === 0) return;
 
     const targetDate = resolveDateString(d);
 
+    // 1. Immediately update fast in-memory cache so client receives matches in <1ms
     this.cache.set(targetDate, matches);
     this.cache.set(d, matches);
     this.lastSyncedAt = new Date().toISOString();
 
+    // 2. Persist to PostgreSQL asynchronously in background without delaying HTTP responses
+    this.persistToDatabase(matches, targetDate).catch((err) => {
+      console.warn("[MatchStore] Background DB sync notice:", err.message);
+    });
+  }
+
+  private async persistToDatabase(matches: MatchData[], targetDate: string): Promise<void> {
     try {
       const teamCache = new Map<string, string>();
       const leagueCache = new Map<string, string>();
 
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 15;
       for (let i = 0; i < matches.length; i += BATCH_SIZE) {
         const batch = matches.slice(i, i + BATCH_SIZE);
-        await Promise.all(
+        await Promise.allSettled(
           batch.map((m) => this.upsertSingleMatch(m, targetDate, teamCache, leagueCache))
         );
       }
-
-      const currentIds = matches.map((m) => m.id);
-      if (currentIds.length >= 20) {
-        await prisma.fixture.deleteMany({
-          where: {
-            OR: [{ matchDate: targetDate }, { matchDate: d }],
-            externalId: { notIn: currentIds },
-          },
-        });
-      }
-    } catch (err) {
-      console.error("PostgreSQL upsert error (falling back to memory cache):", err);
+    } catch (err: any) {
+      console.warn("[MatchStore] Database persistence notice:", err.message);
     }
   }
 

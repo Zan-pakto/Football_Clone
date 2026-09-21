@@ -147,7 +147,16 @@ export class NerdyTipsScraper {
     const url = `${this.baseUrl}/all-matches?d=${dParam}`;
     const headers: Record<string, string> = {
       "User-Agent": this.userAgent,
-      Accept: "text/html,application/xhtml+xml",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
     };
     if (cookieHeader) {
       headers["Cookie"] = cookieHeader;
@@ -165,32 +174,63 @@ export class NerdyTipsScraper {
 
       // Extract placeholder keys for lazy-loaded leagues
       const keys = [...html.matchAll(/data-lg-k="([a-zA-Z0-9]+)"/g)].map((m) => m[1]);
+      console.log(`[NerdyTipsScraper] d=${dParam}: Found ${initialMatches.length} initial matches, ${keys.length} league keys to expand.`);
 
       const extraHtmlChunks: string[] = [];
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 25;
 
+      const rowHeaders: Record<string, string> = {
+        "User-Agent": this.userAgent,
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        Referer: `${this.baseUrl}/all-matches?d=${dParam}`,
+        Origin: this.baseUrl,
+        "Sec-Ch-Ua": '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+      };
+      if (cookieHeader) rowHeaders["Cookie"] = cookieHeader;
+
+      const batches: string[][] = [];
       for (let i = 0; i < keys.length; i += BATCH_SIZE) {
-        const batch = keys.slice(i, i + BATCH_SIZE);
-        const rowsUrl = `${this.baseUrl}/all-matches/rows?g=${batch.join(",")}&d=${dParam}`;
-        try {
-          const rowHeaders: Record<string, string> = {
-            "User-Agent": this.userAgent,
-            "X-Requested-With": "XMLHttpRequest",
-            Accept: "application/json, text/plain, */*",
-          };
-          if (cookieHeader) rowHeaders["Cookie"] = cookieHeader;
+        batches.push(keys.slice(i, i + BATCH_SIZE));
+      }
 
-          const rowsRes = await fetch(rowsUrl, { headers: rowHeaders });
-          if (rowsRes.ok) {
-            const data = (await rowsRes.json()) as any;
-            if (data && data.groups) {
-              for (const chunk of Object.values(data.groups)) {
-                extraHtmlChunks.push(String(chunk));
+      // Concurrently fetch all batch rows with automatic retry on rate limit
+      const rowResults = await Promise.allSettled(
+        batches.map(async (batch, idx) => {
+          const rowsUrl = `${this.baseUrl}/all-matches/rows?g=${batch.join(",")}&d=${dParam}`;
+          let attempts = 0;
+          while (attempts < 2) {
+            attempts++;
+            try {
+              const rowsRes = await fetch(rowsUrl, { headers: rowHeaders });
+              if (rowsRes.ok) {
+                const data = (await rowsRes.json()) as any;
+                if (data && data.groups) {
+                  return Object.values(data.groups).map(String);
+                }
+                return [];
+              } else {
+                console.warn(`[NerdyTipsScraper] Batch ${idx + 1}/${batches.length} HTTP ${rowsRes.status} on attempt ${attempts}`);
+                if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
               }
+            } catch (e: any) {
+              console.warn(`[NerdyTipsScraper] Batch ${idx + 1} network error on attempt ${attempts}:`, e.message);
+              if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
             }
           }
-        } catch (e: any) {
-          console.warn(`[NerdyTipsScraper] Batch row error:`, e.message);
+          return [];
+        })
+      );
+
+      for (const r of rowResults) {
+        if (r.status === "fulfilled" && Array.isArray(r.value)) {
+          extraHtmlChunks.push(...r.value);
         }
       }
 
@@ -203,6 +243,7 @@ export class NerdyTipsScraper {
       }
 
       const allMatches = Array.from(uniqueMap.values());
+      console.log(`[NerdyTipsScraper] d=${dParam}: Total matches captured: ${allMatches.length} (${initialMatches.length} initial + ${extraMatches.length} expanded).`);
 
       // Sort: Upcoming first, then Live, then Finished
       allMatches.sort((a, b) => {

@@ -211,6 +211,21 @@ router.get("/", async (req: Request, res: Response) => {
     const user = await authService.getCurrentUser(token);
     const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
+    const forceSync = req.query.sync === "true" || req.query.refresh === "true";
+    if (forceSync) {
+      try {
+        const { nerdyTipsScraper } = await import("../lib/scraper/nerdytips-scraper");
+        const { normalizeScrapedMatchToMatchData } = await import("../lib/scraper/nerdytips-normalizer");
+        const fresh = await nerdyTipsScraper.scrapeDay(d);
+        if (fresh.length > 0) {
+          const normalized = fresh.map(normalizeScrapedMatchToMatchData);
+          await store.saveMatches(normalized, d);
+        }
+      } catch (e: any) {
+        console.warn("[MatchesRoute] Force sync notice:", e.message);
+      }
+    }
+
     // 1. Check if we have high-volume synchronized matches in store
     const storeData = await store.getMatches(d);
     let convertedMatches: MatchData[] = [];

@@ -100,12 +100,20 @@ export class ScraperScheduler {
 
     console.log(`[ScraperScheduler] Scheduled automatic sync every ${Math.round(intervalMs / 3600000)} hours.`);
 
-    // Run initial sync after 5 seconds of server startup
+    // Run initial sync: prioritize today (d=0) immediately, then tomorrow and yesterday
     setTimeout(() => {
-      this.sync(["-1", "0", "1"]).catch((e) =>
-        console.warn("[ScraperScheduler] Initial sync error:", e.message)
-      );
-    }, 5000);
+      this.sync(["0"])
+        .then(() => {
+          setTimeout(() => {
+            this.sync(["1", "-1"]).catch((e) =>
+              console.warn("[ScraperScheduler] Secondary sync error:", e.message)
+            );
+          }, 3000);
+        })
+        .catch((e) =>
+          console.warn("[ScraperScheduler] Initial sync error:", e.message)
+        );
+    }, 2000);
 
     // Run recurring 12-hour cycle
     this.timer = setInterval(() => {
