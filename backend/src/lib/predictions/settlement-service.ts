@@ -17,18 +17,25 @@ export class SettlementService {
     const isDraw = homeScore === awayScore;
 
     const actual1X2 = isHomeWin ? "1" : isAwayWin ? "2" : "X";
-    const pickClean = selection.trim();
+    const pickClean = selection.trim().toLowerCase();
 
     // 1. 1X2 Market
-    if (market === "1X2" || market === "ONE_X_TWO" as any) {
-      if (pickClean.startsWith("1") && !pickClean.includes("X") && isHomeWin) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.startsWith("2") && isAwayWin) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.startsWith("X") && isDraw) return { status: "WIN", actualResult: actual1X2 };
+    if (market === "1X2" || (market as any) === "ONE_X_TWO") {
+      const isPickHome = pickClean.startsWith("1") || /home\s*team\s*wins|^home\b/i.test(pickClean);
+      const isPickAway = pickClean.startsWith("2") || /away\s*team\s*wins|^away\b/i.test(pickClean);
+      const isPickDraw = pickClean.startsWith("x") || /^draw\b/i.test(pickClean);
 
-      // Double chance support in 1X2
-      if (pickClean.includes("1X") && (isHomeWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.includes("X2") && (isAwayWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.includes("12") && (isHomeWin || isAwayWin)) return { status: "WIN", actualResult: actual1X2 };
+      const isPick1X = pickClean.includes("1x") || /home.*draw|draw.*home/i.test(pickClean);
+      const isPickX2 = pickClean.includes("x2") || /away.*draw|draw.*away/i.test(pickClean);
+      const isPick12 = pickClean.includes("12") || /home.*away|away.*home/i.test(pickClean);
+
+      if (isPick1X) return { status: isHomeWin || isDraw ? "WIN" : "LOSS", actualResult: actual1X2 };
+      if (isPickX2) return { status: isAwayWin || isDraw ? "WIN" : "LOSS", actualResult: actual1X2 };
+      if (isPick12) return { status: isHomeWin || isAwayWin ? "WIN" : "LOSS", actualResult: actual1X2 };
+
+      if (isPickHome && isHomeWin) return { status: "WIN", actualResult: actual1X2 };
+      if (isPickAway && isAwayWin) return { status: "WIN", actualResult: actual1X2 };
+      if (isPickDraw && isDraw) return { status: "WIN", actualResult: actual1X2 };
 
       return { status: "LOSS", actualResult: actual1X2 };
     }
@@ -40,10 +47,10 @@ export class SettlementService {
       const isOver35 = totalGoals > 3.5;
       const actualOu = totalGoals > 2.5 ? "Over 2.5" : "Under 2.5";
 
-      if (/over 2\.5/i.test(pickClean)) return { status: isOver25 ? "WIN" : "LOSS", actualResult: actualOu };
-      if (/under 2\.5/i.test(pickClean)) return { status: !isOver25 ? "WIN" : "LOSS", actualResult: actualOu };
-      if (/over 1\.5/i.test(pickClean)) return { status: isOver15 ? "WIN" : "LOSS", actualResult: `${totalGoals} goals` };
-      if (/over 3\.5/i.test(pickClean)) return { status: isOver35 ? "WIN" : "LOSS", actualResult: `${totalGoals} goals` };
+      if (/over\s*2\.5/i.test(pickClean)) return { status: isOver25 ? "WIN" : "LOSS", actualResult: actualOu };
+      if (/under\s*2\.5/i.test(pickClean)) return { status: !isOver25 ? "WIN" : "LOSS", actualResult: actualOu };
+      if (/over\s*1\.5/i.test(pickClean)) return { status: isOver15 ? "WIN" : "LOSS", actualResult: `${totalGoals} goals` };
+      if (/over\s*3\.5/i.test(pickClean)) return { status: isOver35 ? "WIN" : "LOSS", actualResult: `${totalGoals} goals` };
 
       return { status: isOver25 ? "WIN" : "LOSS", actualResult: actualOu };
     }
@@ -53,17 +60,17 @@ export class SettlementService {
       const bttsActual = homeScore > 0 && awayScore > 0;
       const actualStr = bttsActual ? "Yes" : "No";
 
-      if (/yes/i.test(pickClean)) return { status: bttsActual ? "WIN" : "LOSS", actualResult: actualStr };
-      if (/no/i.test(pickClean)) return { status: !bttsActual ? "WIN" : "LOSS", actualResult: actualStr };
+      if (/won't\s*score|\bno\b/i.test(pickClean)) return { status: !bttsActual ? "WIN" : "LOSS", actualResult: actualStr };
+      if (/both\s*teams\s*to\s*score|\byes\b/i.test(pickClean)) return { status: bttsActual ? "WIN" : "LOSS", actualResult: actualStr };
 
       return { status: bttsActual ? "WIN" : "LOSS", actualResult: actualStr };
     }
 
     // 4. Double Chance
     if (market === "DOUBLE_CHANCE") {
-      if (pickClean.includes("1X") && (isHomeWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.includes("X2") && (isAwayWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
-      if (pickClean.includes("12") && (isHomeWin || isAwayWin)) return { status: "WIN", actualResult: actual1X2 };
+      if ((pickClean.includes("1x") || /home.*draw/i.test(pickClean)) && (isHomeWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
+      if ((pickClean.includes("x2") || /away.*draw/i.test(pickClean)) && (isAwayWin || isDraw)) return { status: "WIN", actualResult: actual1X2 };
+      if ((pickClean.includes("12") || /home.*away/i.test(pickClean)) && (isHomeWin || isAwayWin)) return { status: "WIN", actualResult: actual1X2 };
       return { status: "LOSS", actualResult: actual1X2 };
     }
 

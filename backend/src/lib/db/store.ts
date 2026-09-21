@@ -265,6 +265,22 @@ class MatchStore {
       }
     }
 
+    // 3. Cold-start auto-scrape: if both cache and DB are empty, scrape on-demand
+    if (matches.length === 0) {
+      try {
+        const { nerdyTipsScraper } = await import("../scraper/nerdytips-scraper");
+        const { normalizeScrapedMatchToMatchData } = await import("../scraper/nerdytips-normalizer");
+        console.log(`[MatchStore] Cold start: auto-scraping live data for d=${d} from NerdyTips...`);
+        const scraped = await nerdyTipsScraper.scrapeDay(d);
+        if (scraped && scraped.length > 0) {
+          const normalized = scraped.map(normalizeScrapedMatchToMatchData);
+          await this.saveMatches(normalized, d);
+          matches = normalized;
+        }
+      } catch (err: any) {
+        console.warn(`[MatchStore] On-demand auto-scrape notice for d=${d}:`, err.message);
+      }
+    }
 
     if (filters) {
       if (filters.country) {

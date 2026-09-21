@@ -120,7 +120,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🚀 Jolloftips Express Backend Running`);
     console.log(`📡 Port: ${PORT}`);
     console.log(`🌐 Base URL: http://localhost:${PORT}`);
-    console.log(`⚡ Football Provider: ${process.env.FOOTBALL_PROVIDER || "bzzoiro"}`);
+    console.log(`⚡ Football Provider: ${process.env.FOOTBALL_PROVIDER || "nerdytips"}`);
     console.log(`=========================================`);
 
     // Start 12-hour NerdyTips automated scraper & storage scheduler
