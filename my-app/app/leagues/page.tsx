@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { MatchData } from "@/lib/types";
 import { Trophy, Globe, Search, ArrowRight, Layers, ChevronRight, RefreshCw } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
 export default function LeaguesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -271,10 +272,10 @@ export default function LeaguesPage() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "var(--gold)",
+                          overflow: "hidden",
                         }}
                       >
-                        <Globe size={16} />
+                        <CountryFlag country={item.country} flagUrl={item.flagUrl} size={18} />
                       </div>
                       <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
                         {item.country}

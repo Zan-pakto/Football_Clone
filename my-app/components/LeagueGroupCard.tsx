@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MatchData } from "@/lib/types";
 import MatchRow from "./MatchRow";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
 interface LeagueGroupCardProps {
   leagueName: string;
@@ -43,28 +44,7 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
           {/* Country flag icon */}
-          <div
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
-          >
-            {flagUrl ? (
-              <img
-                src={flagUrl}
-                alt={country}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <Trophy style={{ width: 14, height: 14, color: "#8b7ff5" }} />
-            )}
-          </div>
+          <CountryFlag country={country} flagUrl={flagUrl} size={16} />
 
           {/* League title + Country subtitle */}
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>

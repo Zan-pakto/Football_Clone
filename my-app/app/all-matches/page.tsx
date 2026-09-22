@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import CountryFlag from "@/components/CountryFlag";
 
 // Module-level persistent cache across page navigations (Zero DB calls on page switch)
 const clientAllMatchesCache = new Map<
@@ -347,7 +348,7 @@ export default function AllMatchesPage() {
           <div
             className="country-sidebar"
             style={{
-              width: 210,
+              width: 224,
               flexShrink: 0,
               background: "var(--surface)",
               border: "1px solid var(--border-color)",
@@ -394,8 +395,8 @@ export default function AllMatchesPage() {
                   boxShadow: selectedCountry === "all" ? "0 4px 14px var(--accent-indigo-glow)" : "none",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Globe size={14} />
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <CountryFlag country="world" size={14} />
                   <span>All Countries</span>
                 </div>
                 <span
@@ -447,10 +448,13 @@ export default function AllMatchesPage() {
                       }
                     }}
                   >
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
-                      {country}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-dim)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, overflow: "hidden" }}>
+                      <CountryFlag country={country} size={13} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {country}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? "#FFFFFF" : "var(--text-dim)", flexShrink: 0, marginLeft: 6 }}>
                       {countryCounts[country] || 0}
                     </span>
                   </button>

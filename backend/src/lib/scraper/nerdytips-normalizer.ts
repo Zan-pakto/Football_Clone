@@ -1,6 +1,7 @@
 import { MatchData } from "../types";
 import { ScrapedMatch } from "./nerdytips-scraper";
 import { resolveDateString } from "../utils";
+import { getCountryFlagUrl } from "../flags";
 
 export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   const matchDate = resolveDateString(m.dParam);
@@ -24,7 +25,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     url: m.href,
     leagueName: m.league,
     country: m.country,
-    flagUrl: `/flags/${m.country.toLowerCase().replace(/\s+/g, "-")}.png`,
+    flagUrl: getCountryFlagUrl(m.country),
     homeTeam: m.homeTeam,
     awayTeam: m.awayTeam,
     homeLogo: null,

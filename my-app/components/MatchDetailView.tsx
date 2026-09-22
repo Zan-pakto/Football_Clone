@@ -19,6 +19,7 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
 interface MatchDetailViewProps {
   fixture: any;
@@ -316,20 +317,7 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             <ChevronLeft size={18} />
           </Link>
 
-          {hero.countryFlag ? (
-            <img
-              src={hero.countryFlag}
-              alt={hero.country}
-              width={20}
-              height={14}
-              style={{ width: 20, height: 14, objectFit: "cover", borderRadius: 2 }}
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = "none";
-              }}
-            />
-          ) : (
-            <span style={{ width: 14, height: 14, borderRadius: "50%", background: "#6366f1" }} />
-          )}
+          <CountryFlag country={hero.country} flagUrl={hero.countryFlag} size={15} />
 
           <span style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc" }}>
             {hero.country ? `${hero.country} - ${hero.leagueName}` : hero.leagueName}

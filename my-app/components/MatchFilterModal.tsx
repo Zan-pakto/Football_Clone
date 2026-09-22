@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Activity,
 } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
 export interface FilterState {
   market: "all" | "1x2" | "over15" | "over25" | "under25" | "btts" | "double_chance";
@@ -564,10 +565,12 @@ export default function MatchFilterModal({
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              flexShrink: 0,
                             }}
                           >
                             {isChecked && <Check size={10} color="#ffffff" />}
                           </span>
+                          <CountryFlag country={lg.country} size={14} />
                           <span style={{ fontSize: 12, fontWeight: isChecked ? 700 : 500, color: isChecked ? "#ffffff" : "#c6c2e8" }}>
                             {lg.name} <small style={{ color: "#7874a4" }}>({lg.country})</small>
                           </span>

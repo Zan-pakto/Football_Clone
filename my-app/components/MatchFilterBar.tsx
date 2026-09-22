@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, Globe } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
 interface MatchFilterBarProps {
   activeTab: string;
@@ -83,7 +84,10 @@ export default function MatchFilterBar({
             fontFamily: "var(--font-sans)",
           }}
         >
-          <span>All Regions</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <CountryFlag country="world" size={12} />
+            <span>All Regions</span>
+          </div>
           <span
             style={{
               fontSize: 10,
@@ -123,9 +127,12 @@ export default function MatchFilterBar({
               fontFamily: "var(--font-sans)",
             }}
           >
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 115 }}>
-              {country}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, overflow: "hidden" }}>
+              <CountryFlag country={country} size={12} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {country}
+              </span>
+            </div>
             {countryCounts[country] !== undefined && (
               <span
                 style={{
