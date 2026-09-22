@@ -52,6 +52,19 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
+  // Check if current authenticated user has active Pro/VIP/Admin subscription
+  const isPro = Boolean(
+    currentUser && (
+      currentUser.isPremium ||
+      currentUser.role === "ADMIN" ||
+      currentUser.subscriptionPlan === "VIP_PRO" ||
+      currentUser.subscriptionPlan === "PRO" ||
+      currentUser.subscriptionPlan === "PREMIUM" ||
+      currentUser.subscriptionPlan === "VIP" ||
+      currentUser.subscriptionStatus === "ACTIVE"
+    )
+  );
+
   // Fetch current auth status
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -310,6 +323,31 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               </kbd>
             </button>
 
+            {/* Mobile-Only PRO Badge */}
+            {isPro && (
+              <Link
+                href="/account"
+                className="navbar-mobile-pro"
+                aria-label="Active Pro Membership"
+                style={{
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "4px 8px",
+                  borderRadius: 7,
+                  background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)",
+                  color: "#0b091f",
+                  fontWeight: 900,
+                  fontSize: 10,
+                  letterSpacing: "0.5px",
+                  textDecoration: "none",
+                  boxShadow: "0 0 10px rgba(255, 184, 0, 0.4)",
+                }}
+              >
+                <Crown size={11} fill="#0b091f" />
+                <span>PRO</span>
+              </Link>
+            )}
+
             {/* Mobile-Only Compact Search Icon */}
             <button
               onClick={() => setShowSearchModal(true)}
@@ -330,36 +368,72 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               <Search size={16} />
             </button>
 
-            {/* Desktop VIP Access (Hidden on mobile to prevent overflow) */}
-            <Link
-              href="/pricing"
-              className="navbar-desktop-only"
-              style={{
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 14px",
-                borderRadius: 8,
-                background: "rgba(124, 108, 245, 0.18)",
-                border: "1px solid rgba(124, 108, 245, 0.45)",
-                color: "#8b7ff5",
-                fontSize: 12,
-                fontWeight: 800,
-                transition: "all 0.2s ease",
-                whiteSpace: "nowrap",
-                textDecoration: "none",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#7c6cf5";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(124, 108, 245, 0.18)";
-                e.currentTarget.style.color = "#8b7ff5";
-              }}
-            >
-              <Crown size={14} />
-              <span>VIP Access</span>
-            </Link>
+            {/* Desktop VIP Access or PRO Active Badge */}
+            {isPro ? (
+              <Link
+                href="/account"
+                className="navbar-desktop-only"
+                style={{
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg, rgba(255, 184, 0, 0.22) 0%, rgba(255, 136, 0, 0.22) 100%)",
+                  border: "1px solid rgba(255, 184, 0, 0.65)",
+                  color: "#ffc837",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                  textDecoration: "none",
+                  boxShadow: "0 0 14px rgba(255, 184, 0, 0.22)",
+                  letterSpacing: "0.5px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)";
+                  e.currentTarget.style.color = "#0b091f";
+                  e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 184, 0, 0.5)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 184, 0, 0.22) 0%, rgba(255, 136, 0, 0.22) 100%)";
+                  e.currentTarget.style.color = "#ffc837";
+                  e.currentTarget.style.boxShadow = "0 0 14px rgba(255, 184, 0, 0.22)";
+                }}
+              >
+                <Crown size={14} fill="#ffc837" />
+                <span>PRO</span>
+              </Link>
+            ) : (
+              <Link
+                href="/pricing"
+                className="navbar-desktop-only"
+                style={{
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "rgba(124, 108, 245, 0.18)",
+                  border: "1px solid rgba(124, 108, 245, 0.45)",
+                  color: "#8b7ff5",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#7c6cf5";
+                  e.currentTarget.style.color = "#ffffff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.18)";
+                  e.currentTarget.style.color = "#8b7ff5";
+                }}
+              >
+                <Crown size={14} />
+                <span>VIP Access</span>
+              </Link>
+            )}
 
             {/* Desktop Auth Button (Hidden on mobile) */}
             <div className="navbar-desktop-only">
@@ -382,12 +456,13 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       gap: 8,
                       padding: "4px 10px 4px 6px",
                       borderRadius: 999,
-                      background: "#141132",
-                      border: "1px solid rgba(167, 159, 255, 0.15)",
+                      background: isPro ? "rgba(255, 184, 0, 0.08)" : "#141132",
+                      border: isPro ? "1px solid rgba(255, 184, 0, 0.4)" : "1px solid rgba(167, 159, 255, 0.15)",
                       color: "#ffffff",
                       fontSize: 12,
                       fontWeight: 600,
                       textDecoration: "none",
+                      boxShadow: isPro ? "0 0 10px rgba(255, 184, 0, 0.15)" : "none",
                     }}
                   >
                     <div
@@ -395,8 +470,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                         width: 24,
                         height: 24,
                         borderRadius: "50%",
-                        background: "#2fd08a",
-                        color: "#fff",
+                        background: isPro ? "linear-gradient(135deg, #ffd700, #ff8800)" : "#2fd08a",
+                        color: isPro ? "#0b091f" : "#fff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -409,6 +484,26 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     <span style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {currentUser?.name || "Account"}
                     </span>
+                    {isPro && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)",
+                          color: "#0b091f",
+                          fontSize: 10,
+                          fontWeight: 900,
+                          letterSpacing: "0.5px",
+                          lineHeight: "14px",
+                        }}
+                      >
+                        <Crown size={9} fill="#0b091f" />
+                        PRO
+                      </span>
+                    )}
                   </Link>
                   <button
                     onClick={handleLogout}
@@ -630,8 +725,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                         width: 36,
                         height: 36,
                         borderRadius: "50%",
-                        background: "#2fd08a",
-                        color: "#fff",
+                        background: isPro ? "linear-gradient(135deg, #ffd700, #ff8800)" : "#2fd08a",
+                        color: isPro ? "#0b091f" : "#fff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -642,10 +737,33 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {currentUser?.name || "Member"}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {currentUser?.name || "Member"}
+                        </span>
+                        {isPro && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)",
+                              color: "#0b091f",
+                              fontSize: 9,
+                              fontWeight: 900,
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            <Crown size={9} fill="#0b091f" />
+                            PRO
+                          </span>
+                        )}
                       </div>
-                      <div style={{ fontSize: 11, color: "#7874a4" }}>{currentUser?.email || ""}</div>
+                      <div style={{ fontSize: 11, color: isPro ? "#ffc837" : "#7874a4", fontWeight: isPro ? 600 : 400 }}>
+                        {isPro ? "★ Active PRO Membership" : (currentUser?.email || "")}
+                      </div>
                     </div>
                   </div>
 
@@ -813,9 +931,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>Builder</span>
         </Link>
 
-        {/* Item 4: VIP Pricing */}
+        {/* Item 4: VIP / PRO */}
         <Link
-          href="/pricing"
+          href={isPro ? "/account" : "/pricing"}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -824,7 +942,11 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             gap: 3,
             flex: 1,
             height: "100%",
-            color: pathname === "/pricing" ? "#ffffff" : "#7874a4",
+            color: isPro
+              ? "#ffc837"
+              : pathname === "/pricing"
+              ? "#ffffff"
+              : "#7874a4",
             textDecoration: "none",
           }}
         >
@@ -832,12 +954,29 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             style={{
               padding: "3px 12px",
               borderRadius: 12,
-              background: pathname === "/pricing" ? "rgba(124, 108, 245, 0.22)" : "transparent",
+              background: isPro
+                ? "rgba(255, 184, 0, 0.15)"
+                : pathname === "/pricing"
+                ? "rgba(124, 108, 245, 0.22)"
+                : "transparent",
             }}
           >
-            <Crown size={18} color={pathname === "/pricing" ? "#8b7ff5" : "#7874a4"} />
+            <Crown
+              size={18}
+              color={isPro ? "#ffc837" : pathname === "/pricing" ? "#8b7ff5" : "#7874a4"}
+              fill={isPro ? "#ffc837" : "none"}
+            />
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>VIP</span>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: isPro ? 900 : 700,
+              letterSpacing: "0.02em",
+              color: isPro ? "#ffc837" : undefined,
+            }}
+          >
+            {isPro ? "PRO" : "VIP"}
+          </span>
         </Link>
 
         {/* Item 5: Account or Login */}
@@ -881,6 +1020,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
         .navbar-search-btn-mobile {
           display: flex !important;
         }
+        .navbar-mobile-pro {
+          display: inline-flex !important;
+        }
         .navbar-desktop-only {
           display: none !important;
         }
@@ -899,6 +1041,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             display: inline-flex !important;
           }
           .navbar-search-btn-mobile {
+            display: none !important;
+          }
+          .navbar-mobile-pro {
             display: none !important;
           }
           .navbar-desktop-only {

@@ -60,6 +60,18 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"profile" | "subscription" | "security">("profile");
 
+  const isPro = Boolean(
+    user && (
+      user.isPremium ||
+      user.role === "ADMIN" ||
+      user.subscriptionPlan === "VIP_PRO" ||
+      user.subscriptionPlan === "PRO" ||
+      user.subscriptionPlan === "PREMIUM" ||
+      user.subscriptionPlan === "VIP" ||
+      user.subscriptionStatus === "ACTIVE"
+    )
+  );
+
   const [displayName, setDisplayName] = useState("");
   const [favoriteLeague, setFavoriteLeague] = useState(TOP_LEAGUES[0]);
   const [favoriteTeam, setFavoriteTeam] = useState(POPULAR_TEAMS[0]);
@@ -130,9 +142,30 @@ export default function AccountPage() {
               {user?.name?.charAt(0)?.toUpperCase() || "U"}
             </div>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
-                {user?.name || "Member Account"}
-              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h1 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  {user?.name || "Member Account"}
+                </h1>
+                {isPro && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)",
+                      color: "#0b091f",
+                      fontSize: 11,
+                      fontWeight: 900,
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    <Crown size={12} fill="#0b091f" />
+                    PRO
+                  </span>
+                )}
+              </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
                 {user?.email || "Signed in"} · Member since 2026
               </p>
@@ -252,22 +285,42 @@ export default function AccountPage() {
               Current Plan & Membership
             </h2>
 
-            <div style={{ padding: "20px", borderRadius: 12, background: "var(--gold-bg)", border: "1px solid var(--gold-border)", marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-              <div>
-                <div className="gold-badge" style={{ marginBottom: 6 }}>FREE TIER ACTIVE</div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>Standard Access</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Daily free algorithmic picks & basic live match trackers.</p>
-              </div>
+            {isPro ? (
+              <div style={{ padding: "24px", borderRadius: 12, background: "linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 136, 0, 0.08) 100%)", border: "1px solid rgba(255, 215, 0, 0.4)", marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 6, background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)", color: "#0b091f", fontWeight: 900, fontSize: 11, marginBottom: 8, letterSpacing: "0.5px" }}>
+                    <Crown size={12} fill="#0b091f" />
+                    PRO MEMBERSHIP ACTIVE
+                  </div>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: 0 }}>VIP Pro Access</h3>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+                    Unlimited AI banker tips, all leagues unlocked, and full high-probability predictions active.
+                  </p>
+                </div>
 
-              <Link
-                href="/pricing"
-                className="gold-btn"
-                style={{ padding: "10px 20px", fontSize: 13 }}
-              >
-                <Crown size={15} />
-                <span>Upgrade to VIP Pro</span>
-              </Link>
-            </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, background: "rgba(47, 208, 138, 0.15)", border: "1px solid rgba(47, 208, 138, 0.3)", color: "#2fd08a", fontSize: 13, fontWeight: 700 }}>
+                  <CheckCircle2 size={16} />
+                  <span>VIP Unlocked</span>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: "20px", borderRadius: 12, background: "var(--gold-bg)", border: "1px solid var(--gold-border)", marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div className="gold-badge" style={{ marginBottom: 6 }}>FREE TIER ACTIVE</div>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>Standard Access</h3>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Daily free algorithmic picks & basic live match trackers.</p>
+                </div>
+
+                <Link
+                  href="/pricing"
+                  className="gold-btn"
+                  style={{ padding: "10px 20px", fontSize: 13 }}
+                >
+                  <Crown size={15} />
+                  <span>Upgrade to VIP Pro</span>
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
