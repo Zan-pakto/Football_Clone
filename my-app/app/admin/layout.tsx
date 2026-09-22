@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+//asfd
 export const metadata: Metadata = {
   title: "Operations Console",
   description: "Internal administrative management console.",
