@@ -42,6 +42,27 @@ export interface ScrapedMatch {
   dParam: string;
 }
 
+export interface BetOfTheDayStats {
+  bankers: {
+    count: number;
+    upcoming: number;
+    successRate: string;
+  };
+  slip: {
+    count: number;
+    upcoming: number;
+    totalOdds: number;
+  };
+}
+
+export interface BetOfTheDayResult {
+  date: string;
+  dParam: string;
+  stats: BetOfTheDayStats;
+  bankers: ScrapedMatch[];
+  slip: ScrapedMatch[];
+}
+
 export class NerdyTipsScraper {
   private baseUrl = "https://nerdytips.com";
   private userAgent =
@@ -405,6 +426,152 @@ export class NerdyTipsScraper {
     } catch (err: any) {
       console.error(`[NerdyTipsScraper] Error scraping d=${dParam}:`, err.message);
       return [];
+    }
+  }
+
+  /**
+   * Scrape Bet of the Day & Slip of the Day from NerdyTips (12-hour sync cycle)
+   */
+  async scrapeBetOfTheDay(
+    dParam: string = "0",
+    tz?: string | number | null,
+    cookieHeader?: string | null,
+    forceRefresh: boolean = false
+  ): Promise<BetOfTheDayResult> {
+    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "330");
+    const cacheKey = `botd:${dParam}:${activeTz}`;
+
+    // Check cache (12-hour duration unless forced)
+    if (!forceRefresh) {
+      const cached = await cacheService.get<BetOfTheDayResult>(cacheKey).catch(() => null);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const url = dParam === "0" || dParam === "" ? `${this.baseUrl}/bet-of-the-day` : `${this.baseUrl}/bet-of-the-day?d=${dParam}`;
+    const tzCookie = `tz_offset_v2=${activeTz}; timezone_manual=1;`;
+
+    const headers: Record<string, string> = {
+      "User-Agent": this.userAgent,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      Cookie: cookieHeader ? `${cookieHeader}; ${tzCookie}` : tzCookie,
+    };
+
+    try {
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        console.warn(`[NerdyTipsScraper] Failed to fetch Bet of the Day from ${url} (HTTP ${res.status})`);
+        return this.generateFallbackBetOfTheDay(dParam);
+      }
+
+      const html = await res.text();
+
+      // Extract bankers section
+      const bankersPanelMatch = html.match(/data-botd-panel="bankers"[\s\S]*?<\/section>/i);
+      const bankersHtml = bankersPanelMatch ? bankersPanelMatch[0] : "";
+      const bankersMatches = this.parseMatchBlock(bankersHtml, dParam);
+
+      // Extract slip section
+      const slipPanelMatch = html.match(/data-botd-panel="slip"[\s\S]*?<\/section>/i);
+      const slipHtml = slipPanelMatch ? slipPanelMatch[0] : "";
+      const slipMatches = this.parseMatchBlock(slipHtml, dParam);
+
+      // Extract Tab Stats attributes: data-v1, data-v2, data-v3
+      const bankersTabMatch = html.match(/data-botd-tab="bankers"[^>]*data-v1="([^"]*)"[^>]*data-v2="([^"]*)"[^>]*data-v3="([^"]*)"/i);
+      const slipTabMatch = html.match(/data-botd-tab="slip"[^>]*data-v1="([^"]*)"[^>]*data-v2="([^"]*)"[^>]*data-v3="([^"]*)"/i);
+
+      let bankersCount = bankersMatches.length;
+      let bankersUpcoming = bankersMatches.filter((m) => m.status === "UPCOMING").length;
+      let bankersSuccess = "0%";
+
+      if (bankersTabMatch) {
+        bankersCount = parseInt(bankersTabMatch[1], 10) || bankersCount;
+        bankersUpcoming = parseInt(bankersTabMatch[2], 10) || bankersUpcoming;
+        bankersSuccess = bankersTabMatch[3] || bankersSuccess;
+      }
+
+      let slipCount = slipMatches.length;
+      let slipUpcoming = slipMatches.filter((m) => m.status === "UPCOMING").length;
+      let slipTotalOdds = 1.0;
+
+      if (slipTabMatch) {
+        slipCount = parseInt(slipTabMatch[1], 10) || slipCount;
+        slipUpcoming = parseInt(slipTabMatch[2], 10) || slipUpcoming;
+        slipTotalOdds = parseFloat(slipTabMatch[3]) || 1.0;
+      } else if (slipMatches.length > 0) {
+        slipTotalOdds = parseFloat(slipMatches.reduce((acc, m) => acc * (m.tipOdds || 1.4), 1).toFixed(2));
+      }
+
+      const result: BetOfTheDayResult = {
+        date: dParam,
+        dParam,
+        stats: {
+          bankers: {
+            count: bankersCount,
+            upcoming: bankersUpcoming,
+            successRate: bankersSuccess,
+          },
+          slip: {
+            count: slipCount,
+            upcoming: slipUpcoming,
+            totalOdds: slipTotalOdds,
+          },
+        },
+        bankers: bankersMatches,
+        slip: slipMatches,
+      };
+
+      // Set cache TTL to exactly 12 hours (43,200 seconds)
+      const BOTD_12_HOURS_TTL = 12 * 60 * 60;
+      await cacheService.set(cacheKey, result, BOTD_12_HOURS_TTL).catch(() => {});
+
+      return result;
+    } catch (err: any) {
+      console.error(`[NerdyTipsScraper] Error scraping Bet of the Day for d=${dParam}:`, err.message);
+      return this.generateFallbackBetOfTheDay(dParam);
+    }
+  }
+
+  /**
+   * Fallback if NerdyTips bet-of-the-day endpoint is unreachable
+   */
+  private generateFallbackBetOfTheDay(dParam: string): BetOfTheDayResult {
+    return {
+      date: dParam,
+      dParam,
+      stats: {
+        bankers: { count: 0, upcoming: 0, successRate: "0%" },
+        slip: { count: 0, upcoming: 0, totalOdds: 1.0 },
+      },
+      bankers: [],
+      slip: [],
+    };
+  }
+
+  /**
+   * Scrape Live Updates for in-play matches
+   */
+  async scrapeBetOfTheDayLive(ids: string[]): Promise<Record<string, any>> {
+    if (!ids || ids.length === 0) return {};
+    const url = `${this.baseUrl}/bet-of-the-day/live?ids=${ids.map(encodeURIComponent).join("%2C")}`;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": this.userAgent,
+          Accept: "application/json, text/plain, */*",
+        },
+      });
+      if (!res.ok) return {};
+      const data = (await res.json()) as any;
+      if (data && data.ok && data.matches) {
+        return data.matches;
+      }
+      return {};
+    } catch (err: any) {
+      console.warn("[NerdyTipsScraper] Error fetching live updates:", err.message);
+      return {};
     }
   }
 

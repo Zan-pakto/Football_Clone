@@ -15,6 +15,7 @@ import syncRoutes from "./routes/sync.routes";
 import healthRoutes from "./routes/health.routes";
 import paymentRoutes from "./routes/payment.routes";
 import rolloversRoutes from "./routes/rollovers.routes";
+import betOfTheDayRoutes from "./routes/bet-of-the-day.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -97,6 +98,7 @@ app.use("/api/matches", matchesRoutes);
 app.use("/api/sync", syncRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/rollovers", rolloversRoutes);
+app.use("/api/bet-of-the-day", betOfTheDayRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

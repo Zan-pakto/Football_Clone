@@ -65,6 +65,12 @@ export class ScraperScheduler {
       // Also invalidate track record cache so recent settlements display in /progress
       await cacheService.invalidate("track_record_progress");
 
+      // Invalidate and re-scrape Bet of the Day on the 12-hour sync cycle
+      for (const d of days) {
+        await cacheService.invalidatePattern(`botd:${d}:*`);
+        await nerdyTipsScraper.scrapeBetOfTheDay(d, activeTz, null, true).catch(() => {});
+      }
+
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`[ScraperScheduler] Successfully synced ${total} matches across ${days.length} days in ${elapsed}s.`);
 
