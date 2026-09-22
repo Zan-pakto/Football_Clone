@@ -32,6 +32,7 @@ function AuthContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [acceptTerms, setAcceptTerms] = useState(true);
 
@@ -43,6 +44,87 @@ function AuthContent() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Handle Google OAuth callback params and errors
+  useEffect(() => {
+    const googleAuthParam = searchParams.get("google_auth");
+    const tokenParam = searchParams.get("token");
+    const errParam = searchParams.get("error");
+
+    if (googleAuthParam === "success" && tokenParam) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("jt_auth_token", tokenParam);
+      }
+      setSuccess("Welcome to JollofTips! Signed in with Google. Redirecting...");
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 700);
+    } else if (errParam) {
+      if (errParam === "google_not_configured") {
+        setError("Google Sign-In is not yet configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to the server .env file.");
+      } else if (errParam === "google_cancelled") {
+        setError("Google Sign-In was cancelled.");
+      } else {
+        setError(`Google Sign-In failed: ${errParam.replace(/_/g, " ")}`);
+      }
+    }
+  }, [searchParams, redirectUrl]);
+
+  // Optional: Google Identity Services One-Tap integration if client ID is configured
+  useEffect(() => {
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!googleClientId || googleClientId.trim() === "" || currentUser) return;
+
+    // Load Google Identity Services script
+    const scriptId = "google-gsi-client";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        if ((window as any).google?.accounts?.id) {
+          try {
+            (window as any).google.accounts.id.initialize({
+              client_id: googleClientId,
+              callback: async (response: any) => {
+                if (response?.credential) {
+                  setGoogleLoading(true);
+                  try {
+                    const res = await fetch("/api/auth/google", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ credential: response.credential }),
+                    });
+                    const data = await res.json();
+                    if (data.success && data.token) {
+                      localStorage.setItem("jt_auth_token", data.token);
+                      setSuccess("Welcome to JollofTips! Signed in with Google. Redirecting...");
+                      setTimeout(() => {
+                        window.location.href = redirectUrl;
+                      }, 700);
+                    } else {
+                      setError(data.error || "Google authentication failed.");
+                    }
+                  } catch {
+                    setError("Network error while communicating with Google auth service.");
+                  } finally {
+                    setGoogleLoading(false);
+                  }
+                }
+              },
+            });
+            (window as any).google.accounts.id.prompt();
+          } catch (e) {
+            console.warn("Google One-Tap initialization skipped:", e);
+          }
+        }
+      };
+      document.body.appendChild(script);
+    }
+  }, [currentUser, redirectUrl]);
 
   // Sync mode with URL
   useEffect(() => {
@@ -66,6 +148,13 @@ function AuthContent() {
     }
     checkUser();
   }, []);
+
+  const handleGoogleSignIn = () => {
+    setGoogleLoading(true);
+    setError(null);
+    const targetUrl = `/api/auth/google?redirect=${encodeURIComponent(redirectUrl)}`;
+    window.location.href = targetUrl;
+  };
 
   const switchMode = (newMode: "login" | "register") => {
     setMode(newMode);
@@ -461,6 +550,78 @@ function AuthContent() {
                     <span>{success}</span>
                   </div>
                 )}
+
+                {/* Google Sign-In Button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading || loading}
+                  style={{
+                    width: "100%",
+                    padding: "11px 16px",
+                    borderRadius: 8,
+                    background: "var(--surface-raised)",
+                    border: "1px solid var(--border-color)",
+                    color: "var(--text-primary)",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: googleLoading || loading ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 12,
+                    transition: "all 0.15s ease",
+                    marginBottom: 18,
+                    opacity: googleLoading ? 0.75 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--gold)";
+                    e.currentTarget.style.background = "rgba(124, 108, 245, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-color)";
+                    e.currentTarget.style.background = "var(--surface-raised)";
+                  }}
+                >
+                  {googleLoading ? (
+                    <RefreshCw size={16} className="animate-spin" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                      <path
+                        fill="#4285F4"
+                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                      />
+                    </svg>
+                  )}
+                  <span>
+                    {googleLoading
+                      ? "Connecting to Google..."
+                      : mode === "login"
+                      ? "Continue with Google"
+                      : "Sign up with Google"}
+                  </span>
+                </button>
+
+                {/* Divider */}
+                <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: 12 }}>
+                  <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-dim)" }}>
+                    or continue with email
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+                </div>
 
                 {/* Form */}
                 <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

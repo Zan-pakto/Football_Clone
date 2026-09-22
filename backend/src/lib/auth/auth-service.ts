@@ -221,6 +221,104 @@ export class AuthService {
     return { user, token };
   }
 
+  async loginOrRegisterWithGoogle(params: {
+    email: string;
+    name?: string;
+    googleId?: string;
+    avatar?: string;
+    deviceName?: string;
+    userAgent?: string;
+    ipAddress?: string;
+  }): Promise<{ user: AuthUser; token: string }> {
+    const { email, name, deviceName, userAgent, ipAddress } = params;
+    const emailLower = email.toLowerCase().trim();
+
+    let dbUser: any = null;
+    try {
+      dbUser = await prisma.user.findFirst({
+        where: { email: emailLower },
+        include: { subscriptions: true },
+      });
+    } catch {
+      dbUser = memoryUsers.get(emailLower);
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (!dbUser) {
+      // Generate a secure random password hash for OAuth users
+      const randomPassword = `OAuth_Google_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const passwordHash = await hashPassword(randomPassword);
+      const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const role: "USER" | "ADMIN" = (emailLower === "admin@jolloftips.com" || emailLower === "admin@footyintel.com") ? "ADMIN" : "USER";
+
+      try {
+        dbUser = await prisma.user.create({
+          data: {
+            id: userId,
+            email: emailLower,
+            passwordHash,
+            name: name || emailLower.split("@")[0],
+            role,
+          },
+          include: { subscriptions: true },
+        });
+      } catch {
+        dbUser = {
+          id: userId,
+          email: emailLower,
+          name: name || emailLower.split("@")[0],
+          passwordHash,
+          role,
+          createdAt: nowIso,
+        };
+        memoryUsers.set(emailLower, dbUser);
+      }
+    }
+
+    // Check if user is blocked
+    try {
+      const { adminService } = await import("../admin/admin-service");
+      if (adminService.isBlocked(dbUser.id, dbUser.email)) {
+        throw new Error("Your account has been suspended by the administrator. Please contact support.");
+      }
+    } catch (e: any) {
+      if (e.message?.includes("suspended")) throw e;
+    }
+
+    const activeSub = dbUser.subscriptions?.find((s: any) => s.status === "ACTIVE");
+    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN");
+
+    const user: AuthUser = {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name || dbUser.email.split("@")[0],
+      role: dbUser.role,
+      isPremium,
+      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : "FREE"),
+      subscriptionStatus: activeSub ? activeSub.status : "ACTIVE",
+      createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : nowIso,
+    };
+
+    const sessionId = `sess_${Date.now()}`;
+    const token = await createToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId,
+    });
+
+    await sessionService.createSession({
+      userId: user.id,
+      token,
+      deviceName: deviceName || "Google Device",
+      userAgent,
+      ipAddress,
+    });
+
+    return { user, token };
+  }
+
   async getCurrentUser(token?: string | null): Promise<AuthUser | null> {
     if (!token) return null;
 

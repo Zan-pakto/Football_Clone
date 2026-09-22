@@ -24,6 +24,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/+$/, "") : undefined,
 ].filter(Boolean) as string[];
 
 app.use(

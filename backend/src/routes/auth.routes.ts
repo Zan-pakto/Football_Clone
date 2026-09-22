@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authService } from "../lib/auth/auth-service";
 import { sessionService } from "../lib/auth/session-service";
+import { googleAuthService } from "../lib/auth/google-auth";
 
 const router = Router();
 
@@ -167,6 +168,171 @@ router.post("/", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(`💥 [AUTH:ERROR]`, error.message);
     return res.status(400).json({ success: false, error: error.message || "Authentication error" });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// GOOGLE AUTHENTICATION ENDPOINTS
+// ══════════════════════════════════════════════════════════════════════
+
+// GET /api/auth/google - Initiate Google OAuth Redirect
+router.get("/google", async (req: Request, res: Response) => {
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const state = (req.query.redirect as string) || "/";
+
+  if (!googleAuthService.isConfigured()) {
+    console.warn("⚠️ [AUTH:GOOGLE] Google OAuth is not configured in .env (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing)");
+    // If the request accepts HTML, redirect to frontend login with descriptive error
+    if (req.accepts("html")) {
+      return res.redirect(`${frontendUrl}/login?error=google_not_configured`);
+    }
+    return res.status(400).json({
+      success: false,
+      error: "Google OAuth is not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env",
+      code: "GOOGLE_NOT_CONFIGURED",
+    });
+  }
+
+  try {
+    const authUrl = googleAuthService.getAuthUrl(state);
+    console.log("🔗 [AUTH:GOOGLE] Redirecting user to Google OAuth consent screen");
+    return res.redirect(authUrl);
+  } catch (err: any) {
+    console.error("❌ [AUTH:GOOGLE_INIT_ERROR]", err.message);
+    return res.redirect(`${frontendUrl}/login?error=google_init_failed`);
+  }
+});
+
+// GET /api/auth/google/callback - Google OAuth Callback
+router.get("/google/callback", async (req: Request, res: Response) => {
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const { code, state, error: googleError } = req.query as {
+    code?: string;
+    state?: string;
+    error?: string;
+  };
+
+  if (googleError) {
+    console.log(`⚠️ [AUTH:GOOGLE_CALLBACK_CANCELLED] Google returned: ${googleError}`);
+    return res.redirect(`${frontendUrl}/login?error=google_cancelled`);
+  }
+
+  if (!code) {
+    console.log("❌ [AUTH:GOOGLE_CALLBACK_ERROR] Missing authorization code");
+    return res.redirect(`${frontendUrl}/login?error=missing_code`);
+  }
+
+  try {
+    console.log("🔄 [AUTH:GOOGLE_CALLBACK] Exchanging code for tokens...");
+    const tokens = await googleAuthService.exchangeCode(code);
+    let userInfo: any = null;
+
+    if (tokens.id_token) {
+      try {
+        userInfo = await googleAuthService.verifyIdToken(tokens.id_token);
+      } catch {
+        // Fallback to userinfo endpoint
+      }
+    }
+
+    if (!userInfo && tokens.access_token) {
+      userInfo = await googleAuthService.getUserInfo(tokens.access_token);
+    }
+
+    if (!userInfo || !userInfo.email) {
+      throw new Error("Unable to retrieve email from Google profile");
+    }
+
+    console.log(`✅ [AUTH:GOOGLE_CALLBACK_SUCCESS] Authenticated Google user: ${userInfo.email}`);
+
+    const userAgent = (req.headers["user-agent"] as string) || "Browser";
+    const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+
+    const { user, token } = await authService.loginOrRegisterWithGoogle({
+      email: userInfo.email,
+      name: userInfo.name || userInfo.email.split("@")[0],
+      googleId: userInfo.sub,
+      avatar: userInfo.picture,
+      userAgent,
+      ipAddress,
+      deviceName: userAgent.includes("Mobile") ? "Mobile Device (Google)" : "Desktop (Google)",
+    });
+
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const targetRedirect = state && state.startsWith("/") ? state : "/";
+    return res.redirect(
+      `${frontendUrl}/login?google_auth=success&token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(targetRedirect)}`
+    );
+  } catch (error: any) {
+    console.error("❌ [AUTH:GOOGLE_CALLBACK_FAIL]", error.message);
+    return res.redirect(
+      `${frontendUrl}/login?error=${encodeURIComponent(error.message || "google_failed")}`
+    );
+  }
+});
+
+// POST /api/auth/google - Client-side ID Token / One-Tap Verification
+router.post("/google", async (req: Request, res: Response) => {
+  try {
+    const { credential, idToken, code } = req.body || {};
+    const tokenToVerify = credential || idToken;
+
+    let googleUser: any = null;
+
+    if (tokenToVerify) {
+      googleUser = await googleAuthService.verifyIdToken(tokenToVerify);
+    } else if (code) {
+      const tokens = await googleAuthService.exchangeCode(code);
+      googleUser = await googleAuthService.getUserInfo(tokens.access_token);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: "Missing Google credential or authorization code",
+      });
+    }
+
+    const userAgent = (req.headers["user-agent"] as string) || "Browser";
+    const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+
+    const { user, token } = await authService.loginOrRegisterWithGoogle({
+      email: googleUser.email,
+      name: googleUser.name,
+      googleId: googleUser.sub,
+      avatar: googleUser.picture,
+      userAgent,
+      ipAddress,
+      deviceName: userAgent.includes("Mobile") ? "Mobile Device (Google)" : "Desktop (Google)",
+    });
+
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      success: true,
+      user,
+      token,
+      message: "Signed in with Google successfully",
+    });
+  } catch (error: any) {
+    console.error("❌ [AUTH:GOOGLE_POST_FAIL]", error.message);
+    return res.status(400).json({
+      success: false,
+      error: error.message || "Failed to authenticate with Google",
+    });
   }
 });
 
