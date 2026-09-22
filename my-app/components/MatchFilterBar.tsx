@@ -2,6 +2,7 @@
 
 import { Search, Globe } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
+import { normalizeCountryName } from "@/lib/flags";
 
 interface MatchFilterBarProps {
   activeTab: string;
@@ -130,7 +131,7 @@ export default function MatchFilterBar({
             <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, overflow: "hidden" }}>
               <CountryFlag country={country} size={12} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {country}
+                {normalizeCountryName(country)}
               </span>
             </div>
             {countryCounts[country] !== undefined && (

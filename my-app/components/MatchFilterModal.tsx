@@ -14,6 +14,7 @@ import {
   Activity,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
+import { normalizeCountryName } from "@/lib/flags";
 
 export interface FilterState {
   market: "all" | "1x2" | "over15" | "over25" | "under25" | "btts" | "double_chance";
@@ -572,7 +573,7 @@ export default function MatchFilterModal({
                           </span>
                           <CountryFlag country={lg.country} size={14} />
                           <span style={{ fontSize: 12, fontWeight: isChecked ? 700 : 500, color: isChecked ? "#ffffff" : "#c6c2e8" }}>
-                            {lg.name} <small style={{ color: "#7874a4" }}>({lg.country})</small>
+                            {lg.name} <small style={{ color: "#7874a4" }}>({normalizeCountryName(lg.country)})</small>
                           </span>
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4" }}>

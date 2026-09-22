@@ -5,6 +5,7 @@ import { MatchData } from "@/lib/types";
 import MatchRow from "./MatchRow";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
+import { normalizeCountryName } from "@/lib/flags";
 
 interface LeagueGroupCardProps {
   leagueName: string;
@@ -15,6 +16,7 @@ interface LeagueGroupCardProps {
 
 export default function LeagueGroupCard({ leagueName, country, flagUrl, matches }: LeagueGroupCardProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const displayCountry = normalizeCountryName(country);
 
   return (
     <div
@@ -44,7 +46,7 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
           {/* Country flag icon */}
-          <CountryFlag country={country} flagUrl={flagUrl} size={16} />
+          <CountryFlag country={displayCountry} flagUrl={flagUrl} size={16} />
 
           {/* League title + Country subtitle */}
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -69,7 +71,7 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
                 lineHeight: 1.2,
               }}
             >
-              {country}
+              {displayCountry}
             </span>
           </div>
         </div>

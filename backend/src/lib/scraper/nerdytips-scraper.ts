@@ -160,12 +160,9 @@ export class NerdyTipsScraper {
         }
       }
 
-      // Extract Country from q
+      // Extract Country from q (handles multi-word countries like "Costa Rica", "Czech Republic", "Saudi Arabia")
       if (q) {
-        const parts = q.split(/\s+/);
-        if (parts.length > 0) {
-          country = parts[parts.length - 1].replace(/\b\w/g, (l) => l.toUpperCase());
-        }
+        country = this.extractCountryFromQ(q);
       }
 
       // Status resolution
@@ -219,6 +216,51 @@ export class NerdyTipsScraper {
       });
     }
     return matches;
+  }
+
+  private extractCountryFromQ(q: string): string {
+    if (!q) return "International";
+    const cleanQ = q.trim().toLowerCase();
+
+    // Pattern 1: Repeated country phrase at the end (NerdyTips repeats country name 2x or 3x at the end of data-q)
+    // e.g. "... costa-rica costa rica costa rica", "... czech-republic czech republic czech republic", "... england england england"
+    const repeat3 = cleanQ.match(/\b([a-z\s\-]+?)\s+\1\s+\1$/i);
+    if (repeat3 && repeat3[1].trim().length >= 3) {
+      return this.formatCountryName(repeat3[1].trim());
+    }
+
+    const repeat2 = cleanQ.match(/\b([a-z\s\-]+?)\s+\1$/i);
+    if (repeat2 && repeat2[1].trim().length >= 3) {
+      return this.formatCountryName(repeat2[1].trim());
+    }
+
+    // Pattern 2: Hyphenated country slug inside q (e.g. "costa-rica", "czech-republic", "saudi-arabia", "south-africa", "new-zealand")
+    const slugMatch = cleanQ.match(/\b([a-z]{3,}(?:-[a-z]{3,})+)\b/);
+    if (slugMatch) {
+      return this.formatCountryName(slugMatch[1]);
+    }
+
+    // Fallback: check last token
+    const parts = cleanQ.split(/\s+/);
+    const last = parts[parts.length - 1];
+    return this.formatCountryName(last);
+  }
+
+  private formatCountryName(name: string): string {
+    const clean = name.replace(/-/g, " ").trim();
+    if (clean === "rica" || clean === "costa rica") return "Costa Rica";
+    if (clean === "czech republic" || clean === "czechia" || clean === "republic") return "Czech Republic";
+    if (clean === "el salvador" || clean === "salvador") return "El Salvador";
+    if (clean === "saudi arabia" || clean === "arabia") return "Saudi Arabia";
+    if (clean === "south africa") return "South Africa";
+    if (clean === "south korea" || clean === "korea") return "South Korea";
+    if (clean === "north macedonia" || clean === "macedonia") return "North Macedonia";
+    if (clean === "united states" || clean === "usa" || clean === "states") return "USA";
+    if (clean === "puerto rico" || clean === "rico") return "Puerto Rico";
+    if (clean === "new zealand" || clean === "zealand") return "New Zealand";
+    if (clean === "hong kong" || clean === "kong") return "Hong Kong";
+    if (clean === "dr congo" || clean === "congo dr") return "DR Congo";
+    return clean.replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
   /**

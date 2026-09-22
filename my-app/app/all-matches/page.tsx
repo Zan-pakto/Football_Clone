@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
+import { normalizeCountryName } from "@/lib/flags";
 
 // Module-level persistent cache across page navigations (Zero DB calls on page switch)
 const clientAllMatchesCache = new Map<
@@ -197,7 +198,7 @@ export default function AllMatchesPage() {
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     matches.forEach((m) => {
-      const c = m.country || "International";
+      const c = normalizeCountryName(m.country);
       counts[c] = (counts[c] || 0) + 1;
     });
     return counts;
@@ -210,9 +211,10 @@ export default function AllMatchesPage() {
   const availableLeagues = useMemo(() => {
     const map = new Map<string, { name: string; country: string; count: number }>();
     matches.forEach((m) => {
-      const key = `${m.country || "Int"}_${m.leagueName}`;
+      const c = normalizeCountryName(m.country);
+      const key = `${c}_${m.leagueName}`;
       if (!map.has(key)) {
-        map.set(key, { name: m.leagueName, country: m.country, count: 0 });
+        map.set(key, { name: m.leagueName, country: c, count: 0 });
       }
       map.get(key)!.count++;
     });
@@ -221,7 +223,8 @@ export default function AllMatchesPage() {
 
   const filteredMatches = useMemo(() => {
     return matches.filter((m) => {
-      if (selectedCountry !== "all" && (m.country || "International") !== selectedCountry) {
+      const c = normalizeCountryName(m.country);
+      if (selectedCountry !== "all" && c !== selectedCountry) {
         return false;
       }
 
@@ -305,11 +308,12 @@ export default function AllMatchesPage() {
   const groupedByLeague = useMemo(() => {
     const map = new Map<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }>();
     filteredMatches.forEach((m) => {
-      const key = `${m.country || "Int"}_${m.leagueName}`;
+      const c = normalizeCountryName(m.country);
+      const key = `${c}_${m.leagueName}`;
       if (!map.has(key)) {
         map.set(key, {
           leagueName: m.leagueName,
-          country: m.country,
+          country: c,
           flagUrl: m.flagUrl,
           matches: [],
         });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getCountryFlagUrl, slugifyCountry } from "@/lib/flags";
+import { getCountryFlagUrl, slugifyCountry, normalizeCountryName } from "@/lib/flags";
 
 interface CountryFlagProps {
   country?: string | null;
@@ -25,8 +25,10 @@ export default function CountryFlag({
     setAttempt(0);
   }, [country, customFlagUrl]);
 
+  const normalizedCountry = normalizeCountryName(country);
   const width = Math.round(size * 1.45);
-  const localFlag = getCountryFlagUrl(country);
+  const localFlag = getCountryFlagUrl(normalizedCountry);
+  const cleanCustomUrl = customFlagUrl?.replace(/\/rica\.png$/i, "/costa-rica.png");
 
   // Resolution cascade:
   // attempt 0: custom flagUrl if provided, else local stored flag
@@ -35,11 +37,11 @@ export default function CountryFlag({
   // attempt 3: fallback text badge
   let activeSrc: string | null = null;
   if (attempt === 0) {
-    activeSrc = customFlagUrl && customFlagUrl.trim() !== "" ? customFlagUrl : localFlag;
+    activeSrc = cleanCustomUrl && cleanCustomUrl.trim() !== "" ? cleanCustomUrl : localFlag;
   } else if (attempt === 1) {
     activeSrc = localFlag;
   } else if (attempt === 2) {
-    const slug = slugifyCountry(country || "");
+    const slug = slugifyCountry(normalizedCountry || "");
     activeSrc = `https://flagcdn.com/w80/${slug}.png`;
   }
 
@@ -48,7 +50,7 @@ export default function CountryFlag({
   };
 
   if (attempt >= 3 || !activeSrc || !country) {
-    const fallbackText = (country || "GL").slice(0, 2).toUpperCase();
+    const fallbackText = (normalizedCountry || "GL").slice(0, 2).toUpperCase();
     return (
       <span
         className={className}

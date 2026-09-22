@@ -24,12 +24,26 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   const goalsRating = m.goals?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.88).toFixed(1)) : 6.4);
   const bttsRating = m.btts?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.8).toFixed(1)) : 6.0);
 
+  const cLower = (m.country || "").toLowerCase().trim();
+  const normalizedCountry =
+    cLower === "rica" || cLower === "costarica" || cLower === "costa-rica" || cLower === "costa rica"
+      ? "Costa Rica"
+      : cLower === "republic" || cLower === "czechia" || cLower === "czech republic"
+      ? "Czech Republic"
+      : cLower === "salvador" || cLower === "el salvador"
+      ? "El Salvador"
+      : cLower === "arabia" || cLower === "saudi arabia"
+      ? "Saudi Arabia"
+      : cLower === "states" || cLower === "united states" || cLower === "usa"
+      ? "USA"
+      : m.country || "International";
+
   return {
     id: m.id,
     url: m.href,
     leagueName: m.league,
-    country: m.country,
-    flagUrl: getCountryFlagUrl(m.country),
+    country: normalizedCountry,
+    flagUrl: getCountryFlagUrl(normalizedCountry),
     homeTeam: m.homeTeam,
     awayTeam: m.awayTeam,
     homeLogo: null,

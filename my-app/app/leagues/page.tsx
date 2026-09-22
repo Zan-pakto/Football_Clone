@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MatchData } from "@/lib/types";
 import { Trophy, Globe, Search, ArrowRight, Layers, ChevronRight, RefreshCw } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
+import { normalizeCountryName } from "@/lib/flags";
 
 export default function LeaguesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -39,7 +40,7 @@ export default function LeaguesPage() {
     const map: Record<string, { country: string; flagUrl: string | null; leagues: Record<string, number> }> = {};
 
     matches.forEach((m) => {
-      const c = m.country || "International";
+      const c = normalizeCountryName(m.country);
       if (!map[c]) {
         map[c] = {
           country: c,
@@ -278,7 +279,7 @@ export default function LeaguesPage() {
                         <CountryFlag country={item.country} flagUrl={item.flagUrl} size={18} />
                       </div>
                       <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
-                        {item.country}
+                        {normalizeCountryName(item.country)}
                       </span>
                     </div>
 

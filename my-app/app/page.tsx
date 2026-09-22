@@ -1,7 +1,6 @@
 import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
 import HomeMatchesFeed from "@/components/HomeMatchesFeed";
-import Footer from "@/components/Footer";
 import {
   TrustStrip,
   HowJollofTipsWorks,
@@ -370,9 +369,6 @@ export default async function HomePage() {
 
       {/* ── 9. Premium CTA Banner ── */}
       <PremiumCTABanner />
-
-      {/* ── 10. Luxury Footer ── */}
-      <Footer />
     </div>
   );
 }

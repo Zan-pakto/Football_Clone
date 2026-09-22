@@ -11,6 +11,7 @@ import {
   League,
   Country,
 } from "./types";
+import { getCountryFlagUrl } from "../flags";
 
 interface BzzoiroEvent {
   id: number;
@@ -278,6 +279,7 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
 
   private getCountryFlag(countryName: string): string {
     const lower = countryName.toLowerCase().trim();
+    if (lower === "rica" || lower.includes("costa rica") || lower.includes("costa-rica")) return "/flags/costa-rica.png";
     if (lower.includes("england") || lower.includes("premier")) return "/flags/england.png";
     if (lower.includes("spain") || lower.includes("laliga")) return "/flags/spain.png";
     if (lower.includes("italy") || lower.includes("serie a")) return "/flags/italy.png";
@@ -303,7 +305,7 @@ export class BzzoiroFootballProvider implements FootballDataProvider {
     if (lower.includes("scotland")) return "/flags/scotland.png";
     if (lower.includes("europe") || lower.includes("uefa") || lower.includes("champions")) return "/flags/europe.png";
     if (lower.includes("africa") || lower.includes("caf")) return "/flags/nigeria.png";
-    return "/flags/world.png";
+    return getCountryFlagUrl(countryName);
   }
 
   /**

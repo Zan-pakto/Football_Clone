@@ -34,6 +34,9 @@ const COUNTRY_ALIASES: Record<string, string> = {
   "saudi arabia": "saudi-arabia",
   "south africa": "south-africa",
   "costa rica": "costa-rica",
+  "costa-rica": "costa-rica",
+  "costarica": "costa-rica",
+  "rica": "costa-rica",
   "puerto rico": "puerto-rico",
   "new zealand": "new-zealand",
   "hong kong": "hong-kong",
@@ -42,9 +45,32 @@ const COUNTRY_ALIASES: Record<string, string> = {
   "europe": "europe",
 };
 
+export function normalizeCountryName(name?: string | null): string {
+  if (!name) return "International";
+  const clean = name.trim();
+  const lower = clean.toLowerCase();
+  if (lower === "rica" || lower === "costarica" || lower === "costa-rica" || lower === "costa rica") {
+    return "Costa Rica";
+  }
+  if (lower === "czech republic" || lower === "czechia" || lower === "republic") {
+    return "Czech Republic";
+  }
+  if (lower === "salvador" || lower === "el salvador") {
+    return "El Salvador";
+  }
+  if (lower === "arabia" || lower === "saudi arabia") {
+    return "Saudi Arabia";
+  }
+  if (lower === "states" || lower === "united states" || lower === "usa") {
+    return "USA";
+  }
+  return clean;
+}
+
 export function slugifyCountry(country: string): string {
   if (!country) return "world";
-  const clean = country.toLowerCase().trim();
+  const normalized = normalizeCountryName(country);
+  const clean = normalized.toLowerCase().trim();
   if (COUNTRY_ALIASES[clean]) {
     return COUNTRY_ALIASES[clean];
   }
