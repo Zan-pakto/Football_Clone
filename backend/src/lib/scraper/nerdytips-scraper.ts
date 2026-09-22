@@ -19,6 +19,22 @@ export interface ScrapedMatch {
   tipOdds: number;
   confidence: string; // e.g. "82%"
   confidenceValue: number; // e.g. 82
+  rating: number; // e.g. 8.0, 5.6
+  pickScore?: {
+    pick: string | null;
+    odd: number | null;
+    rating: number | null;
+  };
+  goals?: {
+    pick: string | null;
+    odd: number | null;
+    rating: number | null;
+  };
+  btts?: {
+    pick: string | null;
+    odd: number | null;
+    rating: number | null;
+  };
   score?: string;
   homeScore?: number;
   awayScore?: number;
@@ -85,12 +101,52 @@ export class NerdyTipsScraper {
         odds.away = parseFloat(oddsMatch[3]);
       }
 
-      // Extract Best tip & confidence
-      const tipMatch = srOnly.match(/Best tip:\s*(.*?),\s*odds\s*([\d\.]+),\s*confidence\s*([\d\.]+)\/10/i);
-      if (tipMatch) {
-        bestTip = tipMatch[1].trim();
-        tipOdds = parseFloat(tipMatch[2]);
-        confidence = Math.round(parseFloat(tipMatch[3]) * 10);
+      // Extract True Trust / Rating from NerdyTips (exact match from HTML data-rating or tb-trust)
+      const tbTrustMatch =
+        innerHtml.match(/data-rating>([\d\.]+)<\/span>/i)?.[1] ||
+        innerHtml.match(/data-rating=["']([\d\.]+)["']/i)?.[1] ||
+        innerHtml.match(/<div class="num tb-trust"[^>]*>([\d\.]+)<\/div>/i)?.[1] ||
+        innerHtml.match(/data-tt=["'][^"']*trust of ([\d\.]+)\/10/i)?.[1] ||
+        innerHtml.match(/confidence\s*([\d\.]+)\/10/i)?.[1] ||
+        srOnly.match(/confidence\s*([\d\.]+)\/10/i)?.[1];
+
+      let rating = tbTrustMatch ? parseFloat(tbTrustMatch) : 7.5;
+      confidence = Math.round(rating * 10);
+
+      // Extract individual markets from NerdyTips cells
+      // 1. PickScore (1X2)
+      const psTt = innerHtml.match(/tbm-pickscore[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
+      const psPick = psTt ? psTt[1] : innerHtml.match(/tbm-pickscore[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
+      const psOdd = psTt ? parseFloat(psTt[3]) : parseFloat(innerHtml.match(/tbm-pickscore[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const psRating = psTt ? parseFloat(psTt[2]) : null;
+
+      // 2. Goals (O/U)
+      const gTt = innerHtml.match(/tbm-goals[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
+      const gPick = gTt ? gTt[1] : innerHtml.match(/tbm-goals[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
+      const gOdd = gTt ? parseFloat(gTt[3]) : parseFloat(innerHtml.match(/tbm-goals[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const gRating = gTt ? parseFloat(gTt[2]) : null;
+
+      // 3. BTTS
+      const bTt = innerHtml.match(/tbm-btts[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
+      const bPick = bTt ? bTt[1] : innerHtml.match(/tbm-btts[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
+      const bOdd = bTt ? parseFloat(bTt[3]) : parseFloat(innerHtml.match(/tbm-btts[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const bRating = bTt ? parseFloat(bTt[2]) : null;
+
+      // 4. Best Tip
+      const btTt = innerHtml.match(/tbm-besttip[\s\S]*?data-tt=["']The best tip is ([^'"]+) with a trust of ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
+      if (btTt) {
+        bestTip = btTt[1];
+        tipOdds = parseFloat(btTt[3]);
+        rating = parseFloat(btTt[2]);
+        confidence = Math.round(rating * 10);
+      } else {
+        const tipMatch = srOnly.match(/Best tip:\s*(.*?),\s*odds\s*([\d\.]+),\s*confidence\s*([\d\.]+)\/10/i);
+        if (tipMatch) {
+          bestTip = tipMatch[1].trim();
+          tipOdds = parseFloat(tipMatch[2]);
+          rating = parseFloat(tipMatch[3]);
+          confidence = Math.round(rating * 10);
+        }
       }
 
       // Extract Final score
@@ -123,7 +179,7 @@ export class NerdyTipsScraper {
       else if (sLower === "cancelled") status = "CANCELLED";
 
       // Premium flag: High confidence (>78%) or special indicators
-      const isPremium = confidence >= 80 || innerHtml.includes("is-premium") || innerHtml.includes("vip");
+      const isPremium = confidence >= 80 || innerHtml.includes("is-premium") || innerHtml.includes("vip") || innerHtml.includes("data-locked");
 
       matches.push({
         id,
@@ -139,6 +195,22 @@ export class NerdyTipsScraper {
         tipOdds: tipOdds || odds.home || 1.85,
         confidence: `${confidence}%`,
         confidenceValue: confidence,
+        rating,
+        pickScore: {
+          pick: psPick,
+          odd: psOdd && psOdd > 0 ? psOdd : null,
+          rating: psRating,
+        },
+        goals: {
+          pick: gPick,
+          odd: gOdd && gOdd > 0 ? gOdd : null,
+          rating: gRating,
+        },
+        btts: {
+          pick: bPick,
+          odd: bOdd && bOdd > 0 ? bOdd : null,
+          rating: bRating,
+        },
         score,
         homeScore,
         awayScore,

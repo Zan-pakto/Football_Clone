@@ -125,6 +125,12 @@ export default function MatchRow({ match }: MatchRowProps) {
 
   // Confidence Rating
   const numericConfidence = (() => {
+    if (typeof match.rating === "number" && !isNaN(match.rating) && match.rating > 0) {
+      return match.rating.toFixed(1);
+    }
+    if (typeof match.predictions?.bestTip?.rating === "number" && !isNaN(match.predictions.bestTip.rating) && match.predictions.bestTip.rating > 0) {
+      return match.predictions.bestTip.rating.toFixed(1);
+    }
     if (!match.confidence) return "7.5";
     const clean = match.confidence.replace("%", "").trim();
     const val = parseFloat(clean);

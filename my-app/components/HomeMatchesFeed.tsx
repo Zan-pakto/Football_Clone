@@ -73,14 +73,14 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
           // Rating filter
           if (filters.minRating > 0) {
             const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-            const r = m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5);
+            const r = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
             if (r < filters.minRating) return false;
           }
 
           // Category filter
           if (filters.category !== "all") {
             const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-            const bestRating = m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5);
+            const bestRating = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
             const bestOdd = parseFloat(m.predictions?.bestTip?.odd || "1.75");
 
             if (filters.category === "top_tips" && bestRating < 8.2) return false;

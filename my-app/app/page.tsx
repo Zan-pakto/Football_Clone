@@ -59,7 +59,7 @@ export default async function HomePage() {
       awayTeam: f.awayTeam.name,
       homeLogo: f.homeTeam.logo || null,
       awayLogo: f.awayTeam.logo || null,
-      kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
+      kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",
       status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
       homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
       awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
@@ -70,6 +70,7 @@ export default async function HomePage() {
         draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
         away: f.odds?.away ? String(f.odds.away) : "4.20",
       },
+      rating: f.rating || null,
       predictions: (() => {
         const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
         const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
@@ -97,7 +98,7 @@ export default async function HomePage() {
             market: "1X2",
             marketLabel: "1X2 Winner",
             confidence: p1x2?.confidence || null,
-            rating: p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null,
+            rating: p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null),
             isBest: is1x2Best,
           },
           goals: {
@@ -107,7 +108,7 @@ export default async function HomePage() {
             market: "OVER_UNDER",
             marketLabel: "O/U Goals",
             confidence: pGoals?.confidence || null,
-            rating: pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null,
+            rating: pGoals?.rating ?? (pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null),
             isBest: isGoalsBest,
           },
           btts: {
@@ -117,7 +118,7 @@ export default async function HomePage() {
             market: "BTTS",
             marketLabel: "Both Teams Score",
             confidence: pBtts?.confidence || null,
-            rating: pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null,
+            rating: pBtts?.rating ?? (pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null),
             isBest: isBttsBest,
           },
           bestTip: {
@@ -127,7 +128,7 @@ export default async function HomePage() {
             market: pBest?.market || "1X2",
             marketLabel: bestMarketLabel,
             confidence: pBest?.confidence || null,
-            rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5,
+            rating: pBest?.rating ?? (pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : (f.rating || 8.0)),
             isBest: true,
           },
           bestMarket,
@@ -141,9 +142,10 @@ export default async function HomePage() {
       confidence: (() => {
         const isMatchLocked = f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked);
         if (isMatchLocked) return null;
+        if (f.confidence) return f.confidence;
         const top = f.predictions && f.predictions.length > 0
           ? Math.max(...f.predictions.map((p: any) => p.confidence || 80))
-          : 84;
+          : 80;
         return `${top}%`;
       })(),
     })),

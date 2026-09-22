@@ -48,6 +48,7 @@ export interface MatchData {
   odds: Odds;
   predictions: Predictions;
   confidence: string | null;
+  rating?: number | null;
   isLive?: boolean;
   elapsed?: string | null;
   queryTags?: string | null;
