@@ -275,6 +275,62 @@ class MatchStore {
           const normalized = scraped.map(normalizeScrapedMatchToMatchData);
           await this.saveMatches(normalized, d);
           matches = normalized;
+        } else {
+          // If scraper returns 0, fall back to API-Football / configured provider
+          try {
+            const { fixtureService } = await import("../football/fixture-service");
+            const fixtures = await fixtureService.getFixtures(d, {});
+            if (fixtures && fixtures.length > 0) {
+              console.log(`[MatchStore] Scraper returned 0; loaded ${fixtures.length} fallback fixtures from provider for d=${d}`);
+              const fallbackMatches: MatchData[] = fixtures.map((f: any, idx: number) => {
+                const isMatchLocked = Boolean(
+                  f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked)
+                );
+                const pBest = f.predictions && f.predictions.length > 0
+                  ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
+                  : null;
+
+                const topConf = pBest?.confidence || 82;
+                return {
+                  id: f.id,
+                  url: `/match/${f.id}`,
+                  leagueName: f.league?.name || "League",
+                  country: f.league?.country?.name || "World",
+                  flagUrl: f.league?.country?.flag || null,
+                  homeTeam: f.homeTeam.name,
+                  awayTeam: f.awayTeam.name,
+                  homeLogo: f.homeTeam.logo || null,
+                  awayLogo: f.awayTeam.logo || null,
+                  kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
+                  status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
+                  homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
+                  awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
+                  elapsed: f.elapsed,
+                  isLive: f.status === "LIVE",
+                  isLocked: isMatchLocked,
+                  lockReason: null,
+                  freeTipIndex: idx,
+                  odds: {
+                    home: f.odds?.home ? String(f.odds.home) : "1.75",
+                    draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
+                    away: f.odds?.away ? String(f.odds.away) : "4.20",
+                  },
+                  predictions: {
+                    pickScore: { pick: pBest?.selection || null, odd: pBest?.odd ? String(pBest.odd) : "1.75" },
+                    goals: { pick: null, odd: null },
+                    btts: { pick: null, odd: null },
+                    bestTip: { pick: pBest?.selection || null, odd: pBest?.odd ? String(pBest.odd) : "1.75" },
+                  },
+                  confidence: `${topConf}%`,
+                  predictedScore: f.predictedScore || null,
+                  expectedGoals: f.expectedGoals || null,
+                };
+              });
+              matches = fallbackMatches;
+            }
+          } catch (fallbackErr: any) {
+            console.warn(`[MatchStore] Fallback provider query notice:`, fallbackErr.message);
+          }
         }
       } catch (err: any) {
         console.warn(`[MatchStore] On-demand auto-scrape notice for d=${d}:`, err.message);

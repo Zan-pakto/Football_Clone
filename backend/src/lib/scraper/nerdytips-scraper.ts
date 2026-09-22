@@ -33,12 +33,21 @@ export class NerdyTipsScraper {
 
   private parseMatchBlock(blockHtml: string, dParam: string): ScrapedMatch[] {
     const matches: ScrapedMatch[] = [];
+    // Order-independent attribute matching for NerdyTips match anchor rows (supports absolute/relative URLs & any quotes)
     const rowRegex =
-      /<a\s+href="(\/match-details\/[^"]+)"\s+data-match="(\d+)"\s+data-kick="([^"]*)"\s+data-status="([^"]*)"\s+data-q="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
+      /<a\b([^>]*\bhref=["'](?:https?:\/\/[^"']*)?(\/match-details\/[^"']+)["'][^>]*)>([\s\S]*?)<\/a>/gi;
 
     let match: RegExpExecArray | null;
     while ((match = rowRegex.exec(blockHtml)) !== null) {
-      const [_, href, id, kick, rawStatus, q, innerHtml] = match;
+      const fullAttrs = match[1];
+      const href = match[2];
+      const innerHtml = match[3];
+
+      const id = fullAttrs.match(/data-match=["']?(\d+)["']?/i)?.[1] || href.match(/-(\d+)(?:[?#]|$)/)?.[1] || "";
+      const kick = fullAttrs.match(/data-kick=["']([^"']*)["']/i)?.[1] || "";
+      const rawStatus = fullAttrs.match(/data-status=["']([^"']*)["']/i)?.[1] || "";
+      const q = fullAttrs.match(/data-q=["']([^"']*)["']/i)?.[1] || "";
+
       const srOnly =
         innerHtml.match(/<span class="sr-only">([\s\S]*?)<\/span>/)?.[1]?.trim() || "";
 
@@ -253,6 +262,24 @@ export class NerdyTipsScraper {
 
       const allMatches = Array.from(uniqueMap.values());
       console.log(`[NerdyTipsScraper] d=${dParam} (tz=${activeTz}): Total matches captured: ${allMatches.length} (${initialMatches.length} initial + ${extraMatches.length} expanded).`);
+
+      // Zero-matches warning alert
+      if (allMatches.length === 0 && keys.length > 0) {
+        console.warn(`⚠️ [NerdyTipsScraper WARNING] Found ${keys.length} league keys but parsed 0 matches for d=${dParam}. Checking cached snapshot...`);
+      }
+
+      // If matches captured, persist a 24-hour backup snapshot
+      const backupKey = `nerdytips_day_backup:${dParam}:${activeTz}`;
+      if (allMatches.length > 0) {
+        await cacheService.set(backupKey, allMatches, 86400).catch(() => {});
+      } else {
+        // Fallback to last successful cached scrape for this day if available
+        const cachedFallback = await cacheService.get<ScrapedMatch[]>(backupKey).catch(() => null);
+        if (cachedFallback && cachedFallback.length > 0) {
+          console.log(`[NerdyTipsScraper] Using cached fallback snapshot of ${cachedFallback.length} matches for d=${dParam}`);
+          return cachedFallback;
+        }
+      }
 
       // Sort: Upcoming first, then Live, then Finished
       allMatches.sort((a, b) => {

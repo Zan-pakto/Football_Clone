@@ -23,11 +23,20 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
 
   // Collect all available leagues
   const availableLeagues = useMemo(() => {
-    return initialGroups.map((g) => ({
-      name: g.leagueName,
-      country: g.country,
-      count: g.matches.length,
-    }));
+    const map = new Map<string, { name: string; country: string; count: number }>();
+    initialGroups.forEach((g) => {
+      const key = `${g.country || "Int"}_${g.leagueName}`;
+      if (map.has(key)) {
+        map.get(key)!.count += g.matches.length;
+      } else {
+        map.set(key, {
+          name: g.leagueName,
+          country: g.country,
+          count: g.matches.length,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [initialGroups]);
 
   // Flatten and filter all matches
@@ -113,9 +122,9 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
       {/* ── League Groups Feed ── */}
       {filteredGroups.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {filteredGroups.map((group) => (
+          {filteredGroups.map((group, idx) => (
             <LeagueGroupCard
-              key={group.leagueName}
+              key={`${group.country || "Int"}_${group.leagueName}_${idx}`}
               leagueName={group.leagueName}
               country={group.country}
               flagUrl={group.flagUrl}

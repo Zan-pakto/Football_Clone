@@ -274,145 +274,13 @@ function AuthContent() {
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--background)", color: "var(--foreground)" }}>
+    <div className="auth-page-container">
       <Navbar />
 
-      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px 80px", zIndex: 1 }}>
-        <div
-          style={{
-            maxWidth: 1040,
-            width: "100%",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-            gap: "32px",
-            alignItems: "stretch",
-          }}
-        >
-          {/* ── Left Column: Value Banner Card ── */}
-          <div
-            className="luxury-card"
-            style={{
-              padding: "40px 32px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div>
-              <div className="gold-badge" style={{ marginBottom: 20 }}>
-                <Sparkles size={12} />
-                <span>AI FOOTBALL INTELLIGENCE</span>
-              </div>
-
-              <h1
-                style={{
-                  color: "var(--text-primary)",
-                  fontSize: "clamp(26px, 3.2vw, 36px)",
-                  fontWeight: 900,
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.2,
-                  margin: "0 0 16px",
-                }}
-              >
-                Predict Smarter. <br />
-                Win With <span style={{ color: "var(--gold)" }}>Data</span>.
-              </h1>
-
-              <p
-                style={{
-                  color: "var(--text-secondary)",
-                  fontSize: "14px",
-                  lineHeight: 1.65,
-                  margin: "0 0 28px",
-                }}
-              >
-                Instant access to 10,000-scenario Monte Carlo simulations, xG model telemetry, and verified 89.4% banker picks across 700+ worldwide leagues.
-              </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: "var(--gold-bg)",
-                      border: "1px solid var(--gold-border)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--gold)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Sparkles size={16} />
-                  </div>
-                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    10,000 Monte Carlo Simulations Per Game
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: "var(--gold-bg)",
-                      border: "1px solid var(--gold-border)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--gold)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Target size={16} />
-                  </div>
-                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    Calibrated Banker Confidence (85%–95%)
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: "var(--gold-bg)",
-                      border: "1px solid var(--gold-border)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--gold)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Globe size={16} />
-                  </div>
-                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700 }}>
-                    Real-Time Live Odds & In-Play Tracking
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 20, marginTop: 28, display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="status-pill-won">100% Audited</span>
-              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Permanent verifiable track record</span>
-            </div>
-          </div>
-
-          {/* ── Right Column: Authentication Card Form ── */}
-          <div
-            className="luxury-card"
-            style={{
-              padding: "40px 32px",
-            }}
-          >
+      <main className="auth-main-wrapper">
+        <div className="auth-grid">
+          {/* ── Form Card: Placed first on mobile for immediate interaction ── */}
+          <div className="auth-form-card luxury-card">
             {/* If user is already logged in */}
             {currentUser ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
@@ -445,14 +313,14 @@ function AuthContent() {
                   <Link
                     href="/account"
                     className="gold-btn"
-                    style={{ padding: "12px", textDecoration: "none" }}
+                    style={{ padding: "12px", textDecoration: "none", minHeight: 46 }}
                   >
                     Go to Account Dashboard
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="gold-outline-btn"
-                    style={{ padding: "12px" }}
+                    style={{ padding: "12px", minHeight: 46 }}
                   >
                     <LogOut size={16} />
                     <span>Log Out</span>
@@ -469,23 +337,16 @@ function AuthContent() {
                     border: "1px solid var(--border-color)",
                     borderRadius: 10,
                     padding: 4,
-                    marginBottom: 24,
+                    marginBottom: 20,
                   }}
                 >
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
+                    className="auth-tab-btn"
                     style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: 8,
-                      border: "none",
                       background: mode === "login" ? "var(--gold)" : "transparent",
                       color: mode === "login" ? "var(--gold-btn-text)" : "var(--text-secondary)",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
                     }}
                   >
                     Sign In
@@ -493,17 +354,10 @@ function AuthContent() {
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
+                    className="auth-tab-btn"
                     style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: 8,
-                      border: "none",
                       background: mode === "register" ? "var(--gold)" : "transparent",
                       color: mode === "register" ? "var(--gold-btn-text)" : "var(--text-secondary)",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
                     }}
                   >
                     Create Account
@@ -517,16 +371,17 @@ function AuthContent() {
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
-                      padding: "12px 16px",
+                      padding: "12px 14px",
                       borderRadius: 8,
-                      background: "var(--accent-red-bg)",
-                      border: "1px solid var(--accent-red-border)",
+                      background: "var(--accent-red-bg, rgba(251, 113, 133, 0.12))",
+                      border: "1px solid var(--accent-red-border, rgba(251, 113, 133, 0.3))",
                       color: "var(--accent-red)",
                       fontSize: 13,
-                      marginBottom: 20,
+                      marginBottom: 18,
+                      lineHeight: 1.45,
                     }}
                   >
-                    <AlertCircle size={16} />
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
                     <span>{error}</span>
                   </div>
                 )}
@@ -537,16 +392,17 @@ function AuthContent() {
                       display: "flex",
                       alignItems: "center",
                       gap: 10,
-                      padding: "12px 16px",
+                      padding: "12px 14px",
                       borderRadius: 8,
-                      background: "var(--accent-green-bg)",
-                      border: "1px solid var(--accent-green-border)",
+                      background: "var(--accent-green-bg, rgba(47, 208, 138, 0.12))",
+                      border: "1px solid var(--accent-green-border, rgba(47, 208, 138, 0.3))",
                       color: "var(--accent-green)",
                       fontSize: 13,
-                      marginBottom: 20,
+                      marginBottom: 18,
+                      lineHeight: 1.45,
                     }}
                   >
-                    <CheckCircle2 size={16} />
+                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
                     <span>{success}</span>
                   </div>
                 )}
@@ -556,31 +412,10 @@ function AuthContent() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={googleLoading || loading}
+                  className="auth-google-btn"
                   style={{
-                    width: "100%",
-                    padding: "11px 16px",
-                    borderRadius: 8,
-                    background: "var(--surface-raised)",
-                    border: "1px solid var(--border-color)",
-                    color: "var(--text-primary)",
-                    fontSize: 13.5,
-                    fontWeight: 700,
                     cursor: googleLoading || loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 12,
-                    transition: "all 0.15s ease",
-                    marginBottom: 18,
                     opacity: googleLoading ? 0.75 : 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--gold)";
-                    e.currentTarget.style.background = "rgba(124, 108, 245, 0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-color)";
-                    e.currentTarget.style.background = "var(--surface-raised)";
                   }}
                 >
                   {googleLoading ? (
@@ -615,7 +450,7 @@ function AuthContent() {
                 </button>
 
                 {/* Divider */}
-                <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", marginBottom: 18, gap: 12 }}>
                   <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
                   <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-dim)" }}>
                     or continue with email
@@ -627,98 +462,80 @@ function AuthContent() {
                 <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {mode === "register" && (
                     <div>
-                      <label htmlFor="reg-name" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                      <label htmlFor="reg-name" style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
                         Full Name
                       </label>
                       <div style={{ position: "relative" }}>
-                        <User size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                        <User size={17} className="auth-input-icon" />
                         <input
                           id="reg-name"
                           name="name"
                           type="text"
                           required
+                          autoComplete="name"
+                          autoCapitalize="words"
                           placeholder="John Doe"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          style={{
-                            width: "100%",
-                            padding: "11px 14px 11px 40px",
-                            borderRadius: 8,
-                            background: "var(--surface-raised)",
-                            border: "1px solid var(--border-color)",
-                            color: "var(--text-primary)",
-                            fontSize: 13,
-                            outline: "none",
-                          }}
+                          className="auth-input"
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Email Input (Shared between login and register) */}
+                  {/* Email Input */}
                   <div>
-                    <label htmlFor="auth-email" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                    <label htmlFor="auth-email" style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
                       Email Address
                     </label>
                     <div style={{ position: "relative" }}>
-                      <Mail size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                      <Mail size={17} className="auth-input-icon" />
                       <input
                         id="auth-email"
                         name="email"
                         type="email"
+                        inputMode="email"
                         autoComplete="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         required
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "11px 14px 11px 40px",
-                          borderRadius: 8,
-                          background: "var(--surface-raised)",
-                          border: "1px solid var(--border-color)",
-                          color: "var(--text-primary)",
-                          fontSize: 13,
-                          outline: "none",
-                        }}
+                        className="auth-input"
                       />
                     </div>
                   </div>
 
                   {/* Password Field */}
                   <div>
-                    <label htmlFor="auth-password" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                    <label htmlFor="auth-password" style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
                       Password
                     </label>
                     <div style={{ position: "relative" }}>
-                      <Lock size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                      <Lock size={17} className="auth-input-icon" />
                       <input
                         id="auth-password"
                         name="password"
                         type={showPassword ? "text" : "password"}
                         autoComplete={mode === "register" ? "new-password" : "current-password"}
+                        autoCapitalize="none"
+                        autoCorrect="off"
                         required
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "11px 40px 11px 40px",
-                          borderRadius: 8,
-                          background: "var(--surface-raised)",
-                          border: "1px solid var(--border-color)",
-                          color: "var(--text-primary)",
-                          fontSize: 13,
-                          outline: "none",
-                        }}
+                        className="auth-input"
+                        style={{ paddingRight: 48 }}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
-                        aria-label="Toggle password visibility"
+                        className="auth-password-toggle"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                       </button>
                     </div>
                   </div>
@@ -727,7 +544,7 @@ function AuthContent() {
                   {mode === "register" && (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <label htmlFor="reg-confirm-password" style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>
+                        <label htmlFor="reg-confirm-password" style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-secondary)" }}>
                           Confirm Password
                         </label>
                         {passwordsMatch && (
@@ -743,34 +560,35 @@ function AuthContent() {
                       </div>
 
                       <div style={{ position: "relative" }}>
-                        <Lock size={16} color="var(--text-dim)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+                        <Lock size={17} className="auth-input-icon" />
                         <input
                           id="reg-confirm-password"
                           name="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           autoComplete="new-password"
+                          autoCapitalize="none"
+                          autoCorrect="off"
                           required
                           placeholder="••••••••"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="auth-input"
                           style={{
-                            width: "100%",
-                            padding: "11px 40px 11px 40px",
-                            borderRadius: 8,
-                            background: "var(--surface-raised)",
-                            border: `1px solid ${passwordsMismatch ? "var(--accent-red-border)" : passwordsMatch ? "var(--accent-green-border)" : "var(--border-color)"}`,
-                            color: "var(--text-primary)",
-                            fontSize: 13,
-                            outline: "none",
+                            paddingRight: 48,
+                            borderColor: passwordsMismatch
+                              ? "var(--accent-red)"
+                              : passwordsMatch
+                              ? "var(--accent-green)"
+                              : "var(--border-color)",
                           }}
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}
-                          aria-label="Toggle confirm password visibility"
+                          className="auth-password-toggle"
+                          aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                         >
-                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                         </button>
                       </div>
                     </div>
@@ -778,12 +596,12 @@ function AuthContent() {
 
                   {/* Terms Checkbox */}
                   {mode === "register" && (
-                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, color: "var(--text-secondary)", cursor: "pointer", lineHeight: 1.4 }}>
                       <input
                         type="checkbox"
                         checked={acceptTerms}
                         onChange={(e) => setAcceptTerms(e.target.checked)}
-                        style={{ marginTop: 2, accentColor: "var(--gold)" }}
+                        style={{ marginTop: 2, accentColor: "var(--gold)", width: 16, height: 16, flexShrink: 0 }}
                       />
                       <span>
                         I agree to the <Link href="/terms" style={{ color: "var(--gold)", textDecoration: "underline" }}>Terms of Service</Link> and Privacy Policy.
@@ -795,19 +613,13 @@ function AuthContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="gold-btn"
+                    className="gold-btn auth-submit-btn"
                     style={{
-                      width: "100%",
-                      padding: "13px",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginTop: 8,
                       opacity: loading ? 0.7 : 1,
-                      cursor: "pointer",
                     }}
                   >
                     {loading ? (
-                      <RefreshCw size={16} className="animate-spin" />
+                      <RefreshCw size={17} className="animate-spin" />
                     ) : (
                       <span>{mode === "login" ? "Sign In to JollofTips" : "Create My Free Account"}</span>
                     )}
@@ -816,8 +628,362 @@ function AuthContent() {
               </>
             )}
           </div>
+
+          {/* ── Left/Bottom Column: Value Banner Card ── */}
+          <div className="auth-value-card luxury-card">
+            <div>
+              <div className="gold-badge" style={{ marginBottom: 16 }}>
+                <Sparkles size={12} />
+                <span>AI FOOTBALL INTELLIGENCE</span>
+              </div>
+
+              <h1 className="auth-heading">
+                Predict Smarter. <br />
+                Win With <span style={{ color: "var(--gold)" }}>Data</span>.
+              </h1>
+
+              <p className="auth-value-text">
+                Instant access to 10,000-scenario Monte Carlo simulations, xG model telemetry, and verified 89.4% banker picks across 700+ worldwide leagues.
+              </p>
+
+              <div className="auth-value-features" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "var(--gold-bg)",
+                      border: "1px solid var(--gold-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--gold)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Sparkles size={16} />
+                  </div>
+                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700, lineHeight: 1.35 }}>
+                    10,000 Monte Carlo Simulations Per Game
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "var(--gold-bg)",
+                      border: "1px solid var(--gold-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--gold)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Target size={16} />
+                  </div>
+                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700, lineHeight: 1.35 }}>
+                    Calibrated Banker Confidence (85%–95%)
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "var(--gold-bg)",
+                      border: "1px solid var(--gold-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--gold)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Globe size={16} />
+                  </div>
+                  <span style={{ color: "var(--text-primary)", fontSize: 13.5, fontWeight: 700, lineHeight: 1.35 }}>
+                    Real-Time Live Odds & In-Play Tracking
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: 18, marginTop: 24, display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="status-pill-won" style={{ fontSize: 11, padding: "3px 8px" }}>100% Audited</span>
+              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>Permanent verifiable track record</span>
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* Scoped CSS for responsive auth layout and mobile optimization */}
+      <style>{`
+        .auth-page-container {
+          position: relative;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: var(--background);
+          color: var(--foreground);
+          overflow-x: hidden;
+        }
+
+        .auth-main-wrapper {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px 80px;
+          width: 100%;
+          box-sizing: border-box;
+          z-index: 1;
+        }
+
+        .auth-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+          gap: 32px;
+          max-width: 1040px;
+          width: 100%;
+          align-items: stretch;
+          box-sizing: border-box;
+        }
+
+        .auth-form-card {
+          order: 2;
+          padding: 40px 32px;
+          box-sizing: border-box;
+          border-radius: 16px;
+          background: var(--surface);
+          border: 1px solid var(--border-color);
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        .auth-value-card {
+          order: 1;
+          padding: 40px 32px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          position: relative;
+          overflow: hidden;
+          box-sizing: border-box;
+          border-radius: 16px;
+          background: var(--surface);
+          border: 1px solid var(--border-color);
+          box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        .auth-heading {
+          color: var(--text-primary);
+          font-size: clamp(24px, 3vw, 34px);
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 1.22;
+          margin: 0 0 14px;
+        }
+
+        .auth-value-text {
+          color: var(--text-secondary);
+          font-size: 14px;
+          line-height: 1.65;
+          margin: 0 0 24px;
+        }
+
+        .auth-input {
+          width: 100%;
+          height: 48px;
+          padding: 0 16px 0 42px;
+          border-radius: 10px;
+          background: var(--surface-raised);
+          border: 1px solid var(--border-color);
+          color: var(--text-primary);
+          font-size: 14px;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .auth-input:focus {
+          border-color: var(--gold);
+          box-shadow: 0 0 0 3px rgba(124, 108, 245, 0.18);
+        }
+
+        .auth-input-icon {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: var(--text-dim);
+        }
+
+        .auth-password-toggle {
+          position: absolute;
+          right: 3px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 42px;
+          height: 42px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: transparent;
+          border: none;
+          color: var(--text-dim);
+          cursor: pointer;
+          border-radius: 8px;
+          transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .auth-password-toggle:hover {
+          color: var(--text-primary);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-tab-btn {
+          flex: 1;
+          height: 42px;
+          border-radius: 8px;
+          border: none;
+          font-size: 13.5px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .auth-google-btn {
+          width: 100%;
+          height: 48px;
+          border-radius: 10px;
+          background: var(--surface-raised);
+          border: 1px solid var(--border-color);
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          margin-bottom: 18px;
+          box-sizing: border-box;
+        }
+
+        .auth-google-btn:hover:not(:disabled) {
+          border-color: var(--gold);
+          background: rgba(124, 108, 245, 0.08);
+        }
+
+        .auth-submit-btn {
+          width: 100%;
+          height: 48px;
+          font-size: 14.5px;
+          font-weight: 800;
+          border-radius: 10px;
+          margin-top: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .auth-submit-btn:active {
+          transform: scale(0.985);
+        }
+
+        /* ── Mobile and Tablet Breakpoint (<= 860px) ── */
+        @media (max-width: 860px) {
+          .auth-main-wrapper {
+            padding: 16px 14px 48px;
+            align-items: flex-start;
+          }
+
+          .auth-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 480px;
+            margin: 0 auto;
+          }
+
+          /* Form card takes top priority on mobile */
+          .auth-form-card {
+            order: 1 !important;
+            padding: 22px 18px;
+            border-radius: 14px;
+          }
+
+          /* Value banner rests below as supporting proof */
+          .auth-value-card {
+            order: 2 !important;
+            padding: 20px 18px;
+            border-radius: 14px;
+          }
+
+          /* Prevent iOS Safari 16px auto-zoom on input focus */
+          .auth-input {
+            font-size: 16px !important;
+            height: 48px;
+          }
+
+          .auth-heading {
+            font-size: 20px !important;
+            margin-bottom: 10px;
+          }
+
+          .auth-value-text {
+            font-size: 13px !important;
+            margin-bottom: 18px;
+            line-height: 1.55;
+          }
+
+          .auth-tab-btn {
+            height: 44px;
+            font-size: 14px;
+          }
+
+          .auth-google-btn {
+            height: 48px;
+            font-size: 14px;
+          }
+
+          .auth-submit-btn {
+            height: 48px;
+            font-size: 15px;
+          }
+        }
+
+        /* ── Small Mobile Screens (<= 380px) ── */
+        @media (max-width: 380px) {
+          .auth-main-wrapper {
+            padding: 12px 10px 40px;
+          }
+
+          .auth-form-card,
+          .auth-value-card {
+            padding: 18px 14px;
+          }
+
+          .auth-tab-btn {
+            font-size: 13px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -829,3 +995,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

@@ -535,11 +535,11 @@ export default function MatchFilterModal({
                     paddingRight: 4,
                   }}
                 >
-                  {filteredLeagueList.map((lg) => {
+                  {filteredLeagueList.map((lg, idx) => {
                     const isChecked = filters.selectedLeagues.includes(lg.name);
                     return (
                       <div
-                        key={lg.name}
+                        key={`${lg.country || "Int"}_${lg.name}_${idx}`}
                         onClick={() => toggleLeague(lg.name)}
                         style={{
                           display: "flex",

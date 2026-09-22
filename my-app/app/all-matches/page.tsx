@@ -209,7 +209,7 @@ export default function AllMatchesPage() {
   const availableLeagues = useMemo(() => {
     const map = new Map<string, { name: string; country: string; count: number }>();
     matches.forEach((m) => {
-      const key = m.leagueName;
+      const key = `${m.country || "Int"}_${m.leagueName}`;
       if (!map.has(key)) {
         map.set(key, { name: m.leagueName, country: m.country, count: 0 });
       }
@@ -596,9 +596,9 @@ export default function AllMatchesPage() {
                 <p style={{ fontSize: 12.5, color: "var(--text-dim)" }}>Try clearing the search or choosing another date.</p>
               </div>
             ) : (
-              groupedByLeague.map((group) => (
+              groupedByLeague.map((group, gIdx) => (
                 <LeagueGroupCard
-                  key={`${group.country}_${group.leagueName}`}
+                  key={`${group.country || "Int"}_${group.leagueName}_${gIdx}`}
                   leagueName={group.leagueName}
                   country={group.country}
                   flagUrl={group.flagUrl}
