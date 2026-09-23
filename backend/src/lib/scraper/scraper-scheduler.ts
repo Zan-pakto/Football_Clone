@@ -13,11 +13,32 @@ export interface SyncStats {
 
 export class ScraperScheduler {
   private timer: NodeJS.Timeout | null = null;
+  private progressTimer: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private lastSyncStats: SyncStats | null = null;
 
   get lastStats(): SyncStats | null {
     return this.lastSyncStats;
+  }
+
+  /**
+   * Run synchronization for AI Performance Progress page
+   */
+  async syncProgress(): Promise<any> {
+    try {
+      console.log("[ScraperScheduler] Initiating daily AI Performance Progress sync...");
+      const scraped = await nerdyTipsScraper.scrapeProgressPage();
+      if (scraped) {
+        await store.saveProgressStats(scraped);
+        await cacheService.invalidate("ai_progress_stats");
+        console.log(`[ScraperScheduler] AI Progress record saved for ${scraped.recordDate} (Overall: ${scraped.overallRate}, Bankers: ${scraped.bankersRate})`);
+        return { success: true, recordDate: scraped.recordDate, data: scraped };
+      }
+      return { success: false, error: "Failed to parse progress page" };
+    } catch (err: any) {
+      console.error("[ScraperScheduler] Progress sync error:", err.message);
+      return { success: false, error: err.message };
+    }
   }
 
   /**
@@ -104,6 +125,9 @@ export class ScraperScheduler {
     if (this.timer) {
       clearInterval(this.timer);
     }
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+    }
 
     console.log(`[ScraperScheduler] Scheduled automatic sync every ${Math.round(intervalMs / 3600000)} hours.`);
 
@@ -122,13 +146,29 @@ export class ScraperScheduler {
         );
     }, 2000);
 
-    // Run recurring 12-hour cycle
+    // Run initial daily progress sync after 4 seconds
+    setTimeout(() => {
+      this.syncProgress().catch((e) =>
+        console.warn("[ScraperScheduler] Initial progress sync notice:", e.message)
+      );
+    }, 4000);
+
+    // Run recurring 12-hour cycle for matches
     this.timer = setInterval(() => {
       console.log("[ScraperScheduler] Running scheduled 12-hour sync cycle...");
       this.sync(["-1", "0", "1"]).catch((e) =>
         console.warn("[ScraperScheduler] Scheduled cycle error:", e.message)
       );
     }, intervalMs);
+
+    // Run recurring 24-hour cycle for AI progress page
+    const DAILY_MS = 24 * 60 * 60 * 1000;
+    this.progressTimer = setInterval(() => {
+      console.log("[ScraperScheduler] Running scheduled daily AI Progress sync cycle...");
+      this.syncProgress().catch((e) =>
+        console.warn("[ScraperScheduler] Daily progress cycle error:", e.message)
+      );
+    }, DAILY_MS);
   }
 
   /**
@@ -139,6 +179,10 @@ export class ScraperScheduler {
       clearInterval(this.timer);
       this.timer = null;
       console.log("[ScraperScheduler] Stopped background scheduler.");
+    }
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
     }
   }
 }

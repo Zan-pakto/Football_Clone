@@ -51,9 +51,14 @@ export default function AllMatchesPage() {
   const [freeTipsUsed, setFreeTipsUsed] = useState(initialCache ? initialCache.freeTipsUsed : 0);
 
   const fetchMatches = useCallback(async (dayVal: string, forceSync = false) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
     // 1. Instant cache hit: render immediately with ZERO network or DB latency
     const cached = clientAllMatchesCache.get(dayVal);
-    if (cached && !forceSync) {
+    const isCacheTierMismatched = Boolean(token && cached && cached.userTier === "free");
+
+    if (cached && !forceSync && !isCacheTierMismatched) {
       setMatches(cached.matches);
       setUserTier(cached.userTier);
       setFreeTipsLimit(cached.freeTipsLimit);
@@ -67,9 +72,7 @@ export default function AllMatchesPage() {
     }
 
     try {
-      if (!cached) setLoading(true);
-      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      if (!cached || isCacheTierMismatched) setLoading(true);
 
       const tz = -new Date().getTimezoneOffset();
       const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}`;

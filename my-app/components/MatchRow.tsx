@@ -106,7 +106,14 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
 export default function MatchRow({ match }: MatchRowProps) {
   const isLive = match.isLive || match.status === "live";
   const isFinished = match.status === "won" || match.status === "lost" || match.status === "FINISHED";
-  const isLocked = match.isLocked;
+  const isLocked = Boolean(match.isLocked);
+
+  // Per-market pill locks: if match is locked (free limit reached), all pills are locked.
+  // If match is unlocked (Pro account or free quota), pills with available picks are never locked.
+  const is1x2Locked = isLocked || Boolean(match.predictions.pickScore.isLocked && !match.predictions.pickScore.pick);
+  const isGoalsLocked = isLocked || Boolean(match.predictions.goals.isLocked && !match.predictions.goals.pick);
+  const isBttsLocked = isLocked || Boolean(match.predictions.btts.isLocked && !match.predictions.btts.pick);
+  const isBestLocked = isLocked || Boolean(match.predictions.bestTip.isLocked && !match.predictions.bestTip.pick);
 
   const hasScores = match.homeScore !== null && match.homeScore !== undefined &&
                     match.awayScore !== null && match.awayScore !== undefined;
@@ -456,7 +463,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
           marketTag="1X2"
           rating={match.predictions.pickScore.rating}
-          isLocked={match.predictions.pickScore.isLocked || isLocked}
+          isLocked={is1x2Locked}
         />
 
         {/* 5. GOALS TIP PILL */}
@@ -467,7 +474,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
           marketTag="O/U"
           rating={match.predictions.goals.rating}
-          isLocked={match.predictions.goals.isLocked || isLocked}
+          isLocked={isGoalsLocked}
         />
 
         {/* 6. BTTS TIP PILL */}
@@ -478,7 +485,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
           marketTag="BTTS"
           rating={match.predictions.btts.rating}
-          isLocked={match.predictions.btts.isLocked || isLocked}
+          isLocked={isBttsLocked}
         />
 
         {/* 7. BEST TIP PILL (Prominent Star Capsule with Market Tag) */}
@@ -490,7 +497,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           marketTag={bestMarketLabel}
           rating={match.predictions.bestTip.rating || (numericConfidence ? Number(numericConfidence) : 8.5)}
           isWon={isBestWon}
-          isLocked={match.predictions.bestTip.isLocked || isLocked}
+          isLocked={isBestLocked}
         />
 
         {/* 8. CONFIDENCE RATING */}
@@ -647,7 +654,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
             marketTag="1X2"
             rating={match.predictions.pickScore.rating}
-            isLocked={match.predictions.pickScore.isLocked || isLocked}
+            isLocked={is1x2Locked}
           />
           <NerdyTipPill
             pick={pGoalsClean}
@@ -656,7 +663,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
             marketTag="O/U"
             rating={match.predictions.goals.rating}
-            isLocked={match.predictions.goals.isLocked || isLocked}
+            isLocked={isGoalsLocked}
           />
           <NerdyTipPill
             pick={pBttsClean}
@@ -665,7 +672,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
             marketTag="BTTS"
             rating={match.predictions.btts.rating}
-            isLocked={match.predictions.btts.isLocked || isLocked}
+            isLocked={isBttsLocked}
           />
         </div>
       </div>

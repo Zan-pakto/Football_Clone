@@ -410,3 +410,24 @@ model RolloverStep {
   @@map("rollover_steps")
 }
 
+model AiProgressStats {
+  id               String   @id @default(uuid())
+  recordDate       String   @unique @map("record_date") // e.g. "2026-09-22"
+  overallRate      String   @map("overall_rate") // e.g. "66.6%"
+  overallCorrect   Int      @map("overall_correct") // e.g. 185747
+  overallTotal     Int      @map("overall_total") // e.g. 278849
+  bankersRate      String   @map("bankers_rate") // e.g. "72.5%"
+  bankersCorrect   Int      @map("bankers_correct") // e.g. 1111
+  bankersTotal     Int      @map("bankers_total") // e.g. 1533
+  matchesPredicted Int      @map("matches_predicted") // e.g. 278849
+  daysTracked      Int      @map("days_tracked") // e.g. 1877
+  monthlyBreakdown Json     @map("monthly_breakdown") // Array of monthly items
+  recentForm       Json     @map("recent_form") // Array of daily form items
+  lastScrapedAt    DateTime @default(now()) @map("last_scraped_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("ai_progress_stats")
+}
+
+

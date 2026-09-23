@@ -41,9 +41,9 @@ function buildMatchPredictions(f: any, isMatchLocked: boolean) {
   return {
     predictions: {
       pickScore: {
-        pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
-        odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
-        isLocked: Boolean(p1x2?.isLocked),
+        pick: (p1x2?.isLocked || isMatchLocked) ? null : (p1x2?.selection || null),
+        odd: (p1x2?.isLocked || isMatchLocked) ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+        isLocked: Boolean(p1x2?.isLocked || isMatchLocked),
         market: "1X2",
         marketLabel: "1X2 Winner",
         confidence: p1x2?.confidence || null,
@@ -51,9 +51,9 @@ function buildMatchPredictions(f: any, isMatchLocked: boolean) {
         isBest: is1x2Best,
       },
       goals: {
-        pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
-        odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
-        isLocked: Boolean(pGoals?.isLocked),
+        pick: (pGoals?.isLocked || isMatchLocked) ? null : (pGoals?.selection || null),
+        odd: (pGoals?.isLocked || isMatchLocked) ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+        isLocked: Boolean(pGoals?.isLocked || isMatchLocked),
         market: "OVER_UNDER",
         marketLabel: "O/U Goals",
         confidence: pGoals?.confidence || null,
@@ -61,9 +61,9 @@ function buildMatchPredictions(f: any, isMatchLocked: boolean) {
         isBest: isGoalsBest,
       },
       btts: {
-        pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
-        odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
-        isLocked: Boolean(pBtts?.isLocked),
+        pick: (pBtts?.isLocked || isMatchLocked) ? null : (pBtts?.selection || null),
+        odd: (pBtts?.isLocked || isMatchLocked) ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+        isLocked: Boolean(pBtts?.isLocked || isMatchLocked),
         market: "BTTS",
         marketLabel: "Both Teams Score",
         confidence: pBtts?.confidence || null,
@@ -71,9 +71,9 @@ function buildMatchPredictions(f: any, isMatchLocked: boolean) {
         isBest: isBttsBest,
       },
       bestTip: {
-        pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
-        odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
-        isLocked: Boolean(pBest?.isLocked),
+        pick: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.selection || p1x2?.selection || null),
+        odd: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+        isLocked: Boolean(pBest?.isLocked || isMatchLocked),
         market: pBest?.market || "1X2",
         marketLabel: bestMarketLabel,
         confidence: pBest?.confidence || null,
@@ -260,15 +260,34 @@ router.get("/", async (req: Request, res: Response) => {
         return {
           ...m,
           isLocked,
-          lockReason: isLocked ? "free_limit_reached" : (m.isLocked ? "premium_exclusive" : null),
+          lockReason: isLocked ? "free_limit_reached" : null,
           predictions: {
             ...m.predictions,
-            bestTip: {
-              ...m.predictions.bestTip,
-              pick: isLocked ? null : m.predictions.bestTip.pick,
-              odd: isLocked ? null : m.predictions.bestTip.odd,
+            pickScore: {
+              ...m.predictions?.pickScore,
+              pick: isLocked ? null : m.predictions?.pickScore?.pick,
+              odd: isLocked ? null : m.predictions?.pickScore?.odd,
               isLocked,
             },
+            goals: {
+              ...m.predictions?.goals,
+              pick: isLocked ? null : m.predictions?.goals?.pick,
+              odd: isLocked ? null : m.predictions?.goals?.odd,
+              isLocked,
+            },
+            btts: {
+              ...m.predictions?.btts,
+              pick: isLocked ? null : m.predictions?.btts?.pick,
+              odd: isLocked ? null : m.predictions?.btts?.odd,
+              isLocked,
+            },
+            bestTip: {
+              ...m.predictions?.bestTip,
+              pick: isLocked ? null : m.predictions?.bestTip?.pick,
+              odd: isLocked ? null : m.predictions?.bestTip?.odd,
+              isLocked,
+            },
+            isLocked,
           },
         };
       });
@@ -278,7 +297,7 @@ router.get("/", async (req: Request, res: Response) => {
       const sanitizedFixtures = accessControlService.filterFixturesList(fixtures, user);
 
       convertedMatches = sanitizedFixtures.map((f, idx) => {
-        const isMatchLocked = Boolean(
+        const isMatchLocked = !isPremiumUser && Boolean(
           f.predictions && f.predictions.length > 0 && f.predictions.every((p) => p.isLocked)
         );
 

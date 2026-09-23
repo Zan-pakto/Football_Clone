@@ -9,6 +9,7 @@ class MatchStore {
   private cache: Map<string, MatchData[]> = new Map();
   private liveCache: Map<string, LiveMatchUpdate> = new Map();
   private lastSyncedAt: string | null = null;
+  private progressCache: any = null;
 
   get lastScrapedAt(): string | null {
     return this.lastSyncedAt;
@@ -159,6 +160,56 @@ class MatchStore {
         },
       });
     }
+
+    if (m.predictions?.goals?.pick) {
+      const gOdd = m.predictions.goals.odd ? parseFloat(m.predictions.goals.odd) || 1.75 : 1.75;
+      const gConf = m.predictions.goals.confidence || 70;
+      await prisma.prediction.upsert({
+        where: {
+          fixtureId_market: {
+            fixtureId: fixture.id,
+            market: "OVER_UNDER" as any,
+          },
+        },
+        update: {
+          selection: m.predictions.goals.pick,
+          confidence: gConf,
+          odd: gOdd,
+        },
+        create: {
+          fixtureId: fixture.id,
+          market: "OVER_UNDER" as any,
+          selection: m.predictions.goals.pick,
+          confidence: gConf,
+          odd: gOdd,
+        },
+      });
+    }
+
+    if (m.predictions?.btts?.pick) {
+      const bOdd = m.predictions.btts.odd ? parseFloat(m.predictions.btts.odd) || 1.82 : 1.82;
+      const bConf = m.predictions.btts.confidence || 65;
+      await prisma.prediction.upsert({
+        where: {
+          fixtureId_market: {
+            fixtureId: fixture.id,
+            market: "BTTS" as any,
+          },
+        },
+        update: {
+          selection: m.predictions.btts.pick,
+          confidence: bConf,
+          odd: bOdd,
+        },
+        create: {
+          fixtureId: fixture.id,
+          market: "BTTS" as any,
+          selection: m.predictions.btts.pick,
+          confidence: bConf,
+          odd: bOdd,
+        },
+      });
+    }
   }
 
   async applyLiveUpdates(updates: Record<string, LiveMatchUpdate>, d: string): Promise<void> {
@@ -245,12 +296,18 @@ class MatchStore {
                 draw: "3.50",
                 away: "4.20",
               },
-              predictions: {
-                pickScore: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
-                goals: { pick: null, odd: null },
-                btts: { pick: null, odd: null },
-                bestTip: { pick: df.predictions?.[0]?.selection || null, odd: "1.75" },
-              },
+              predictions: (() => {
+                const p1x2 = df.predictions?.find((p: any) => p.market === "ONE_X_TWO" || p.market === "1X2");
+                const pGoals = df.predictions?.find((p: any) => p.market === "OVER_UNDER");
+                const pBtts = df.predictions?.find((p: any) => p.market === "BTTS");
+                return {
+                  pickScore: { pick: p1x2?.selection || null, odd: p1x2?.odd ? String(p1x2.odd) : "1.75", isLocked: false },
+                  goals: { pick: pGoals?.selection || null, odd: pGoals?.odd ? String(pGoals.odd) : "1.75", isLocked: false },
+                  btts: { pick: pBtts?.selection || null, odd: pBtts?.odd ? String(pBtts.odd) : "1.82", isLocked: false },
+                  bestTip: { pick: p1x2?.selection || null, odd: p1x2?.odd ? String(p1x2.odd) : "1.75", isLocked: false },
+                  isLocked: false,
+                };
+              })(),
               confidence: df.predictions?.[0]?.confidence ? `${df.predictions[0].confidence}%` : "84%",
             };
           });
@@ -454,6 +511,80 @@ class MatchStore {
   async getLiveMatches(d: string = "0"): Promise<MatchData[]> {
     const { matches } = await this.getMatches(d);
     return matches.filter((m) => m.isLive || isMatchLive(m.status, m.elapsed));
+  }
+
+  /**
+   * Persist AI Progress Stats to PostgreSQL and in-memory cache
+   */
+  async saveProgressStats(data: any): Promise<void> {
+    try {
+      this.progressCache = data;
+      await prisma.aiProgressStats.upsert({
+        where: { recordDate: data.recordDate },
+        update: {
+          overallRate: data.overallRate,
+          overallCorrect: data.overallCorrect,
+          overallTotal: data.overallTotal,
+          bankersRate: data.bankersRate,
+          bankersCorrect: data.bankersCorrect,
+          bankersTotal: data.bankersTotal,
+          matchesPredicted: data.matchesPredicted,
+          daysTracked: data.daysTracked,
+          monthlyBreakdown: data.monthlyBreakdown,
+          recentForm: data.recentForm,
+          lastScrapedAt: new Date(data.scrapedAt || Date.now()),
+        },
+        create: {
+          recordDate: data.recordDate,
+          overallRate: data.overallRate,
+          overallCorrect: data.overallCorrect,
+          overallTotal: data.overallTotal,
+          bankersRate: data.bankersRate,
+          bankersCorrect: data.bankersCorrect,
+          bankersTotal: data.bankersTotal,
+          matchesPredicted: data.matchesPredicted,
+          daysTracked: data.daysTracked,
+          monthlyBreakdown: data.monthlyBreakdown,
+          recentForm: data.recentForm,
+          lastScrapedAt: new Date(data.scrapedAt || Date.now()),
+        },
+      });
+      console.log(`[MatchStore] Successfully saved AI Progress Stats to database for date ${data.recordDate}`);
+    } catch (err: any) {
+      console.warn("[MatchStore] Failed to persist progress stats to DB:", err.message);
+    }
+  }
+
+  /**
+   * Get latest AI Progress Stats from DB or cache
+   */
+  async getProgressStats(): Promise<any | null> {
+    if (this.progressCache) return this.progressCache;
+    try {
+      const record = await prisma.aiProgressStats.findFirst({
+        orderBy: { recordDate: "desc" },
+      });
+      if (record) {
+        this.progressCache = {
+          recordDate: record.recordDate,
+          overallRate: record.overallRate,
+          overallCorrect: record.overallCorrect,
+          overallTotal: record.overallTotal,
+          bankersRate: record.bankersRate,
+          bankersCorrect: record.bankersCorrect,
+          bankersTotal: record.bankersTotal,
+          matchesPredicted: record.matchesPredicted,
+          daysTracked: record.daysTracked,
+          monthlyBreakdown: record.monthlyBreakdown,
+          recentForm: record.recentForm,
+          scrapedAt: record.lastScrapedAt.toISOString(),
+        };
+        return this.progressCache;
+      }
+    } catch (err: any) {
+      console.warn("[MatchStore] Failed to fetch progress stats from DB:", err.message);
+    }
+    return null;
   }
 }
 

@@ -79,7 +79,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
         isBest: true,
         market: bestMarket,
         marketLabel: bestMarket === "goals" ? "Over/Under" : bestMarket === "btts" ? "Both Teams to Score" : "1X2 / Double Chance",
-        isLocked: Boolean(m.isPremium),
+        isLocked: false,
       },
       pickScore: {
         pick: m.pickScore?.pick || (homeOddStr && awayOddStr ? (parseFloat(homeOddStr) <= parseFloat(awayOddStr) ? "1" : "2") : "1"),
@@ -103,14 +103,14 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
         rating: bttsRating,
         trust: `${bttsRating}/10`,
         confidence: Math.round(bttsRating * 10),
-        isLocked: Boolean(m.isPremium),
+        isLocked: false,
       },
       bestMarket,
-      isLocked: Boolean(m.isPremium),
+      isLocked: false,
     },
     confidence: `${adjustedConf}%`,
     isLive: m.status === "LIVE",
-    isLocked: Boolean(m.isPremium),
+    isLocked: false,
     queryTags: `${m.homeTeam} ${m.awayTeam} ${m.league} ${m.country}`.toLowerCase(),
   };
 }
