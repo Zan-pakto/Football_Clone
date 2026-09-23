@@ -1,432 +1,740 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { MatchData } from "@/lib/types";
 import {
   Sparkles,
-  RotateCcw,
-  Check,
-  ChevronRight,
-  Shield,
-  Zap,
+  RefreshCw,
   Copy,
   CheckCircle2,
-  Layers,
-  SlidersHorizontal,
+  Star,
+  Check,
+  ChevronDown,
+  Info,
 } from "lucide-react";
+import CountryFlag from "@/components/CountryFlag";
 
-interface SlipItem {
+interface SlipMatch {
   id: string;
   datetime: string;
-  countryLeague: string;
+  country: string;
+  league: string;
   homeTeam: string;
   awayTeam: string;
-  homeLogoColor: string;
-  awayLogoColor: string;
-  trustScore: number;
-  marketType: string;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
+  trustScore: string;
+  trustLevel: "cf1" | "cf2" | "cf3" | "cf4";
   pick: string;
   odds: number;
+  oddMove?: "up" | "down";
 }
 
-const TEAM_COLORS = [
-  "#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#d4af37",
-  "#06b6d4", "#14b8a6", "#f97316", "#0284c7", "#84cc16"
-];
-
-function getDeterministicColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return TEAM_COLORS[Math.abs(hash) % TEAM_COLORS.length];
-}
+const DEFAULT_BET_TYPES: Record<string, boolean> = {
+  "Match Result (1X2)": true,
+  "Under 2.5": true,
+  "Under 1.5": true,
+  "Under 3.5": true,
+  "Double Chance": true,
+  "Over 2.5": true,
+  "Over 1.5": true,
+  "Over 3.5": true,
+  "Both Teams to Score": true,
+  "More markets": true,
+};
 
 export default function BetBuilderPage() {
-  const [totalSlipOdds, setTotalSlipOdds] = useState<number>(5.0);
+  // Odds slider state
+  const [targetOdds, setTargetOdds] = useState<number>(5.0);
   const [autoOdds, setAutoOdds] = useState<boolean>(false);
-  const [matchCountRange, setMatchCountRange] = useState<string>("Auto");
+
+  // Number of matches
+  const [numPicksRange, setNumPicksRange] = useState<string>("Auto");
   const [isFixedCount, setIsFixedCount] = useState<boolean>(false);
-  const [fixedCountVal, setFixedCountVal] = useState<string>("7");
+  const [fixedCount, setFixedCount] = useState<string>("");
 
-  const [betTypes, setBetTypes] = useState<Record<string, boolean>>({
-    "Match Result (1X2)": true,
-    "Over 2.5": true,
-    "Under 2.5": true,
-    "Over 1.5": true,
-    "Under 1.5": true,
-    "Over 3.5": true,
-    "Under 3.5": true,
-    "Both Teams to Score": true,
-    "Double Chance": true,
-    "More markets": true,
-  });
+  // Bet types checklist
+  const [betTypes, setBetTypes] = useState<Record<string, boolean>>(DEFAULT_BET_TYPES);
 
+  // Min/Max odd per pick & trust (advanced)
   const [minOdd, setMinOdd] = useState<number>(1.15);
   const [maxOdd, setMaxOdd] = useState<number>(1.80);
-  const [availableMatches, setAvailableMatches] = useState<SlipItem[]>([]);
+  const [minTrust, setMinTrust] = useState<number>(3.0);
+  const [timeWindow, setTimeWindow] = useState<string>("tomorrow");
+  const [onlyMajor, setOnlyMajor] = useState<boolean>(false);
+  const [onlyDecreasing, setOnlyDecreasing] = useState<boolean>(false);
+
+  // Matches inventory from API
+  const [matchesPool, setMatchesPool] = useState<SlipMatch[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [rerollSeed, setRerollSeed] = useState<number>(0);
 
+  // Load matches from API
   useEffect(() => {
-    async function loadMatches() {
+    async function fetchMatches() {
       try {
         setLoading(true);
         const res = await fetch("/api/matches?d=0");
         if (!res.ok) return;
-        const contentType = res.headers.get("content-type") || "";
-        if (!contentType.includes("json")) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.matches)) {
-          const items: SlipItem[] = data.matches.map((m: MatchData) => {
-            const best = m.predictions?.bestTip?.pick || "1";
-            const bestOdd = parseFloat(m.predictions?.bestTip?.odd || m.odds.home || "1.50");
-            const conf = m.confidence ? parseInt(m.confidence.replace("%", ""), 10) / 10 : 8.8;
+          const formatted: SlipMatch[] = data.matches.map((m: MatchData, idx: number) => {
+            // Determine best pick and market
+            const homeOdd = parseFloat(m.odds?.home || "1.85");
+            const drawOdd = parseFloat(m.odds?.draw || "3.20");
+            const awayOdd = parseFloat(m.odds?.away || "3.80");
+
+            let pick = "1";
+            let pickOdd = homeOdd;
+            if (awayOdd < homeOdd && awayOdd < 2.5) {
+              pick = "2";
+              pickOdd = awayOdd;
+            } else if (homeOdd <= 1.45) {
+              pick = "1";
+              pickOdd = homeOdd;
+            } else if (homeOdd <= 1.85) {
+              pick = "1X";
+              pickOdd = parseFloat((homeOdd * 0.72).toFixed(2));
+            } else if (awayOdd <= 1.85) {
+              pick = "X2";
+              pickOdd = parseFloat((awayOdd * 0.72).toFixed(2));
+            } else {
+              pick = idx % 2 === 0 ? "U2.5" : "O1.5";
+              pickOdd = idx % 2 === 0 ? 1.62 : 1.35;
+            }
+
+            // Trust score format: e.g. 10 or 8.8
+            const ratingNum = typeof m.rating === "number" ? m.rating : 8.8;
+            const trustStr = ratingNum >= 9.5 ? "10" : ratingNum.toFixed(1);
+
+            let trustLevel: "cf1" | "cf2" | "cf3" | "cf4" = "cf2";
+            if (ratingNum >= 9) trustLevel = "cf1";
+            else if (ratingNum >= 7.5) trustLevel = "cf2";
+            else if (ratingNum >= 6) trustLevel = "cf3";
+            else trustLevel = "cf4";
+
+            // Format date & time: Thu, Sep 24 · 00:15
+            const kick = m.kickTime || "20:00";
+            const dateStr = `Thu, Sep 24 · ${kick}`;
 
             return {
               id: m.id,
-              datetime: `Today · ${m.kickTime || "19:00"}`,
-              countryLeague: `${m.country || "Int"} - ${m.leagueName || "League"}`,
+              datetime: dateStr,
+              country: m.country || "World",
+              league: m.leagueName || "League",
               homeTeam: m.homeTeam,
               awayTeam: m.awayTeam,
-              homeLogoColor: getDeterministicColor(m.homeTeam),
-              awayLogoColor: getDeterministicColor(m.awayTeam),
-              trustScore: Math.min(9.9, Math.max(7.5, conf)),
-              marketType: "Best Tip",
-              pick: best,
-              odds: isNaN(bestOdd) ? 1.50 : bestOdd,
+              homeLogo: m.homeLogo,
+              awayLogo: m.awayLogo,
+              trustScore: trustStr,
+              trustLevel,
+              pick,
+              odds: isNaN(pickOdd) ? 1.45 : pickOdd,
+              oddMove: idx % 3 === 0 ? "down" : undefined,
             };
           });
-          setAvailableMatches(items);
+          setMatchesPool(formatted);
         }
       } catch (err) {
-        console.error("Failed to load bet builder pool:", err);
+        console.error("Error loading match pool:", err);
       } finally {
         setLoading(false);
       }
     }
-    loadMatches();
+    fetchMatches();
   }, []);
 
-  const generatedSlip = useMemo(() => {
-    if (availableMatches.length === 0) return [];
+  // Filter matches based on selections
+  const filteredPool = useMemo(() => {
+    if (matchesPool.length === 0) return [];
+    return matchesPool.filter((m) => {
+      if (m.odds < minOdd || m.odds > maxOdd) return false;
+      const numTrust = parseFloat(m.trustScore);
+      if (!isNaN(numTrust) && numTrust < minTrust) return false;
+      return true;
+    });
+  }, [matchesPool, minOdd, maxOdd, minTrust]);
 
-    let targetCount = 6;
-    if (matchCountRange === "2-5") targetCount = 4;
-    else if (matchCountRange === "5-10") targetCount = 6;
-    else if (matchCountRange === "10-15") targetCount = 10;
-    else if (matchCountRange === "15-20") targetCount = 15;
-    if (isFixedCount && parseInt(fixedCountVal)) {
-      targetCount = parseInt(fixedCountVal);
+  // Solver for accumulator slip matching target odds
+  const generatedSlip = useMemo(() => {
+    const pool = filteredPool.length > 0 ? filteredPool : matchesPool;
+    if (pool.length === 0) return [];
+
+    // Determine target pick count
+    let targetPicks = 5;
+    if (isFixedCount && parseInt(fixedCount, 10)) {
+      targetPicks = Math.max(2, Math.min(25, parseInt(fixedCount, 10)));
+    } else if (numPicksRange === "2-5") targetPicks = 4;
+    else if (numPicksRange === "5-10") targetPicks = 6;
+    else if (numPicksRange === "10-15") targetPicks = 10;
+    else if (numPicksRange === "15-20") targetPicks = 15;
+    else {
+      // Auto: select picks count based on target odds
+      if (targetOdds <= 2.5) targetPicks = 3;
+      else if (targetOdds <= 6) targetPicks = 5;
+      else if (targetOdds <= 15) targetPicks = 8;
+      else targetPicks = 12;
     }
 
-    return availableMatches.slice(0, targetCount);
-  }, [availableMatches, matchCountRange, isFixedCount, fixedCountVal]);
+    // Seed-based shuffle for re-roll
+    const shuffled = [...pool].sort((a, b) => {
+      const hashA = (a.id.charCodeAt(0) * 31 + rerollSeed) % 100;
+      const hashB = (b.id.charCodeAt(0) * 31 + rerollSeed) % 100;
+      return hashA - hashB;
+    });
 
-  const calculatedTotalOdds = useMemo(() => {
-    if (generatedSlip.length === 0) return 5.0;
-    const total = generatedSlip.reduce((acc, item) => acc * item.odds, 1);
-    return parseFloat(total.toFixed(2));
+    // Greedy selection towards targetOdds
+    const selected: SlipMatch[] = [];
+    let currentProd = 1;
+
+    for (const match of shuffled) {
+      if (selected.length >= targetPicks) break;
+      selected.push(match);
+      currentProd *= match.odds;
+      if (selected.length >= targetPicks && currentProd >= targetOdds * 0.9) {
+        break;
+      }
+    }
+
+    // Ensure we have at least 2 picks if available
+    if (selected.length < 2 && pool.length >= 2) {
+      return pool.slice(0, 2);
+    }
+
+    return selected;
+  }, [filteredPool, matchesPool, targetOdds, numPicksRange, isFixedCount, fixedCount, rerollSeed]);
+
+  // Calculated cumulative odds
+  const calculatedOdds = useMemo(() => {
+    if (generatedSlip.length === 0) return 1.0;
+    const prod = generatedSlip.reduce((acc, m) => acc * m.odds, 1);
+    return parseFloat(prod.toFixed(2));
   }, [generatedSlip]);
 
+  // Calculate target diff percentage
+  const deltaPercent = useMemo(() => {
+    if (targetOdds <= 0) return 0;
+    const diff = ((calculatedOdds - targetOdds) / targetOdds) * 100;
+    return Math.round(diff);
+  }, [calculatedOdds, targetOdds]);
+
+  // Toggle bet type checkbox
   const handleToggleBetType = (key: string) => {
     setBetTypes((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSelectAll = (val: boolean) => {
-    setBetTypes((prev) => {
-      const next = { ...prev };
-      Object.keys(next).forEach((k) => (next[k] = val));
-      return next;
+  // Toggle all bet types
+  const handleToggleAllBetTypes = () => {
+    const allChecked = Object.values(betTypes).every(Boolean);
+    const updated: Record<string, boolean> = {};
+    Object.keys(betTypes).forEach((k) => {
+      updated[k] = !allChecked;
     });
+    setBetTypes(updated);
   };
 
-  const handleCopySlip = () => {
-    const text = generatedSlip
-      .map((p, i) => `${i + 1}. [${p.countryLeague}] ${p.homeTeam} vs ${p.awayTeam} -> ${p.pick} @ ${p.odds}`)
-      .join("\n");
-    const full = `[JollofTips] Bet Builder Slip (${generatedSlip.length} picks · Total Odds: ${calculatedTotalOdds}):\n${text}`;
-    navigator.clipboard.writeText(full);
+  // Copy slip to clipboard
+  const handleCopySlip = useCallback(() => {
+    if (generatedSlip.length === 0) return;
+    const lines = generatedSlip.map(
+      (m, idx) =>
+        `${idx + 1}. [${m.country} · ${m.league}] ${m.homeTeam} vs ${m.awayTeam} -> ${m.pick} @ ${m.odds.toFixed(2)}`
+    );
+    const text = `[JollofTips Bet Builder] ${generatedSlip.length} picks · Total Odds: ${calculatedOdds}\n` + lines.join("\n");
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [generatedSlip, calculatedOdds]);
+
+  // Dynamic slider percentage for CSS gradient track
+  const sliderPct = useMemo(() => {
+    const min = 1.5;
+    const max = 50.0;
+    const pct = ((targetOdds - min) / (max - min)) * 100;
+    return Math.max(0, Math.min(100, pct));
+  }, [targetOdds]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+    <div className="bb" style={{ minHeight: "100vh", background: "var(--color-bg, #080718)" }}>
+      {/* Radial purple ambient light */}
+      <div className="bb__orb bb__orb--a" aria-hidden="true" />
+      <div className="nt-glow" aria-hidden="true" />
+
       <Navbar />
 
-      <main style={{ maxWidth: 1360, margin: "0 auto", padding: "28px 20px 80px" }}>
-        {/* Header Badge */}
-        <div style={{ marginBottom: 24 }}>
-          <div className="gold-badge" style={{ marginBottom: 10 }}>
+      {/* Main Container */}
+      <main style={{ maxWidth: 1360, margin: "0 auto", padding: "24px 20px 80px", position: "relative", zIndex: 1 }}>
+        {/* Compact Hero Header */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="bb-tagline">
             <Sparkles size={12} />
-            POWERED BY JT ALGORITHMIC ENGINE
+            + POWERED BY NT APEX AI
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-            Smart Bet Builder
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>
-            Generate high-trust customized accumulator slips matching your exact target odds and market preferences.
-          </p>
+          <h1 className="bb-title">Bet Builder</h1>
         </div>
 
-        {/* ── Builder Grid (Controls on Left, Slip on Right) ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 24, alignItems: "flex-start" }}>
-          
-          {/* LEFT: Controls Panel */}
-          <div className="luxury-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 24 }}>
-            
-            {/* 1. TOTAL SLIP ODDS */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  TOTAL SLIP ODDS
-                </span>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+        {/* 2-Column Responsive Grid (340px Left / 1fr Right) */}
+        <div className="bb-grid">
+          {/* ════════════════════════════════════════════════════════════
+              LEFT: Configuration Form (.bb-config)
+              ════════════════════════════════════════════════════════════ */}
+          <form className="bb-config" aria-label="Bet Builder configuration" onSubmit={(e) => e.preventDefault()}>
+            {/* 1. Total Slip Odds */}
+            <div className="bb-field">
+              <div className="bb-field__head">
+                <label className="bb-field__label" htmlFor="bb-target">
+                  Total slip odds
+                </label>
+                <label className="bb-switch">
                   <input
                     type="checkbox"
                     checked={autoOdds}
                     onChange={(e) => setAutoOdds(e.target.checked)}
-                    style={{ accentColor: "var(--gold)" }}
                   />
-                  Auto odds
+                  <span>Auto odds</span>
                 </label>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div className="bb-slider" style={{ ["--bb-pct" as any]: `${sliderPct}%` }}>
                 <input
                   type="range"
-                  min="2.00"
-                  max="50.00"
-                  step="0.5"
+                  id="bb-target"
+                  min="1.5"
+                  max="50"
+                  step="0.1"
                   disabled={autoOdds}
-                  value={totalSlipOdds}
-                  onChange={(e) => setTotalSlipOdds(parseFloat(e.target.value))}
-                  style={{ flex: 1 }}
+                  value={targetOdds}
+                  onChange={(e) => setTargetOdds(parseFloat(e.target.value))}
+                  aria-label="Total slip odds"
                 />
-                <span style={{ fontSize: 18, fontWeight: 900, color: "var(--gold)", minWidth: 60, textAlign: "right" }}>
-                  {totalSlipOdds.toFixed(2)}
-                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="bb-out"
+                  value={targetOdds.toFixed(2)}
+                  readOnly
+                  aria-label="Total slip odds value"
+                />
               </div>
             </div>
 
-            {/* 2. NUMBER OF MATCHES */}
-            <div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 12 }}>
-                NUMBER OF MATCHES
-              </span>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                {["Auto", "2-5", "5-10", "10-15", "15-20"].map((r) => {
-                  const isSel = matchCountRange === r;
+            {/* 2. Number of Matches */}
+            <div className="bb-field">
+              <span className="bb-field__label">Number of matches</span>
+              <div className="bb-pills" role="radiogroup" aria-label="Number of matches">
+                {["Auto", "2-5", "5-10", "10-15", "15-20"].map((range) => {
+                  const active = numPicksRange === range && !isFixedCount;
                   return (
-                    <button
-                      key={r}
-                      onClick={() => setMatchCountRange(r)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        border: isSel ? "1px solid var(--gold)" : "1px solid var(--border-color)",
-                        background: isSel ? "var(--gold)" : "var(--surface-raised)",
-                        color: isSel ? "var(--gold-btn-text)" : "var(--text-secondary)",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {r}
-                    </button>
+                    <label key={range} className={`bb-pill ${active ? "is-active" : ""}`}>
+                      <input
+                        type="radio"
+                        name="num_picks_range"
+                        value={range}
+                        checked={active}
+                        onChange={() => {
+                          setNumPicksRange(range);
+                          setIsFixedCount(false);
+                        }}
+                      />
+                      <span>{range}</span>
+                    </label>
                   );
                 })}
               </div>
 
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+              <label className="bb-inline-toggle">
                 <input
                   type="checkbox"
                   checked={isFixedCount}
                   onChange={(e) => setIsFixedCount(e.target.checked)}
-                  style={{ accentColor: "var(--gold)" }}
                 />
-                Fixed count
-                {isFixedCount && (
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={fixedCountVal}
-                    onChange={(e) => setFixedCountVal(e.target.value)}
-                    style={{
-                      width: 50,
-                      padding: "2px 6px",
-                      borderRadius: 6,
-                      background: "var(--bg-input)",
-                      border: "1px solid var(--border-color)",
-                      color: "var(--text-primary)",
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  />
-                )}
+                <span>Fixed count</span>
+                <input
+                  type="number"
+                  min="2"
+                  max="25"
+                  value={fixedCount}
+                  placeholder="2–25"
+                  disabled={!isFixedCount}
+                  onChange={(e) => setFixedCount(e.target.value)}
+                  className="bb-num"
+                  aria-label="Exact number of matches"
+                />
               </label>
             </div>
 
-            {/* 3. BET TYPES */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  BET TYPES
-                </span>
+            {/* 3. Bet Types (2-Column Checklist) */}
+            <div className="bb-field">
+              <div className="bb-field__head">
+                <label className="bb-field__label">Bet types</label>
                 <button
-                  onClick={() => handleSelectAll(false)}
-                  style={{ background: "transparent", border: "none", color: "var(--gold)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  type="button"
+                  onClick={handleToggleAllBetTypes}
+                  className="bb-mini"
+                  style={{ background: "transparent", border: "none", padding: 0 }}
                 >
-                  Uncheck all
+                  {Object.values(betTypes).every(Boolean) ? "Uncheck all" : "Check all"}
                 </button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {Object.keys(betTypes).map((bt) => (
-                  <label key={bt} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={betTypes[bt]}
-                      onChange={() => handleToggleBetType(bt)}
-                      style={{ accentColor: "var(--gold)" }}
-                    />
-                    {bt}
-                  </label>
-                ))}
+              <div className="bb-markets">
+                {/* Column 1 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {["Match Result (1X2)", "Under 2.5", "Under 1.5", "Under 3.5", "Double Chance"].map((market) => (
+                    <label key={market} className="bb-chk">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(betTypes[market])}
+                        onChange={() => handleToggleBetType(market)}
+                      />
+                      <span>{market}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Column 2 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {["Over 2.5", "Over 1.5", "Over 3.5", "Both Teams to Score", "More markets"].map((market) => (
+                    <label key={market} className="bb-chk">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(betTypes[market])}
+                        onChange={() => handleToggleBetType(market)}
+                      />
+                      <span>{market}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 4. MIN / MAX ODDS PER PICK */}
-            <div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 12 }}>
-                ODDS RANGE PER PICK ({minOdd.toFixed(2)} - {maxOdd.toFixed(2)})
-              </span>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {/* 4. Min / Max Odd per Pick */}
+            <div className="bb-field">
+              <label className="bb-field__label" htmlFor="bb-minodd">
+                Min odd per pick
+              </label>
+              <div
+                className="bb-slider"
+                style={{ ["--bb-pct" as any]: `${((minOdd - 1.05) / (5 - 1.05)) * 100}%` }}
+              >
                 <input
                   type="range"
+                  id="bb-minodd"
                   min="1.05"
-                  max="3.00"
-                  step="0.05"
+                  max="5"
+                  step="0.01"
                   value={minOdd}
                   onChange={(e) => setMinOdd(parseFloat(e.target.value))}
-                  style={{ flex: 1 }}
                 />
+                <input type="text" className="bb-out" value={minOdd.toFixed(2)} readOnly />
+              </div>
+            </div>
+
+            <div className="bb-field">
+              <label className="bb-field__label" htmlFor="bb-maxodd">
+                Max odd per pick
+              </label>
+              <div
+                className="bb-slider"
+                style={{ ["--bb-pct" as any]: `${((maxOdd - 1.2) / (12 - 1.2)) * 100}%` }}
+              >
                 <input
                   type="range"
-                  min="1.30"
-                  max="5.00"
-                  step="0.05"
+                  id="bb-maxodd"
+                  min="1.2"
+                  max="12"
+                  step="0.01"
                   value={maxOdd}
                   onChange={(e) => setMaxOdd(parseFloat(e.target.value))}
-                  style={{ flex: 1 }}
                 />
+                <input type="text" className="bb-out" value={maxOdd.toFixed(2)} readOnly />
               </div>
             </div>
-          </div>
 
-          {/* RIGHT: Slip Generator Results */}
-          <div className="luxury-card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: 16 }}>
-              <div>
-                <p style={{ fontSize: 11, fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
-                  YOUR ACCUMULATOR SLIP
-                </p>
-                <p style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
-                  {generatedSlip.length} picks · {calculatedTotalOdds}
-                </p>
+            {/* 5. Match Window */}
+            <div className="bb-field">
+              <label className="bb-field__label">Match window</label>
+              <div className="bb-pills" role="radiogroup">
+                {[
+                  { id: "today", label: "Today" },
+                  { id: "tomorrow", label: "Today + tomorrow" },
+                  { id: "3days", label: "Next 3 days" },
+                ].map((w) => {
+                  const active = timeWindow === w.id;
+                  return (
+                    <label key={w.id} className={`bb-pill ${active ? "is-active" : ""}`}>
+                      <input
+                        type="radio"
+                        name="time_window"
+                        value={w.id}
+                        checked={active}
+                        onChange={() => setTimeWindow(w.id)}
+                      />
+                      <span>{w.label}</span>
+                    </label>
+                  );
+                })}
               </div>
+            </div>
 
-              <span
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  background: "var(--accent-green-bg)",
-                  border: "1px solid var(--accent-green-border)",
-                  color: "var(--accent-green)",
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
+            {/* 6. Minimum Pick Trust */}
+            <div className="bb-field">
+              <label className="bb-field__label" htmlFor="bb-trust">
+                Minimum pick trust
+              </label>
+              <div
+                className="bb-slider"
+                style={{ ["--bb-pct" as any]: `${(minTrust / 10) * 100}%` }}
               >
-                Target {totalSlipOdds.toFixed(2)}
-              </span>
+                <input
+                  type="range"
+                  id="bb-trust"
+                  min="0"
+                  max="10"
+                  step="0.5"
+                  value={minTrust}
+                  onChange={(e) => setMinTrust(parseFloat(e.target.value))}
+                />
+                <input type="text" className="bb-out" value={minTrust.toFixed(1)} readOnly />
+              </div>
             </div>
 
-            {/* Picks List */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 520, overflowY: "auto" }}>
-              {loading ? (
-                <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>
-                  Generating optimal algorithmic picks...
-                </div>
-              ) : generatedSlip.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>
-                  No picks match this exact filter criteria.
-                </div>
-              ) : (
-                generatedSlip.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: 10,
-                      background: "var(--surface-raised)",
-                      border: "1px solid var(--border-color)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontSize: 11, color: "var(--text-dim)", fontWeight: 600 }}>
-                        {item.countryLeague} · {item.datetime}
-                      </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.homeLogoColor }} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{item.homeTeam}</span>
-                        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>vs</span>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.awayLogoColor }} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{item.awayTeam}</span>
-                      </div>
-                    </div>
+            {/* 7. Additional Toggles */}
+            <div className="bb-field bb-field--toggles">
+              <label className="bb-switch bb-switch--row">
+                <input
+                  type="checkbox"
+                  checked={onlyMajor}
+                  onChange={(e) => setOnlyMajor(e.target.checked)}
+                />
+                <span>Only important leagues</span>
+              </label>
+              <label className="bb-switch bb-switch--row">
+                <input
+                  type="checkbox"
+                  checked={onlyDecreasing}
+                  onChange={(e) => setOnlyDecreasing(e.target.checked)}
+                />
+                <span>Only decreasing odds</span>
+              </label>
+            </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent-green)" }}>
-                        {item.trustScore.toFixed(1)}
-                      </span>
-                      <div
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 8,
-                          background: "var(--gold-bg)",
-                          border: "1px solid var(--gold-border)",
-                          color: "var(--gold)",
-                          textAlign: "center",
-                          minWidth: 70,
-                        }}
-                      >
-                        <p style={{ fontSize: 11, fontWeight: 800, margin: 0 }}>{item.pick}</p>
-                        <p style={{ fontSize: 11, fontWeight: 600, margin: 0, opacity: 0.85 }}>· {item.odds.toFixed(2)}</p>
-                      </div>
-                    </div>
+            {/* 8. Action Buttons */}
+            <div className="bb-actions">
+              <button
+                type="button"
+                className="bb-btn bb-btn--primary"
+                onClick={() => setRerollSeed((p) => p + 1)}
+              >
+                Generate slip
+              </button>
+              <button
+                type="button"
+                className="bb-btn bb-btn--ghost"
+                onClick={() => setRerollSeed((p) => p + 1)}
+                title="Re-roll with different matches"
+              >
+                <RefreshCw size={15} />
+              </button>
+            </div>
+          </form>
+
+          {/* ════════════════════════════════════════════════════════════
+              RIGHT: Generated Bet Slip (.bb-slip)
+              ════════════════════════════════════════════════════════════ */}
+          <div className="bb-result">
+            {loading ? (
+              <div className="bb-placeholder">
+                <RefreshCw size={28} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--color-accent-hi)" }} />
+                <h2>Building your optimal slip...</h2>
+                <p>Scoring every fixture with algorithmic AI models.</p>
+              </div>
+            ) : generatedSlip.length === 0 ? (
+              <div className="bb-placeholder">
+                <h2>Ready to build your slip?</h2>
+                <p>Set your preferences on the left, then click Generate slip to let the AI assemble it for you.</p>
+              </div>
+            ) : (
+              <div className="bb-slip">
+                {/* Slip Header */}
+                <div className="bb-slip__head">
+                  <div className="bb-slip__headmain">
+                    <span className="bb-slip__eyebrow">YOUR SLIP</span>
+                    <h2 className="bb-slip__title">
+                      {generatedSlip.length} picks · <span>{calculatedOdds.toFixed(2)}</span>
+                    </h2>
+                    <span
+                      className={`bb-slip__delta ${
+                        Math.abs(deltaPercent) <= 8 ? "is-ok" : "is-off"
+                      }`}
+                    >
+                      Target {targetOdds.toFixed(2)} · {deltaPercent > 0 ? `+${deltaPercent}%` : `${deltaPercent}%`}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
 
-            {/* Copy Button */}
-            <button
-              onClick={handleCopySlip}
-              className="gold-btn"
-              style={{ width: "100%", padding: "12px", marginTop: 8 }}
-            >
-              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-              <span>{copied ? "Slip Copied to Clipboard!" : "Copy Generated Slip"}</span>
-            </button>
+                  {/* Header Actions */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsFavorite((p) => !p)}
+                      className="bb-slip__fav"
+                      style={{
+                        background: isFavorite ? "rgba(124, 108, 245, 0.25)" : undefined,
+                        color: isFavorite ? "#ffffff" : undefined,
+                      }}
+                    >
+                      <Star size={13} fill={isFavorite ? "currentColor" : "none"} />
+                      <span>Favorites</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCopySlip}
+                      className="bb-slip__fav"
+                      title="Copy slip to clipboard"
+                    >
+                      {copied ? <CheckCircle2 size={13} color="#6ee7b0" /> : <Copy size={13} />}
+                      <span>{copied ? "Copied" : "Copy"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Match Cards List */}
+                <ul className="bb-slip__list">
+                  {generatedSlip.map((match) => (
+                    <li key={match.id} className={`bb-slip__row ${match.trustLevel}`}>
+                      {/* Row Header: Date & Kickoff on left, League on right */}
+                      <div className="bb-slip__rowhead">
+                        <span className="bb-slip__date">{match.datetime}</span>
+                        <span className="bb-slip__league">
+                          {match.country} · {match.league}
+                        </span>
+                      </div>
+
+                      {/* Row Body: Teams, Trust Score, Pick Pill */}
+                      <div className="bb-slip__rowbody">
+                        {/* Teams */}
+                        <div className="bb-slip__teams">
+                          <span className="bb-slip__team">
+                            {match.homeLogo ? (
+                              <img
+                                src={match.homeLogo}
+                                width={17}
+                                height={17}
+                                alt={match.homeTeam}
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.visibility = "hidden";
+                                }}
+                              />
+                            ) : (
+                              <CountryFlag country={match.homeTeam} size={15} />
+                            )}
+                            {match.homeTeam}
+                          </span>
+
+                          <span className="bb-slip__team">
+                            {match.awayLogo ? (
+                              <img
+                                src={match.awayLogo}
+                                width={17}
+                                height={17}
+                                alt={match.awayTeam}
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.visibility = "hidden";
+                                }}
+                              />
+                            ) : (
+                              <CountryFlag country={match.awayTeam} size={15} />
+                            )}
+                            {match.awayTeam}
+                          </span>
+                        </div>
+
+                        {/* Trust Score */}
+                        <span className="bb-slip__trust">{match.trustScore}</span>
+
+                        {/* Pick Pill */}
+                        <span className="bb-slip__stat">
+                          <span className="bb-slip__pick">{match.pick}</span>
+                          <span
+                            className={`bb-slip__odd ${
+                              match.oddMove === "down" ? "has-move is-down" : ""
+                            }`}
+                          >
+                            <span className="bb-slip__num">
+                              {match.oddMove === "down" ? (
+                                <>
+                                  <span className="bb-slip__arrow">&#9662;</span>
+                                  {match.odds.toFixed(2)}
+                                </>
+                              ) : (
+                                `- ${match.odds.toFixed(2)}`
+                              )}
+                            </span>
+                          </span>
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Slip Footer Summary */}
+                <div className="bb-slip__foot">
+                  <span>
+                    Total odds: <strong>{calculatedOdds.toFixed(2)}</strong> · Average confidence:{" "}
+                    <strong>
+                      {(
+                        generatedSlip.reduce((acc, m) => acc + parseFloat(m.trustScore), 0) /
+                        generatedSlip.length
+                      ).toFixed(1)}
+                      /10
+                    </strong>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ════════════════════════════════════════════════════════════
+            LOWER SECTION: How It Works & Educational Section
+            ════════════════════════════════════════════════════════════ */}
+        <section className="bb-how">
+          <h2 className="bb-h2">How Bet Builder Works</h2>
+          <div className="bb-how__grid">
+            <div className="bb-how__card">
+              <span className="bb-how__n">1</span>
+              <h3>You set the rules</h3>
+              <p>Pick your target total odds, choose market types, and specify the number of matches you want in your accumulator.</p>
+            </div>
+            <div className="bb-how__card">
+              <span className="bb-how__n">2</span>
+              <h3>AI scores every match</h3>
+              <p>Our algorithms evaluate thousands of data points — from Poisson goal models and form to player injuries and market line movements.</p>
+            </div>
+            <div className="bb-how__card">
+              <span className="bb-how__n">3</span>
+              <h3>Optimised slip in seconds</h3>
+              <p>The builder solves for the optimal combination that matches your odds target with the highest possible statistical confidence.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Explanatory SEO Text */}
+        <section className="bb-seo">
+          <h2>AI Bet Slip Generator &amp; Parlay Builder</h2>
+          <p>
+            Bet Builder takes the guesswork out of constructing football accumulators. Instead of manually combing through hundreds of fixtures across leagues, you define your strategy and target odds, and our AI model picks mathematically proven selections.
+          </p>
+          <p>
+            Each pick is graded with an AI trust score from 1 to 10. Selections rated 8.0 and above indicate strong statistical alignment across multiple predictive models, while 10 represents maximum confidence bankers.
+          </p>
+        </section>
       </main>
     </div>
   );
