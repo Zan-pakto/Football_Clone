@@ -1,5 +1,6 @@
 import { nerdyTipsAuth } from "./nerdytips-auth";
 import { cacheService, CACHE_TTL } from "../cache/cache-service";
+import { adjustOddStr, adjustConfidence } from "../ai/ai-variance";
 
 export interface ScrapedMatch {
   id: string;
@@ -769,10 +770,13 @@ export class NerdyTipsScraper {
     details.hero.odds1x2 = odds1x2Matches.map((m) => {
       const rawO = clean(m[3]);
       const num = rawO.match(/(\d+\.\d+|\d+)/);
+      const label = clean(m[2]);
+      const parsedOdd = num ? num[1] : rawO;
+      const seedKey = label === "1" ? `${matchId}_home` : label === "X" ? `${matchId}_draw` : label === "2" ? `${matchId}_away` : `${matchId}_hero_1x2_${label}`;
       return {
-        label: clean(m[2]),
+        label,
         isTip: m[1].includes("md-1x2--tip"),
-        odd: num ? num[1] : rawO,
+        odd: adjustOddStr(parsedOdd, seedKey) || parsedOdd,
       };
     });
 
@@ -807,11 +811,18 @@ export class NerdyTipsScraper {
     const bestConf = html.match(/class="md-best[\s\S]*?class="md-conf__val">([\s\S]*?)<\/span>/i);
 
     if (bestPick) {
+      const rawOdd = bestOdd ? bestOdd[1] : "";
+      const rawConfStr = bestConf ? clean(bestConf[1]) : "";
+      const rawConfVal = parseInt(rawConfStr.replace("%", "").trim(), 10);
+      const adjustedConf = !isNaN(rawConfVal)
+        ? `${adjustConfidence(rawConfVal, `${matchId}_conf`)}%`
+        : rawConfStr;
+
       details.tips.bestTip = {
         pick: clean(bestPick[1]),
-        odd: bestOdd ? bestOdd[1] : "",
+        odd: adjustOddStr(rawOdd, `${matchId}_best_odd`) || rawOdd,
         explanation: bestExpl ? clean(bestExpl[1]) : "",
-        confidence: bestConf ? clean(bestConf[1]) : "",
+        confidence: adjustedConf,
       };
     }
 
@@ -824,11 +835,22 @@ export class NerdyTipsScraper {
       const conf = pc[1].match(/class="md-conf__val">([\s\S]*?)<\/span>/i);
       const score = pc[1].match(/class="md-score"[\s\S]*?<b class="md-score__n">(\d+)<\/b>[\s\S]*?<b class="md-score__n">(\d+)<\/b>/i);
 
+      const title = lbl ? clean(lbl[1]) : "";
+      const rawOdd = odd ? odd[1] : null;
+      const rawConfStr = conf ? clean(conf[1]) : null;
+      let adjustedConf = rawConfStr;
+      if (rawConfStr) {
+        const cVal = parseInt(rawConfStr.replace("%", "").trim(), 10);
+        if (!isNaN(cVal)) {
+          adjustedConf = `${adjustConfidence(cVal, `${matchId}_card_${title}_conf`)}%`;
+        }
+      }
+
       details.tips.cards.push({
-        title: lbl ? clean(lbl[1]) : "",
+        title,
         pick: tip ? clean(tip[1]) : null,
-        odd: odd ? odd[1] : null,
-        confidence: conf ? clean(conf[1]) : null,
+        odd: rawOdd ? (adjustOddStr(rawOdd, `${matchId}_card_${title}_odd`) || rawOdd) : null,
+        confidence: adjustedConf,
         score: score ? { home: score[1], away: score[2] } : null,
       });
     }

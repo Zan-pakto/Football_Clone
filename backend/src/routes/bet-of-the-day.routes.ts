@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { nerdyTipsScraper, ScrapedMatch } from "../lib/scraper/nerdytips-scraper";
 import { authService } from "../lib/auth/auth-service";
+import { adjustOdd, adjustRating, adjustConfidence } from "../lib/ai/ai-variance";
 
 const router = Router();
 
@@ -53,8 +54,54 @@ router.get("/", async (req: Request, res: Response) => {
 
     const botd = await nerdyTipsScraper.scrapeBetOfTheDay(dParam, tz);
 
+    const applyMatchVariance = (m: ScrapedMatch): ScrapedMatch => {
+      const homeOdd = adjustOdd(m.odds.home, `${m.id}_home`);
+      const drawOdd = adjustOdd(m.odds.draw, `${m.id}_draw`);
+      const awayOdd = adjustOdd(m.odds.away, `${m.id}_away`);
+      const rating = adjustRating(m.rating, `${m.id}_rate`) ?? m.rating;
+      const confVal = adjustConfidence(m.confidenceValue, `${m.id}_conf`) ?? m.confidenceValue;
+      const tipOdds = adjustOdd(m.tipOdds, `${m.id}_best_odd`) ?? m.tipOdds;
+
+      return {
+        ...m,
+        odds: {
+          home: homeOdd,
+          draw: drawOdd,
+          away: awayOdd,
+        },
+        rating,
+        confidenceValue: confVal,
+        confidence: `${confVal}%`,
+        tipOdds,
+        pickScore: m.pickScore
+          ? {
+              ...m.pickScore,
+              odd: adjustOdd(m.pickScore.odd, `${m.id}_ps_odd`),
+              rating: adjustRating(m.pickScore.rating, `${m.id}_ps_rate`),
+            }
+          : undefined,
+        goals: m.goals
+          ? {
+              ...m.goals,
+              odd: adjustOdd(m.goals.odd, `${m.id}_goals_odd`),
+              rating: adjustRating(m.goals.rating, `${m.id}_goals_rate`),
+            }
+          : undefined,
+        btts: m.btts
+          ? {
+              ...m.btts,
+              odd: adjustOdd(m.btts.odd, `${m.id}_btts_odd`),
+              rating: adjustRating(m.btts.rating, `${m.id}_btts_rate`),
+            }
+          : undefined,
+      };
+    };
+
+    const rawBankers = botd.bankers.map(applyMatchVariance);
+    const rawSlip = botd.slip.map(applyMatchVariance);
+
     // Apply premium lock to picks: Pro users see everything, free users see first 2 free
-    const bankers = botd.bankers.map((m: ScrapedMatch, idx: number) => {
+    const bankers = rawBankers.map((m: ScrapedMatch, idx: number) => {
       const isLocked = !isPremiumUser && idx >= 2;
       return {
         ...m,
@@ -76,7 +123,7 @@ router.get("/", async (req: Request, res: Response) => {
       };
     });
 
-    const slip = botd.slip.map((m: ScrapedMatch, idx: number) => {
+    const slip = rawSlip.map((m: ScrapedMatch, idx: number) => {
       const isLocked = !isPremiumUser && idx >= 2;
       return {
         ...m,
@@ -97,11 +144,24 @@ router.get("/", async (req: Request, res: Response) => {
       };
     });
 
+    // Recompute slip total odds using varied match tip odds
+    const adjustedSlipTotalOdds = rawSlip.length > 0
+      ? parseFloat(rawSlip.reduce((acc, m) => acc * (m.tipOdds || 1.4), 1).toFixed(2))
+      : botd.stats.slip.totalOdds;
+
+    const stats = {
+      ...botd.stats,
+      slip: {
+        ...botd.stats.slip,
+        totalOdds: adjustedSlipTotalOdds,
+      },
+    };
+
     return res.json({
       success: true,
       date: dParam,
       userTier: isPremiumUser ? "premium" : "free",
-      stats: botd.stats,
+      stats,
       bankers,
       slip,
     });

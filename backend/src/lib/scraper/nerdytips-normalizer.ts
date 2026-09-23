@@ -2,12 +2,13 @@ import { MatchData } from "../types";
 import { ScrapedMatch } from "./nerdytips-scraper";
 import { resolveDateString } from "../utils";
 import { getCountryFlagUrl } from "../flags";
+import { adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 
 export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   const matchDate = resolveDateString(m.dParam);
-  const homeOddStr = m.odds.home ? m.odds.home.toFixed(2) : null;
-  const drawOddStr = m.odds.draw ? m.odds.draw.toFixed(2) : null;
-  const awayOddStr = m.odds.away ? m.odds.away.toFixed(2) : null;
+  const homeOddStr = adjustOddStr(m.odds.home ? m.odds.home.toFixed(2) : null, `${m.id}_home`);
+  const drawOddStr = adjustOddStr(m.odds.draw ? m.odds.draw.toFixed(2) : null, `${m.id}_draw`);
+  const awayOddStr = adjustOddStr(m.odds.away ? m.odds.away.toFixed(2) : null, `${m.id}_away`);
 
   // Determine market category for the best tip
   let bestMarket = "pickScore";
@@ -18,11 +19,20 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     bestMarket = "btts";
   }
 
-  const ratingOutOf10 = typeof m.rating === "number" && !isNaN(m.rating) ? m.rating : Number((m.confidenceValue / 10).toFixed(1));
+  const rawRating = typeof m.rating === "number" && !isNaN(m.rating) ? m.rating : Number((m.confidenceValue / 10).toFixed(1));
+  const ratingOutOf10 = adjustRating(rawRating, `${m.id}_rate`) || rawRating;
 
-  const psRating = m.pickScore?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.9).toFixed(1)) : 6.8);
-  const goalsRating = m.goals?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.88).toFixed(1)) : 6.4);
-  const bttsRating = m.btts?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.8).toFixed(1)) : 6.0);
+  const rawConf = m.confidenceValue || Math.round(rawRating * 10);
+  const adjustedConf = adjustConfidence(rawConf, `${m.id}_conf`) || rawConf;
+
+  const rawPsRating = m.pickScore?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.9).toFixed(1)) : 6.8);
+  const psRating = adjustRating(rawPsRating, `${m.id}_ps_rate`) || rawPsRating;
+
+  const rawGoalsRating = m.goals?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.88).toFixed(1)) : 6.4);
+  const goalsRating = adjustRating(rawGoalsRating, `${m.id}_goals_rate`) || rawGoalsRating;
+
+  const rawBttsRating = m.btts?.rating ?? (ratingOutOf10 >= 8.0 ? Number((ratingOutOf10 * 0.8).toFixed(1)) : 6.0);
+  const bttsRating = adjustRating(rawBttsRating, `${m.id}_btts_rate`) || rawBttsRating;
 
   const cLower = (m.country || "").toLowerCase().trim();
   const normalizedCountry =
@@ -62,9 +72,9 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     predictions: {
       bestTip: {
         pick: m.bestTip,
-        odd: m.tipOdds ? m.tipOdds.toFixed(2) : (homeOddStr || "1.85"),
+        odd: adjustOddStr(m.tipOdds ? m.tipOdds.toFixed(2) : (homeOddStr || "1.85"), `${m.id}_best_odd`) || (homeOddStr || "1.85"),
         rating: ratingOutOf10,
-        confidence: m.confidenceValue,
+        confidence: adjustedConf,
         trust: `${ratingOutOf10}/10`,
         isBest: true,
         market: bestMarket,
@@ -73,7 +83,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
       },
       pickScore: {
         pick: m.pickScore?.pick || (homeOddStr && awayOddStr ? (parseFloat(homeOddStr) <= parseFloat(awayOddStr) ? "1" : "2") : "1"),
-        odd: m.pickScore?.odd ? m.pickScore.odd.toFixed(2) : (homeOddStr || "1.85"),
+        odd: adjustOddStr(m.pickScore?.odd ? m.pickScore.odd.toFixed(2) : (homeOddStr || "1.85"), `${m.id}_ps_odd`) || (homeOddStr || "1.85"),
         rating: psRating,
         trust: `${psRating}/10`,
         confidence: Math.round(psRating * 10),
@@ -81,7 +91,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
       },
       goals: {
         pick: m.goals?.pick || (tipLower.includes("under") ? "Under 2.5" : "Over 2.5"),
-        odd: m.goals?.odd ? m.goals.odd.toFixed(2) : "1.75",
+        odd: adjustOddStr(m.goals?.odd ? m.goals.odd.toFixed(2) : "1.75", `${m.id}_goals_odd`) || "1.75",
         rating: goalsRating,
         trust: `${goalsRating}/10`,
         confidence: Math.round(goalsRating * 10),
@@ -89,7 +99,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
       },
       btts: {
         pick: m.btts?.pick || (tipLower.includes("won't score") ? "No" : "Yes"),
-        odd: m.btts?.odd ? m.btts.odd.toFixed(2) : "1.82",
+        odd: adjustOddStr(m.btts?.odd ? m.btts.odd.toFixed(2) : "1.82", `${m.id}_btts_odd`) || "1.82",
         rating: bttsRating,
         trust: `${bttsRating}/10`,
         confidence: Math.round(bttsRating * 10),
@@ -98,7 +108,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
       bestMarket,
       isLocked: Boolean(m.isPremium),
     },
-    confidence: m.confidence || `${Math.round(ratingOutOf10 * 10)}%`,
+    confidence: `${adjustedConf}%`,
     isLive: m.status === "LIVE",
     isLocked: Boolean(m.isPremium),
     queryTags: `${m.homeTeam} ${m.awayTeam} ${m.league} ${m.country}`.toLowerCase(),

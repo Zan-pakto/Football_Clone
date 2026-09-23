@@ -405,10 +405,10 @@ export default function RolloversPage() {
                                 : "1px solid var(--border-color)",
                           }}
                         >
-                          {rollover.status === "ACTIVE" && "🟡 Active"}
-                          {rollover.status === "COMPLETED" && "✅ Completed"}
-                          {rollover.status === "LOST" && "❌ Lost"}
-                          {rollover.status === "CANCELLED" && "⚪ Cancelled"}
+                          {rollover.status === "ACTIVE" && "Active"}
+                          {rollover.status === "COMPLETED" && "Completed"}
+                          {rollover.status === "LOST" && "Lost"}
+                          {rollover.status === "CANCELLED" && "Cancelled"}
                         </span>
 
                         {/* Booking Code Pill (with 1-click copy) */}
@@ -712,10 +712,10 @@ export default function RolloversPage() {
                                     : "1px solid var(--border-color)",
                                 }}
                               >
-                                {isWon && "✅ Won"}
-                                {isActive && "🟡 Active"}
-                                {isLost && "❌ Lost"}
-                                {!isWon && !isActive && !isLost && "⏳ Pending"}
+                                {isWon && "Won"}
+                                {isActive && "Active"}
+                                {isLost && "Lost"}
+                                {!isWon && !isActive && !isLost && "Pending"}
                               </span>
                             </div>
                           </div>

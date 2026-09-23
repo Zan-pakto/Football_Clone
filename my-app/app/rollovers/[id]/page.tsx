@@ -256,10 +256,10 @@ export default function RolloverDetailPage({ params }: PageProps) {
                         : "1px solid var(--border-color)",
                   }}
                 >
-                  {rollover.status === "ACTIVE" && "🟡 Active"}
-                  {rollover.status === "COMPLETED" && "✅ Completed"}
-                  {rollover.status === "LOST" && "❌ Lost"}
-                  {rollover.status === "CANCELLED" && "⚪ Cancelled"}
+                  {rollover.status === "ACTIVE" && "Active"}
+                  {rollover.status === "COMPLETED" && "Completed"}
+                  {rollover.status === "LOST" && "Lost"}
+                  {rollover.status === "CANCELLED" && "Cancelled"}
                 </span>
               </div>
 
@@ -701,10 +701,10 @@ export default function RolloverDetailPage({ params }: PageProps) {
                             : "1px solid var(--border-color)",
                         }}
                       >
-                        {isWon && "✅ Won"}
-                        {isActive && "🟡 Active Match"}
-                        {isLost && "❌ Lost"}
-                        {!isWon && !isActive && !isLost && "⏳ Pending"}
+                        {isWon && "Won"}
+                        {isActive && "Active Match"}
+                        {isLost && "Lost"}
+                        {!isWon && !isActive && !isLost && "Pending"}
                       </span>
                     </div>
                   </div>

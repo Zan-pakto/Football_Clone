@@ -2043,7 +2043,7 @@ export default function AdminDashboardPage() {
                                               cursor: "pointer",
                                             }}
                                           >
-                                            Won ✅
+                                            Won
                                           </button>
 
                                           <button
@@ -2059,7 +2059,7 @@ export default function AdminDashboardPage() {
                                               cursor: "pointer",
                                             }}
                                           >
-                                            Active 🟡
+                                            Active
                                           </button>
 
                                           <button
@@ -2075,7 +2075,7 @@ export default function AdminDashboardPage() {
                                               cursor: "pointer",
                                             }}
                                           >
-                                            Pending ⏳
+                                            Pending
                                           </button>
 
                                           <button
@@ -2091,7 +2091,7 @@ export default function AdminDashboardPage() {
                                               cursor: "pointer",
                                             }}
                                           >
-                                            Lost ❌
+                                            Lost
                                           </button>
 
                                           <button
