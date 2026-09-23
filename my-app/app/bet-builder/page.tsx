@@ -626,12 +626,13 @@ export default function BetBuilderPage() {
                                 height={17}
                                 alt={match.homeTeam}
                                 loading="lazy"
+                                style={{ borderRadius: 3, objectFit: "contain", flexShrink: 0 }}
                                 onError={(e) => {
-                                  (e.target as HTMLElement).style.visibility = "hidden";
+                                  (e.target as HTMLElement).style.display = "none";
                                 }}
                               />
                             ) : (
-                              <CountryFlag country={match.homeTeam} size={15} />
+                              <CountryFlag country={match.country} size={15} />
                             )}
                             {match.homeTeam}
                           </span>
@@ -644,12 +645,13 @@ export default function BetBuilderPage() {
                                 height={17}
                                 alt={match.awayTeam}
                                 loading="lazy"
+                                style={{ borderRadius: 3, objectFit: "contain", flexShrink: 0 }}
                                 onError={(e) => {
-                                  (e.target as HTMLElement).style.visibility = "hidden";
+                                  (e.target as HTMLElement).style.display = "none";
                                 }}
                               />
                             ) : (
-                              <CountryFlag country={match.awayTeam} size={15} />
+                              <CountryFlag country={match.country} size={15} />
                             )}
                             {match.awayTeam}
                           </span>

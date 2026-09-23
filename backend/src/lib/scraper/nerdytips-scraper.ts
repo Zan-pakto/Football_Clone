@@ -39,6 +39,8 @@ export interface ScrapedMatch {
   score?: string;
   homeScore?: number;
   awayScore?: number;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
   isPremium?: boolean;
   dParam: string;
 }
@@ -200,6 +202,11 @@ export class NerdyTipsScraper {
       // Premium flag: High confidence (>78%) or special indicators
       const isPremium = confidence >= 80 || innerHtml.includes("is-premium") || innerHtml.includes("vip") || innerHtml.includes("data-locked");
 
+      // Extract team logos
+      const logos = Array.from(innerHtml.matchAll(/<img[^>]*src="([^"]*logos\/[^"]+)"[^>]*>/g)).map((m) => m[1]);
+      const homeLogo = logos[0] || null;
+      const awayLogo = logos[1] || null;
+
       matches.push({
         id,
         href: `${this.baseUrl}${href}`,
@@ -209,6 +216,8 @@ export class NerdyTipsScraper {
         league: league || "Other League",
         homeTeam: homeTeam || "Home Team",
         awayTeam: awayTeam || "Away Team",
+        homeLogo,
+        awayLogo,
         odds,
         bestTip: bestTip || "Double Chance 1X",
         tipOdds: tipOdds || odds.home || 1.85,
