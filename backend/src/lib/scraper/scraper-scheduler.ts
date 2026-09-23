@@ -14,6 +14,7 @@ export interface SyncStats {
 export class ScraperScheduler {
   private timer: NodeJS.Timeout | null = null;
   private progressTimer: NodeJS.Timeout | null = null;
+  private hitAndWinTimer: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private lastSyncStats: SyncStats | null = null;
 
@@ -37,6 +38,22 @@ export class ScraperScheduler {
       return { success: false, error: "Failed to parse progress page" };
     } catch (err: any) {
       console.error("[ScraperScheduler] Progress sync error:", err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Run synchronization for Hit & Win 10 daily matches (6-hour interval)
+   */
+  async syncHitAndWin(): Promise<any> {
+    try {
+      console.log("[ScraperScheduler] Initiating scheduled 6-hour Hit & Win sync...");
+      await cacheService.invalidate("hitandwin_matches");
+      const matches = await nerdyTipsScraper.scrapeHitAndWinMatches();
+      console.log(`[ScraperScheduler] Hit & Win sync complete: ${matches.length} matches loaded.`);
+      return { success: true, count: matches.length };
+    } catch (err: any) {
+      console.error("[ScraperScheduler] Hit & Win sync error:", err.message);
       return { success: false, error: err.message };
     }
   }
@@ -153,6 +170,13 @@ export class ScraperScheduler {
       );
     }, 4000);
 
+    // Run initial Hit & Win sync after 6 seconds
+    setTimeout(() => {
+      this.syncHitAndWin().catch((e) =>
+        console.warn("[ScraperScheduler] Initial Hit & Win sync notice:", e.message)
+      );
+    }, 6000);
+
     // Run recurring 12-hour cycle for matches
     this.timer = setInterval(() => {
       console.log("[ScraperScheduler] Running scheduled 12-hour sync cycle...");
@@ -169,6 +193,15 @@ export class ScraperScheduler {
         console.warn("[ScraperScheduler] Daily progress cycle error:", e.message)
       );
     }, DAILY_MS);
+
+    // Run recurring 6-hour cycle for Hit & Win matches
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+    this.hitAndWinTimer = setInterval(() => {
+      console.log("[ScraperScheduler] Running scheduled 6-hour Hit & Win sync cycle...");
+      this.syncHitAndWin().catch((e) =>
+        console.warn("[ScraperScheduler] 6-hour Hit & Win cycle error:", e.message)
+      );
+    }, SIX_HOURS_MS);
   }
 
   /**
@@ -183,6 +216,10 @@ export class ScraperScheduler {
     if (this.progressTimer) {
       clearInterval(this.progressTimer);
       this.progressTimer = null;
+    }
+    if (this.hitAndWinTimer) {
+      clearInterval(this.hitAndWinTimer);
+      this.hitAndWinTimer = null;
     }
   }
 }

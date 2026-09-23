@@ -1196,7 +1196,7 @@ export class NerdyTipsScraper {
 
       if (parsed.length >= 10) {
         const tenMatches = parsed.slice(0, 10);
-        await cacheService.set(cacheKey, tenMatches, 1800);
+        await cacheService.set(cacheKey, tenMatches, 6 * 3600); // 6 hours
         return tenMatches;
       }
     } catch (err: any) {
