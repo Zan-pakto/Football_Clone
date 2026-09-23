@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Trophy, Check, X, Info, Sparkles, LogIn, RefreshCw, Award } from "lucide-react";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
@@ -772,8 +771,6 @@ export default function HitAndWinPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }
