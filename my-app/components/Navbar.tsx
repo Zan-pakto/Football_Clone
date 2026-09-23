@@ -250,7 +250,10 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             }}
           >
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive =
+                pathname === link.href ||
+                (link.href === "/hit-and-win" && pathname === "/hitandwin") ||
+                (link.href === "/hitandwin" && pathname === "/hit-and-win");
               return (
                 <Link
                   key={link.href}
@@ -675,7 +678,10 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               className="no-scrollbar"
             >
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive =
+                  pathname === link.href ||
+                  (link.href === "/hit-and-win" && pathname === "/hitandwin") ||
+                  (link.href === "/hitandwin" && pathname === "/hit-and-win");
                 const IconComponent = link.icon;
                 return (
                   <Link

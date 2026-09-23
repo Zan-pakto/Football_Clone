@@ -10,6 +10,17 @@ class MatchStore {
   private liveCache: Map<string, LiveMatchUpdate> = new Map();
   private lastSyncedAt: string | null = null;
   private progressCache: any = null;
+  private hitAndWinSlips: Map<string, any[]> = new Map();
+
+  async getUserHitAndWinSlips(userId: string): Promise<any[]> {
+    return this.hitAndWinSlips.get(userId) || [];
+  }
+
+  async saveHitAndWinSlip(slip: any): Promise<void> {
+    const list = this.hitAndWinSlips.get(slip.userId) || [];
+    list.unshift(slip);
+    this.hitAndWinSlips.set(slip.userId, list);
+  }
 
   get lastScrapedAt(): string | null {
     return this.lastSyncedAt;

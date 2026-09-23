@@ -1126,6 +1126,135 @@ export class NerdyTipsScraper {
       return null;
     }
   }
+
+  async scrapeHitAndWinMatches(): Promise<HitAndWinMatch[]> {
+    const cacheKey = "hitandwin_matches";
+    const cached = cacheService.get<HitAndWinMatch[]>(cacheKey);
+    if (cached && cached.length === 10) {
+      return cached;
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      };
+
+      const res = await fetch(`${this.baseUrl}/hitandwin`, { headers });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const html = await res.text();
+      const matchRegex = /<div class="hw-match(?:[^"]*)">([\s\S]*?)<\/div>\s*(?=<div class="hw-match"|<\/div>\s*<\/div>\s*<aside)/gi;
+      const rawMatches: string[] = [];
+      let m;
+      while ((m = matchRegex.exec(html)) !== null) {
+        rawMatches.push(m[1]);
+      }
+
+      const parsed: HitAndWinMatch[] = [];
+      rawMatches.forEach((block, idx) => {
+        const noMatch = block.match(/class="hw-match__no">(\d+)</);
+        const timeMatch = block.match(/class="hw-match__time">([^<]+)(?:<span class="hw-match__day">([^<]+)<\/span>)?/);
+
+        const teamMatches = Array.from(block.matchAll(/<a class="hw-team"[^>]*>(?:<img[^>]*src="([^"]*)"[^>]*>)?<span>([^<]+)<\/span><\/a>/g));
+        const homeTeam = teamMatches[0] ? { name: teamMatches[0][2].trim(), logo: teamMatches[0][1] || null } : { name: "Home Team", logo: null };
+        const awayTeam = teamMatches[1] ? { name: teamMatches[1][2].trim(), logo: teamMatches[1][1] || null } : { name: "Away Team", logo: null };
+
+        const idMatch = block.match(/name="pick\[(\d+)\]"/);
+        const matchId = idMatch ? idMatch[1] : `hw_${idx + 1}`;
+
+        const pick1Match = block.match(/value="1"[\s\S]*?class="hw-pick__o[^"]*">([\d\.]+)</);
+        const pickXMatch = block.match(/value="X"[\s\S]*?class="hw-pick__o[^"]*">([\d\.]+)</);
+        const pick2Match = block.match(/value="2"[\s\S]*?class="hw-pick__o[^"]*">([\d\.]+)</);
+
+        parsed.push({
+          index: noMatch ? parseInt(noMatch[1], 10) : idx + 1,
+          id: matchId,
+          time: timeMatch ? timeMatch[1].trim() : "--:--",
+          dayLabel: timeMatch && timeMatch[2] ? timeMatch[2].trim() : undefined,
+          homeTeam,
+          awayTeam,
+          odds: {
+            "1": pick1Match ? pick1Match[1] : "2.10",
+            "X": pickXMatch ? pickXMatch[1] : "3.10",
+            "2": pick2Match ? pick2Match[1] : "3.20",
+          },
+          status: "UPCOMING",
+        });
+      });
+
+      if (parsed.length >= 10) {
+        const tenMatches = parsed.slice(0, 10);
+        cacheService.set(cacheKey, tenMatches, 30 * 60 * 1000);
+        return tenMatches;
+      }
+    } catch (err: any) {
+      console.warn("[NerdyTipsScraper] HitAndWin scrape error:", err.message);
+    }
+
+    return this.getFallbackHitAndWinMatches();
+  }
+
+  private getFallbackHitAndWinMatches(): HitAndWinMatch[] {
+    return [
+      { index: 1, id: "1638365", time: "23:15", homeTeam: { name: "Madureira", logo: "https://cdn.nerdytips.com/public/img/logos/7780.webp?width=48" }, awayTeam: { name: "Sampaio C", logo: "https://cdn.nerdytips.com/public/img/logos/13115.webp?width=48" }, odds: { "1": "2.62", "X": "2.90", "2": "2.95" } },
+      { index: 2, id: "1638366", time: "23:30", homeTeam: { name: "Gimnasia LP 2", logo: "https://cdn.nerdytips.com/public/img/logos/18686.webp?width=48" }, awayTeam: { name: "Estudiant", logo: "https://cdn.nerdytips.com/public/img/logos/18685.webp?width=48" }, odds: { "1": "2.62", "X": "3.00", "2": "2.55" } },
+      { index: 3, id: "1638367", time: "23:30", homeTeam: { name: "Saguntino", logo: null }, awayTeam: { name: "Navalcarnero", logo: null }, odds: { "1": "3.60", "X": "3.05", "2": "2.12" } },
+      { index: 4, id: "1638368", time: "23:30", homeTeam: { name: "Aldosivi 2", logo: null }, awayTeam: { name: "Quilmes 2", logo: null }, odds: { "1": "2.90", "X": "3.05", "2": "2.40" } },
+      { index: 5, id: "1528862", time: "00:15", dayLabel: "Sep 25", homeTeam: { name: "Netherlands", logo: "https://cdn.nerdytips.com/public/img/logos/1118.webp?width=48" }, awayTeam: { name: "Germany", logo: "https://cdn.nerdytips.com/public/img/logos/25.webp?width=48" }, odds: { "1": "2.42", "X": "3.75", "2": "2.72" } },
+      { index: 6, id: "1528863", time: "00:15", dayLabel: "Sep 25", homeTeam: { name: "Serbia", logo: null }, awayTeam: { name: "Greece", logo: null }, odds: { "1": "2.65", "X": "3.30", "2": "2.72" } },
+      { index: 7, id: "1528864", time: "00:15", dayLabel: "Sep 25", homeTeam: { name: "Kosovo", logo: null }, awayTeam: { name: "Ireland", logo: null }, odds: { "1": "2.45", "X": "3.15", "2": "3.10" } },
+      { index: 8, id: "1528865", time: "00:15", dayLabel: "Sep 25", homeTeam: { name: "Norway", logo: null }, awayTeam: { name: "Denmark", logo: null }, odds: { "1": "1.78", "X": "4.10", "2": "4.35" } },
+      { index: 9, id: "1528866", time: "00:15", dayLabel: "Sep 26", homeTeam: { name: "Italy", logo: null }, awayTeam: { name: "Belgium", logo: null }, odds: { "1": "2.18", "X": "3.55", "2": "3.40" } },
+      { index: 10, id: "1528884", time: "00:15", dayLabel: "Sep 26", homeTeam: { name: "Hungary", logo: "https://cdn.nerdytips.com/public/img/logos/769.webp?width=48" }, awayTeam: { name: "Ukraine", logo: "https://cdn.nerdytips.com/public/img/logos/772.webp?width=48" }, odds: { "1": "2.32", "X": "3.30", "2": "3.25" } },
+    ];
+  }
+}
+
+export interface HitAndWinMatch {
+  index: number;
+  id: string;
+  time: string;
+  dayLabel?: string;
+  homeTeam: {
+    name: string;
+    logo?: string | null;
+  };
+  awayTeam: {
+    name: string;
+    logo?: string | null;
+  };
+  odds: {
+    "1": string;
+    "X": string;
+    "2": string;
+  };
+  status?: string;
+  finalScore?: string | null;
+  outcome?: "1" | "X" | "2" | null;
+}
+
+export interface HitAndWinSlip {
+  id: string;
+  userId: string;
+  slipNumber: number;
+  createdAt: string;
+  status: "PENDING" | "WON" | "LOST";
+  correctCount: number;
+  totalMatches: number;
+  picks: Array<{
+    matchId: string;
+    index: number;
+    homeTeam: string;
+    awayTeam: string;
+    time: string;
+    pick: "1" | "X" | "2";
+    odd: string;
+    status: "PENDING" | "WON" | "LOST";
+    score?: string | null;
+  }>;
 }
 
 export interface AiProgressScrapedData {
