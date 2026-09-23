@@ -1129,7 +1129,7 @@ export class NerdyTipsScraper {
 
   async scrapeHitAndWinMatches(): Promise<HitAndWinMatch[]> {
     const cacheKey = "hitandwin_matches";
-    const cached = cacheService.get<HitAndWinMatch[]>(cacheKey);
+    const cached = await cacheService.get<HitAndWinMatch[]>(cacheKey);
     if (cached && cached.length === 10) {
       return cached;
     }
@@ -1187,7 +1187,7 @@ export class NerdyTipsScraper {
 
       if (parsed.length >= 10) {
         const tenMatches = parsed.slice(0, 10);
-        cacheService.set(cacheKey, tenMatches, 30 * 60 * 1000);
+        await cacheService.set(cacheKey, tenMatches, 1800);
         return tenMatches;
       }
     } catch (err: any) {
