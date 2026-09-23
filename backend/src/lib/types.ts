@@ -113,6 +113,9 @@ export interface RolloverStep {
   returnAmount?: number | null;
   resultNote?: string | null;
   fixtureId?: string | null;
+  bookingCode?: string | null;
+  instructions?: string | null;
+  imageUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -127,6 +130,9 @@ export interface Rollover {
   status: RolloverStatus;
   isPublished: boolean;
   description?: string | null;
+  bookingCode?: string | null;
+  instructions?: string | null;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   steps: RolloverStep[];

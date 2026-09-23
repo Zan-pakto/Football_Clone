@@ -28,6 +28,10 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Ticket,
+  Image as ImageIcon,
+  UploadCloud,
+  X,
 } from "lucide-react";
 import { Rollover, RolloverStep, RolloverType, RolloverStatus, RolloverStepStatus } from "@/lib/types";
 
@@ -81,15 +85,44 @@ export default function AdminDashboardPage() {
   const [newRollStart, setNewRollStart] = useState("500");
   const [newRollSteps, setNewRollSteps] = useState("5");
   const [newRollDesc, setNewRollDesc] = useState("");
+  const [newRollBookingCode, setNewRollBookingCode] = useState("");
+  const [newRollInstructions, setNewRollInstructions] = useState("");
+  const [newRollImageUrl, setNewRollImageUrl] = useState("");
   const [createRollLoading, setCreateRollLoading] = useState(false);
   const [generateAiLoading, setGenerateAiLoading] = useState(false);
+
+  // Edit Rollover Details state (for expanded card)
+  const [editBookingCode, setEditBookingCode] = useState("");
+  const [editInstructions, setEditInstructions] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [updateDetailsLoading, setUpdateDetailsLoading] = useState(false);
 
   // Add Step form state
   const [addStepMatch, setAddStepMatch] = useState("");
   const [addStepPick, setAddStepPick] = useState("");
   const [addStepOdds, setAddStepOdds] = useState("1.50");
   const [addStepDate, setAddStepDate] = useState("Today, 18:00");
+  const [addStepBookingCode, setAddStepBookingCode] = useState("");
+  const [addStepInstructions, setAddStepInstructions] = useState("");
+  const [addStepImageUrl, setAddStepImageUrl] = useState("");
   const [addStepLoading, setAddStepLoading] = useState(false);
+
+  // Image upload helper (converts to base64 Data URL)
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image exceeds 5MB limit", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setter(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
@@ -302,6 +335,9 @@ export default function AdminDashboardPage() {
           startingAmount: parseFloat(newRollStart) || 500,
           targetSteps: parseInt(newRollSteps, 10) || 5,
           description: newRollDesc.trim() || undefined,
+          bookingCode: newRollBookingCode.trim() || undefined,
+          instructions: newRollInstructions.trim() || undefined,
+          imageUrl: newRollImageUrl.trim() || undefined,
           isPublished: true,
         }),
       });
@@ -313,7 +349,13 @@ export default function AdminDashboardPage() {
         setShowCreateModal(false);
         setNewRollName("");
         setNewRollDesc("");
+        setNewRollBookingCode("");
+        setNewRollInstructions("");
+        setNewRollImageUrl("");
         setExpandedRolloverId(json.rollover.id);
+        setEditBookingCode(json.rollover.bookingCode || "");
+        setEditInstructions(json.rollover.instructions || "");
+        setEditImageUrl(json.rollover.imageUrl || "");
       } else {
         showToast(json.error || "Failed to create rollover", "error");
       }
@@ -321,6 +363,44 @@ export default function AdminDashboardPage() {
       showToast("Network error creating rollover", "error");
     } finally {
       setCreateRollLoading(false);
+    }
+  };
+
+  const handleUpdateRolloverDetails = async (rolloverId: string) => {
+    try {
+      setUpdateDetailsLoading(true);
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({
+          action: "update_rollover",
+          rolloverId,
+          bookingCode: editBookingCode.trim() || null,
+          instructions: editInstructions.trim() || null,
+          imageUrl: editImageUrl.trim() || null,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.rollover) {
+        showToast("Rollover details and game slip updated!");
+        setRollovers((prev) =>
+          prev.map((r) => (r.id === rolloverId ? json.rollover : r))
+        );
+      } else {
+        showToast(json.error || "Failed to update rollover details", "error");
+      }
+    } catch {
+      showToast("Network error updating rollover details", "error");
+    } finally {
+      setUpdateDetailsLoading(false);
     }
   };
 
@@ -484,6 +564,9 @@ export default function AdminDashboardPage() {
           prediction: addStepPick.trim(),
           odds: parseFloat(addStepOdds) || 1.50,
           matchDate: addStepDate.trim() || "Today",
+          bookingCode: addStepBookingCode.trim() || undefined,
+          instructions: addStepInstructions.trim() || undefined,
+          imageUrl: addStepImageUrl.trim() || undefined,
         }),
       });
 
@@ -496,6 +579,9 @@ export default function AdminDashboardPage() {
         setAddStepMatch("");
         setAddStepPick("");
         setAddStepOdds("1.50");
+        setAddStepBookingCode("");
+        setAddStepInstructions("");
+        setAddStepImageUrl("");
       } else {
         showToast(json.error || "Failed to add step", "error");
       }
@@ -1346,6 +1432,170 @@ export default function AdminDashboardPage() {
                         />
                       </div>
 
+                      {/* Booking Code, Instructions & Ticket Image Slip (For Manual & Ticket drops) */}
+                      <div
+                        style={{
+                          padding: "16px",
+                          borderRadius: 10,
+                          background: "var(--surface)",
+                          border: "1px dashed rgba(124, 108, 245, 0.45)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 14,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Ticket size={16} color="var(--gold)" />
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                            Booked Game Slip & Instructions (Optional for Manual / Slip drops)
+                          </span>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                              Booking Code (SportyBet / Bet9ja / 1xBet etc.)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. BC-9941X2 or SportyBet: 5K89A"
+                              value={newRollBookingCode}
+                              onChange={(e) => setNewRollBookingCode(e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                borderRadius: 8,
+                                background: "var(--surface-raised)",
+                                border: "1px solid var(--border-color)",
+                                color: "var(--gold)",
+                                fontFamily: "monospace",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                outline: "none",
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                              Booked Game Ticket Slip (Image Upload or URL)
+                            </label>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <input
+                                type="text"
+                                placeholder="Paste image URL https://... or choose file →"
+                                value={newRollImageUrl}
+                                onChange={(e) => setNewRollImageUrl(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: "10px 14px",
+                                  borderRadius: 8,
+                                  background: "var(--surface-raised)",
+                                  border: "1px solid var(--border-color)",
+                                  color: "var(--text-primary)",
+                                  fontSize: 12,
+                                  outline: "none",
+                                }}
+                              />
+                              <label
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: 8,
+                                  background: "rgba(124, 108, 245, 0.15)",
+                                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                                  color: "#8b7ff5",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <UploadCloud size={14} />
+                                <span>Upload Slip</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: "none" }}
+                                  onChange={(e) => handleImageFileChange(e, setNewRollImageUrl)}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Image Preview thumbnail if available */}
+                        {newRollImageUrl && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                            <div
+                              style={{
+                                width: 80,
+                                height: 80,
+                                borderRadius: 8,
+                                overflow: "hidden",
+                                border: "1px solid var(--gold)",
+                                background: "#000",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <img
+                                src={newRollImageUrl}
+                                alt="Booked slip preview"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "#2fd08a" }}>
+                                ✓ Booked Game Slip attached
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setNewRollImageUrl("")}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "#fb7185",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: 0,
+                                }}
+                              >
+                                <X size={12} /> Remove Slip
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                            Instructions & Staking Advice
+                          </label>
+                          <textarea
+                            rows={3}
+                            placeholder="e.g. Load this booking code on SportyBet. Stake exactly ₦500. Avoid cashout until Step 3 completes..."
+                            value={newRollInstructions}
+                            onChange={(e) => setNewRollInstructions(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 8,
+                              background: "var(--surface-raised)",
+                              border: "1px solid var(--border-color)",
+                              color: "var(--text-primary)",
+                              fontSize: 12,
+                              outline: "none",
+                              resize: "vertical",
+                            }}
+                          />
+                        </div>
+                      </div>
+
                       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
                         <button
                           type="button"
@@ -1485,9 +1735,18 @@ export default function AdminDashboardPage() {
                                 {roll.isPublished ? "Published" : "Make Public"}
                               </button>
 
-                              {/* Manage Steps Button */}
+                              {/* Manage Steps & Slips Button */}
                               <button
-                                onClick={() => setExpandedRolloverId(isExpanded ? null : roll.id)}
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedRolloverId(null);
+                                  } else {
+                                    setExpandedRolloverId(roll.id);
+                                    setEditBookingCode(roll.bookingCode || "");
+                                    setEditInstructions(roll.instructions || "");
+                                    setEditImageUrl(roll.imageUrl || "");
+                                  }
+                                }}
                                 style={{
                                   padding: "6px 14px",
                                   borderRadius: 8,
@@ -1502,7 +1761,7 @@ export default function AdminDashboardPage() {
                                   gap: 6,
                                 }}
                               >
-                                <span>{isExpanded ? "Hide Steps" : `Manage Steps (${roll.steps.length})`}</span>
+                                <span>{isExpanded ? "Close Panel" : `Manage Slip & Steps (${roll.steps.length})`}</span>
                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                               </button>
 
@@ -1524,9 +1783,201 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
 
-                          {/* Expanded Step Management Panel */}
+                          {/* Expanded Step & Slip Management Panel */}
                           {isExpanded && (
                             <div style={{ padding: "20px 22px", background: "var(--surface-raised)", borderTop: "1px solid var(--border-color)" }}>
+                              {/* Booking Code, Instructions & Ticket Slip Manager */}
+                              <div
+                                style={{
+                                  marginBottom: 24,
+                                  padding: "16px 18px",
+                                  borderRadius: 10,
+                                  background: "var(--surface)",
+                                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 12,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Ticket size={16} color="var(--gold)" />
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                                      Drop Booking Code, Instructions & Game Slip
+                                    </span>
+                                    {roll.bookingCode && (
+                                      <span
+                                        style={{
+                                          fontSize: 11,
+                                          fontWeight: 800,
+                                          fontFamily: "monospace",
+                                          padding: "2px 8px",
+                                          borderRadius: 4,
+                                          background: "rgba(232, 195, 74, 0.15)",
+                                          color: "var(--gold)",
+                                        }}
+                                      >
+                                        Active Code: {roll.bookingCode}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={updateDetailsLoading}
+                                    onClick={() => handleUpdateRolloverDetails(roll.id)}
+                                    className="gold-btn"
+                                    style={{ padding: "6px 14px", fontSize: 12 }}
+                                  >
+                                    {updateDetailsLoading ? "Saving..." : "Save Slip & Instructions"}
+                                  </button>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                                  <div>
+                                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                      Booking Code (SportyBet / Bet9ja / 1xBet etc.)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. BC-9941X2 or SportyBet: 5K89A"
+                                      value={editBookingCode}
+                                      onChange={(e) => setEditBookingCode(e.target.value)}
+                                      style={{
+                                        width: "100%",
+                                        padding: "8px 12px",
+                                        borderRadius: 6,
+                                        background: "var(--surface-raised)",
+                                        border: "1px solid var(--border-color)",
+                                        color: "var(--gold)",
+                                        fontFamily: "monospace",
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                        outline: "none",
+                                      }}
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                      Ticket Slip Image (Upload or URL)
+                                    </label>
+                                    <div style={{ display: "flex", gap: 6 }}>
+                                      <input
+                                        type="text"
+                                        placeholder="Paste image URL https://... or choose file →"
+                                        value={editImageUrl}
+                                        onChange={(e) => setEditImageUrl(e.target.value)}
+                                        style={{
+                                          flex: 1,
+                                          padding: "8px 12px",
+                                          borderRadius: 6,
+                                          background: "var(--surface-raised)",
+                                          border: "1px solid var(--border-color)",
+                                          color: "var(--text-primary)",
+                                          fontSize: 12,
+                                          outline: "none",
+                                        }}
+                                      />
+                                      <label
+                                        style={{
+                                          padding: "6px 12px",
+                                          borderRadius: 6,
+                                          background: "rgba(124, 108, 245, 0.15)",
+                                          border: "1px solid rgba(124, 108, 245, 0.35)",
+                                          color: "#8b7ff5",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: "pointer",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          whiteSpace: "nowrap",
+                                        }}
+                                      >
+                                        <UploadCloud size={13} />
+                                        <span>Upload</span>
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          style={{ display: "none" }}
+                                          onChange={(e) => handleImageFileChange(e, setEditImageUrl)}
+                                        />
+                                      </label>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Thumbnail preview if image attached */}
+                                {editImageUrl && (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                    <div
+                                      style={{
+                                        width: 70,
+                                        height: 70,
+                                        borderRadius: 8,
+                                        overflow: "hidden",
+                                        border: "1px solid var(--gold)",
+                                        background: "#000",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <img
+                                        src={editImageUrl}
+                                        alt="Booked game slip preview"
+                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                      />
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: "#2fd08a" }}>
+                                        ✓ Game slip attached
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditImageUrl("")}
+                                        style={{
+                                          background: "transparent",
+                                          border: "none",
+                                          color: "#fb7185",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: "pointer",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          padding: 0,
+                                        }}
+                                      >
+                                        <X size={12} /> Remove Slip
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                    Instructions & Staking Advice
+                                  </label>
+                                  <textarea
+                                    rows={2}
+                                    placeholder="e.g. Load booking code on SportyBet. Stake ₦500. Next step will be dropped at 16:00."
+                                    value={editInstructions}
+                                    onChange={(e) => setEditInstructions(e.target.value)}
+                                    style={{
+                                      width: "100%",
+                                      padding: "8px 12px",
+                                      borderRadius: 6,
+                                      background: "var(--surface-raised)",
+                                      border: "1px solid var(--border-color)",
+                                      color: "var(--text-primary)",
+                                      fontSize: 12,
+                                      outline: "none",
+                                      resize: "vertical",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
                               <h4 style={{ fontSize: 13, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", margin: "0 0 12px" }}>
                                 Rollover Steps & Game Progression
                               </h4>
@@ -1770,6 +2221,76 @@ export default function AdminDashboardPage() {
                                           outline: "none",
                                         }}
                                       />
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                        Step Booking Code (Optional)
+                                      </label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. BC-12345"
+                                        value={addStepBookingCode}
+                                        onChange={(e) => setAddStepBookingCode(e.target.value)}
+                                        style={{
+                                          width: "100%",
+                                          padding: "8px 12px",
+                                          borderRadius: 6,
+                                          background: "var(--surface-raised)",
+                                          border: "1px solid var(--border-color)",
+                                          color: "var(--gold)",
+                                          fontFamily: "monospace",
+                                          fontSize: 12,
+                                          outline: "none",
+                                        }}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                        Step Game Slip Image (Optional)
+                                      </label>
+                                      <div style={{ display: "flex", gap: 6 }}>
+                                        <input
+                                          type="text"
+                                          placeholder="URL or upload →"
+                                          value={addStepImageUrl}
+                                          onChange={(e) => setAddStepImageUrl(e.target.value)}
+                                          style={{
+                                            flex: 1,
+                                            padding: "8px 12px",
+                                            borderRadius: 6,
+                                            background: "var(--surface-raised)",
+                                            border: "1px solid var(--border-color)",
+                                            color: "var(--text-primary)",
+                                            fontSize: 12,
+                                            outline: "none",
+                                          }}
+                                        />
+                                        <label
+                                          style={{
+                                            padding: "6px 12px",
+                                            borderRadius: 6,
+                                            background: "rgba(124, 108, 245, 0.15)",
+                                            border: "1px solid rgba(124, 108, 245, 0.35)",
+                                            color: "#8b7ff5",
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 4,
+                                          }}
+                                        >
+                                          <UploadCloud size={13} />
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: "none" }}
+                                            onChange={(e) => handleImageFileChange(e, setAddStepImageUrl)}
+                                          />
+                                        </label>
+                                      </div>
                                     </div>
                                   </div>
 

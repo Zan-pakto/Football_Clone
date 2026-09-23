@@ -77,6 +77,9 @@ export class RolloverService {
           status: r.status as RolloverStatus,
           isPublished: r.isPublished,
           description: r.description,
+          bookingCode: r.bookingCode || null,
+          instructions: r.instructions || null,
+          imageUrl: r.imageUrl || null,
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
           steps: r.steps.map((s: any) => ({
@@ -93,6 +96,9 @@ export class RolloverService {
             returnAmount: s.returnAmount,
             resultNote: s.resultNote,
             fixtureId: s.fixtureId,
+            bookingCode: s.bookingCode || null,
+            instructions: s.instructions || null,
+            imageUrl: s.imageUrl || null,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
           })),
@@ -138,6 +144,9 @@ export class RolloverService {
           status: r.status as RolloverStatus,
           isPublished: r.isPublished,
           description: r.description,
+          bookingCode: r.bookingCode,
+          instructions: r.instructions,
+          imageUrl: r.imageUrl,
           createdAt: r.createdAt.toISOString(),
           updatedAt: r.updatedAt.toISOString(),
           steps: r.steps.map((s: any) => ({
@@ -154,6 +163,9 @@ export class RolloverService {
             returnAmount: s.returnAmount,
             resultNote: s.resultNote,
             fixtureId: s.fixtureId,
+            bookingCode: s.bookingCode,
+            instructions: s.instructions,
+            imageUrl: s.imageUrl,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
           })),
@@ -194,6 +206,9 @@ export class RolloverService {
           status: dbRollover.status as RolloverStatus,
           isPublished: dbRollover.isPublished,
           description: dbRollover.description,
+          bookingCode: dbRollover.bookingCode,
+          instructions: dbRollover.instructions,
+          imageUrl: dbRollover.imageUrl,
           createdAt: dbRollover.createdAt.toISOString(),
           updatedAt: dbRollover.updatedAt.toISOString(),
           steps: dbRollover.steps.map((s: any) => ({
@@ -210,6 +225,9 @@ export class RolloverService {
             returnAmount: s.returnAmount,
             resultNote: s.resultNote,
             fixtureId: s.fixtureId,
+            bookingCode: s.bookingCode,
+            instructions: s.instructions,
+            imageUrl: s.imageUrl,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
           })),
@@ -235,6 +253,9 @@ export class RolloverService {
     targetSteps?: number;
     description?: string;
     isPublished?: boolean;
+    bookingCode?: string | null;
+    instructions?: string | null;
+    imageUrl?: string | null;
   }): Promise<Rollover> {
     const id = `roll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const now = new Date();
@@ -243,6 +264,9 @@ export class RolloverService {
     const targetSteps = Number(input.targetSteps) || 5;
     const isPublished = input.isPublished !== undefined ? input.isPublished : true;
     const description = input.description || null;
+    const bookingCode = input.bookingCode || null;
+    const instructions = input.instructions || null;
+    const imageUrl = input.imageUrl || null;
 
     try {
       const created = await prisma.rollover.create({
@@ -255,6 +279,9 @@ export class RolloverService {
           targetSteps,
           isPublished,
           description,
+          bookingCode,
+          instructions,
+          imageUrl,
         },
         include: { steps: true },
       });
@@ -269,6 +296,9 @@ export class RolloverService {
         status: created.status as RolloverStatus,
         isPublished: created.isPublished,
         description: created.description,
+        bookingCode: created.bookingCode,
+        instructions: created.instructions,
+        imageUrl: created.imageUrl,
         createdAt: created.createdAt.toISOString(),
         updatedAt: created.updatedAt.toISOString(),
         steps: [],
@@ -287,6 +317,9 @@ export class RolloverService {
         status: "ACTIVE",
         isPublished,
         description,
+        bookingCode,
+        instructions,
+        imageUrl,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
         steps: [],
@@ -309,6 +342,9 @@ export class RolloverService {
       status?: RolloverStatus;
       isPublished?: boolean;
       description?: string;
+      bookingCode?: string | null;
+      instructions?: string | null;
+      imageUrl?: string | null;
     }
   ): Promise<Rollover | null> {
     try {
@@ -320,6 +356,9 @@ export class RolloverService {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.isPublished !== undefined) updateData.isPublished = data.isPublished;
       if (data.description !== undefined) updateData.description = data.description;
+      if (data.bookingCode !== undefined) updateData.bookingCode = data.bookingCode;
+      if (data.instructions !== undefined) updateData.instructions = data.instructions;
+      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
 
       const updated = await prisma.rollover.update({
         where: { id },
@@ -337,6 +376,9 @@ export class RolloverService {
         status: updated.status as RolloverStatus,
         isPublished: updated.isPublished,
         description: updated.description,
+        bookingCode: updated.bookingCode,
+        instructions: updated.instructions,
+        imageUrl: updated.imageUrl,
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
         steps: updated.steps.map((s: any) => ({
@@ -353,6 +395,9 @@ export class RolloverService {
           returnAmount: s.returnAmount,
           resultNote: s.resultNote,
           fixtureId: s.fixtureId,
+          bookingCode: s.bookingCode,
+          instructions: s.instructions,
+          imageUrl: s.imageUrl,
           createdAt: s.createdAt.toISOString(),
           updatedAt: s.updatedAt.toISOString(),
         })),
@@ -370,6 +415,9 @@ export class RolloverService {
       if (data.status !== undefined) mem.status = data.status;
       if (data.isPublished !== undefined) mem.isPublished = data.isPublished;
       if (data.description !== undefined) mem.description = data.description;
+      if (data.bookingCode !== undefined) mem.bookingCode = data.bookingCode;
+      if (data.instructions !== undefined) mem.instructions = data.instructions;
+      if (data.imageUrl !== undefined) mem.imageUrl = data.imageUrl;
       mem.updatedAt = new Date().toISOString();
       memoryRollovers.set(id, mem);
       return this.computeRolloverStats(mem);
@@ -402,6 +450,9 @@ export class RolloverService {
       kickoffTime?: string;
       status?: RolloverStepStatus;
       fixtureId?: string;
+      bookingCode?: string | null;
+      instructions?: string | null;
+      imageUrl?: string | null;
     }
   ): Promise<Rollover | null> {
     const rollover = await this.getRolloverById(rolloverId, true);
@@ -436,6 +487,9 @@ export class RolloverService {
           stakeAmount,
           returnAmount,
           fixtureId: input.fixtureId || null,
+          bookingCode: input.bookingCode || null,
+          instructions: input.instructions || null,
+          imageUrl: input.imageUrl || null,
         },
       });
       return await this.getRolloverById(rolloverId, true);
@@ -454,6 +508,9 @@ export class RolloverService {
         stakeAmount,
         returnAmount,
         fixtureId: input.fixtureId || null,
+        bookingCode: input.bookingCode || null,
+        instructions: input.instructions || null,
+        imageUrl: input.imageUrl || null,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       };
@@ -477,6 +534,9 @@ export class RolloverService {
       status?: RolloverStepStatus;
       matchDate?: string;
       resultNote?: string;
+      bookingCode?: string | null;
+      instructions?: string | null;
+      imageUrl?: string | null;
     }
   ): Promise<Rollover | null> {
     const rollover = await this.getRolloverById(rolloverId, true);
@@ -499,6 +559,9 @@ export class RolloverService {
           status: newStatus as any,
           matchDate: input.matchDate !== undefined ? input.matchDate : step.matchDate,
           resultNote: input.resultNote !== undefined ? input.resultNote : step.resultNote,
+          bookingCode: input.bookingCode !== undefined ? input.bookingCode : step.bookingCode,
+          instructions: input.instructions !== undefined ? input.instructions : step.instructions,
+          imageUrl: input.imageUrl !== undefined ? input.imageUrl : step.imageUrl,
         },
       });
 
@@ -513,6 +576,9 @@ export class RolloverService {
       step.status = newStatus;
       if (input.matchDate !== undefined) step.matchDate = input.matchDate;
       if (input.resultNote !== undefined) step.resultNote = input.resultNote;
+      if (input.bookingCode !== undefined) step.bookingCode = input.bookingCode;
+      if (input.instructions !== undefined) step.instructions = input.instructions;
+      if (input.imageUrl !== undefined) step.imageUrl = input.imageUrl;
       step.updatedAt = new Date().toISOString();
 
       await this.recalculateRolloverProgression(rolloverId);

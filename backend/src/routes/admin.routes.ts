@@ -129,7 +129,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Rollover Admin Actions
     if (action === "create_rollover") {
-      const { name, type, startingAmount, targetSteps, description, isPublished } = body;
+      const { name, type, startingAmount, targetSteps, description, isPublished, bookingCode, instructions, imageUrl } = body;
       if (!name) {
         return res.status(400).json({ success: false, error: "Rollover name is required" });
       }
@@ -140,6 +140,9 @@ router.post("/", async (req: Request, res: Response) => {
         targetSteps,
         description,
         isPublished,
+        bookingCode,
+        instructions,
+        imageUrl,
       });
       return res.json({ success: true, message: "Rollover created successfully", rollover: created });
     }
@@ -163,7 +166,7 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     if (action === "add_rollover_step") {
-      const { rolloverId, match, prediction, odds, matchDate, status, kickoffTime, fixtureId } = body;
+      const { rolloverId, match, prediction, odds, matchDate, status, kickoffTime, fixtureId, bookingCode, instructions, imageUrl } = body;
       if (!rolloverId || !match || !prediction) {
         return res.status(400).json({ success: false, error: "rolloverId, match and prediction are required" });
       }
@@ -175,6 +178,9 @@ router.post("/", async (req: Request, res: Response) => {
         status,
         kickoffTime,
         fixtureId,
+        bookingCode,
+        instructions,
+        imageUrl,
       });
       return res.json({ success: true, message: "Step added successfully", rollover: updated });
     }

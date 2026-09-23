@@ -17,6 +17,11 @@ import {
   RefreshCw,
   Zap,
   Info,
+  Ticket,
+  Image as ImageIcon,
+  ZoomIn,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { Rollover } from "@/lib/types";
 
@@ -29,6 +34,9 @@ export default function RolloverDetailPage({ params }: PageProps) {
   const [rollover, setRollover] = useState<Rollover | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedStepCodeId, setCopiedStepCodeId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadDetail() {
@@ -48,6 +56,17 @@ export default function RolloverDetailPage({ params }: PageProps) {
     loadDetail();
   }, [resolvedParams.id]);
 
+  const handleCopyCode = (code: string, stepId?: string) => {
+    navigator.clipboard.writeText(code);
+    if (stepId) {
+      setCopiedStepCodeId(stepId);
+      setTimeout(() => setCopiedStepCodeId(null), 2200);
+    } else {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2200);
+    }
+  };
+
   const handleCopySlip = () => {
     if (!rollover) return;
     const stepsText = rollover.steps
@@ -57,7 +76,10 @@ export default function RolloverDetailPage({ params }: PageProps) {
       )
       .join("\n");
 
-    const text = `[Jolloftips] ${rollover.name} (${rollover.type} Rollover)\nStarting Amount: ₦${rollover.startingAmount.toLocaleString()} | Current Amount: ₦${rollover.currentAmount.toLocaleString()}\nPotential Return: ₦${(rollover.potentialReturn || rollover.currentAmount).toLocaleString()}\n\n${stepsText}\n\nPredictions and potential returns are not guaranteed.`;
+    const bookingText = rollover.bookingCode ? `\nBooking Code: ${rollover.bookingCode}` : "";
+    const instructionsText = rollover.instructions ? `\nInstructions: ${rollover.instructions}` : "";
+
+    const text = `[Jolloftips] ${rollover.name} (${rollover.type} Rollover)${bookingText}${instructionsText}\nStarting Amount: ₦${rollover.startingAmount.toLocaleString()} | Current Amount: ₦${rollover.currentAmount.toLocaleString()}\nPotential Return: ₦${(rollover.potentialReturn || rollover.currentAmount).toLocaleString()}\n\n${stepsText}\n\nPredictions and potential returns are not guaranteed.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
@@ -374,6 +396,180 @@ export default function RolloverDetailPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* ── Booked Game Slip, Code & Instructions (If provided) ── */}
+        {(rollover.bookingCode || rollover.instructions || rollover.imageUrl) && (
+          <div
+            className="luxury-card"
+            style={{
+              padding: "24px 28px",
+              marginBottom: 32,
+              background: "linear-gradient(145deg, rgba(27, 24, 61, 0.95) 0%, rgba(20, 18, 48, 0.95) 100%)",
+              border: "1px solid rgba(232, 195, 74, 0.35)",
+              boxShadow: "0 12px 40px rgba(0, 0, 0, 0.4)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "rgba(232, 195, 74, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--gold)",
+                }}
+              >
+                <Ticket size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>
+                  Booked Game Ticket & Bet Instructions
+                </h2>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  Verified bet slip reference & recommended staking guidelines
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: rollover.imageUrl ? "repeat(auto-fit, minmax(300px, 1fr))" : "1fr", gap: 20 }}>
+              {/* Left Column: Booking Code + Instructions */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {rollover.bookingCode && (
+                  <div
+                    style={{
+                      padding: "18px 20px",
+                      borderRadius: 12,
+                      background: "rgba(124, 108, 245, 0.08)",
+                      border: "1px dashed rgba(232, 195, 74, 0.45)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 14,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Booking Code
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 900,
+                          color: "var(--gold)",
+                          fontFamily: "monospace",
+                          letterSpacing: "0.08em",
+                          marginTop: 4,
+                        }}
+                      >
+                        {rollover.bookingCode}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                        Load this booking code directly in your betting app
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleCopyCode(rollover.bookingCode!)}
+                      className="gold-btn"
+                      style={{
+                        padding: "8px 18px",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {copiedCode ? <Check size={16} /> : <Copy size={16} />}
+                      <span>{copiedCode ? "Code Copied!" : "Copy Booking Code"}</span>
+                    </button>
+                  </div>
+                )}
+
+                {rollover.instructions && (
+                  <div
+                    style={{
+                      padding: "16px 20px",
+                      borderRadius: 12,
+                      background: "var(--surface-raised)",
+                      border: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.04em" }}>
+                      Staking Instructions & Bookmaker Advice
+                    </div>
+                    <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                      {rollover.instructions}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Ticket Slip Image (If attached) */}
+              {rollover.imageUrl && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Booked Game Ticket Slip
+                  </div>
+                  <div
+                    onClick={() => setLightboxImage(rollover.imageUrl!)}
+                    style={{
+                      position: "relative",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      border: "1px solid rgba(232, 195, 74, 0.4)",
+                      background: "#0a0915",
+                      cursor: "pointer",
+                      maxHeight: 280,
+                    }}
+                  >
+                    <img
+                      src={rollover.imageUrl}
+                      alt="Booked Game Ticket Slip"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        maxHeight: 280,
+                        objectFit: "cover",
+                        display: "block",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 10,
+                        right: 10,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        background: "rgba(0, 0, 0, 0.75)",
+                        backdropFilter: "blur(6px)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: "#ffffff",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <ZoomIn size={14} />
+                      <span>Click to Enlarge Slip</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Step-by-Step Progression Timeline ── */}
         <div style={{ marginBottom: 32 }}>
           <h2
@@ -542,6 +738,78 @@ export default function RolloverDetailPage({ params }: PageProps) {
                       </span>
                     </div>
                   </div>
+
+                  {/* Step-specific Booking Code or Slip if provided */}
+                  {(step.bookingCode || step.instructions || step.imageUrl) && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: "rgba(124, 108, 245, 0.08)",
+                        border: "1px dashed rgba(232, 195, 74, 0.35)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        {step.imageUrl && (
+                          <div
+                            onClick={() => setLightboxImage(step.imageUrl!)}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 6,
+                              overflow: "hidden",
+                              cursor: "pointer",
+                              border: "1px solid var(--gold)",
+                              flexShrink: 0,
+                            }}
+                            title="Click to zoom step slip"
+                          >
+                            <img src={step.imageUrl} alt="Step slip" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </div>
+                        )}
+                        <div>
+                          {step.bookingCode && (
+                            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--gold)", fontFamily: "monospace" }}>
+                              Step Code: {step.bookingCode}
+                            </div>
+                          )}
+                          {step.instructions && (
+                            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                              {step.instructions}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {step.bookingCode && (
+                        <button
+                          onClick={() => handleCopyCode(step.bookingCode!, step.id)}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 6,
+                            background: "rgba(232, 195, 74, 0.15)",
+                            border: "1px solid rgba(232, 195, 74, 0.4)",
+                            color: "var(--gold)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          {copiedStepCodeId === step.id ? <Check size={12} /> : <Copy size={12} />}
+                          <span>{copiedStepCodeId === step.id ? "Copied" : "Copy Code"}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -570,6 +838,75 @@ export default function RolloverDetailPage({ params }: PageProps) {
             </p>
           </div>
         </div>
+
+        {/* ── Image Lightbox Modal ── */}
+        {lightboxImage && (
+          <div
+            onClick={() => setLightboxImage(null)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9999,
+              background: "rgba(0, 0, 0, 0.88)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "relative",
+                maxWidth: "92vw",
+                maxHeight: "90vh",
+                borderRadius: 16,
+                overflow: "hidden",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8)",
+                border: "1px solid rgba(232, 195, 74, 0.5)",
+                background: "#000000",
+              }}
+            >
+              <button
+                onClick={() => setLightboxImage(null)}
+                style={{
+                  position: "absolute",
+                  top: 14,
+                  right: 14,
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(0, 0, 0, 0.75)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  color: "#ffffff",
+                  fontSize: 18,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 2,
+                }}
+              >
+                <X size={18} />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="Booked Game Ticket Slip Full View"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "85vh",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
