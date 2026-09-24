@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   HelpCircle,
   BookOpen,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
 } from "lucide-react";
 
@@ -51,6 +52,34 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState<boolean>(false);
+  const userDropdownRef = useRef<HTMLDivElement | null>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleDropdownEnter = () => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setUserDropdownOpen(true);
+  };
+
+  const handleDropdownLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setUserDropdownOpen(false);
+    }, 180);
+  };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Check if current authenticated user has active Pro/VIP/Admin subscription
   const isPro = Boolean(
@@ -464,9 +493,18 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   }}
                 />
               ) : isLoggedIn ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Link
-                    href="/account"
+                <div
+                  ref={userDropdownRef}
+                  onMouseEnter={handleDropdownEnter}
+                  onMouseLeave={handleDropdownLeave}
+                  style={{ position: "relative" }}
+                >
+                  {/* Profile Pill Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => setUserDropdownOpen((prev) => !prev)}
+                    aria-expanded={userDropdownOpen}
+                    aria-haspopup="true"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -478,8 +516,23 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       color: "#ffffff",
                       fontSize: 12,
                       fontWeight: 600,
-                      textDecoration: "none",
+                      cursor: "pointer",
                       boxShadow: isPro ? "0 0 10px rgba(255, 184, 0, 0.15)" : "none",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isPro) {
+                        e.currentTarget.style.borderColor = "rgba(255, 184, 0, 0.7)";
+                      } else {
+                        e.currentTarget.style.borderColor = "rgba(167, 159, 255, 0.4)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isPro) {
+                        e.currentTarget.style.borderColor = "rgba(255, 184, 0, 0.4)";
+                      } else {
+                        e.currentTarget.style.borderColor = "rgba(167, 159, 255, 0.15)";
+                      }
                     }}
                   >
                     <div
@@ -498,7 +551,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     >
                       {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-                    <span style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ maxWidth: 95, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {currentUser?.name || "Account"}
                     </span>
                     {isPro && (
@@ -521,42 +574,169 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                         PRO
                       </span>
                     )}
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    title="Log Out"
-                    aria-label="Log Out"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      height: 32,
-                      padding: "0 10px",
-                      borderRadius: 8,
-                      background: "rgba(251, 113, 133, 0.08)",
-                      border: "1px solid rgba(251, 113, 133, 0.22)",
-                      color: "#fb7185",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.18)";
-                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.45)";
-                      e.currentTarget.style.color = "#ffffff";
-                      e.currentTarget.style.boxShadow = "0 0 10px rgba(251, 113, 133, 0.25)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.08)";
-                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.22)";
-                      e.currentTarget.style.color = "#fb7185";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  >
-                    <LogOut size={13} />
-                    <span>Log Out</span>
+                    <ChevronDown
+                      size={13}
+                      style={{
+                        color: isPro ? "#ffd700" : "#a79fff",
+                        transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        transform: userDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      }}
+                    />
                   </button>
+
+                  {/* Dropdown Menu on Hover/Click */}
+                  {userDropdownOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        right: 0,
+                        width: 230,
+                        background: "rgba(18, 14, 51, 0.96)",
+                        border: "1px solid rgba(167, 159, 255, 0.22)",
+                        borderRadius: 14,
+                        boxShadow: "0 16px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(124, 108, 245, 0.16)",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
+                        padding: "8px",
+                        zIndex: 100,
+                        animation: "navbarDropdownFade 0.16s ease-out",
+                      }}
+                    >
+                      {/* Header Info */}
+                      <div
+                        style={{
+                          padding: "10px 12px 10px",
+                          borderBottom: "1px solid rgba(167, 159, 255, 0.1)",
+                          marginBottom: 6,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#ffffff", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {currentUser?.name || "Account"}
+                          </span>
+                          {isPro ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                padding: "1px 6px",
+                                borderRadius: 4,
+                                background: "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)",
+                                color: "#0b091f",
+                                fontSize: 9.5,
+                                fontWeight: 900,
+                              }}
+                            >
+                              <Crown size={8} fill="#0b091f" />
+                              VIP
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: "#7874a4",
+                                background: "rgba(167, 159, 255, 0.1)",
+                                padding: "1px 6px",
+                                borderRadius: 4,
+                              }}
+                            >
+                              FREE
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#7874a4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {currentUser?.email || ""}
+                        </div>
+                      </div>
+
+                      {/* Menu Item: View Profile */}
+                      <Link
+                        href="/account"
+                        onClick={() => setUserDropdownOpen(false)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 12px",
+                          borderRadius: 8,
+                          color: "#ffffff",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textDecoration: "none",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 108, 245, 0.15)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <User size={15} style={{ color: "#a79fff" }} />
+                        <span>View Profile</span>
+                      </Link>
+
+                      {/* Menu Item: Security & Devices */}
+                      <Link
+                        href="/account/sessions"
+                        onClick={() => setUserDropdownOpen(false)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 12px",
+                          borderRadius: 8,
+                          color: "#ffffff",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textDecoration: "none",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 108, 245, 0.15)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <ShieldCheck size={15} style={{ color: "#a79fff" }} />
+                        <span>Security & Devices</span>
+                      </Link>
+
+                      <div style={{ height: 1, background: "rgba(167, 159, 255, 0.1)", margin: "6px 0" }} />
+
+                      {/* Menu Item: Log Out */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 12px",
+                          borderRadius: 8,
+                          background: "transparent",
+                          border: "none",
+                          color: "#fb7185",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(251, 113, 133, 0.15)";
+                          e.currentTarget.style.color = "#ffffff";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "#fb7185";
+                        }}
+                      >
+                        <LogOut size={15} />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Link
@@ -1103,6 +1283,17 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           }
           .mobile-bottom-nav {
             display: none !important;
+          }
+        }
+
+        @keyframes navbarDropdownFade {
+          from {
+            opacity: 0;
+            transform: translateY(-6px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
           }
         }
       `}</style>
