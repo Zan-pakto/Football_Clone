@@ -36,8 +36,8 @@ export default function HowItWorksPage() {
   const [activeStage, setActiveStage] = useState<number>(1);
 
   const calculateSimulation = () => {
-    let homeWeight = homeForm * 0.4 + homeXg * 25 + (homeAdvantage ? 12 : 0) - (keyInjuries ? 10 : 0);
-    let awayWeight = awayForm * 0.4 + awayXg * 25;
+    const homeWeight = homeForm * 0.4 + homeXg * 25 + (homeAdvantage ? 12 : 0) - (keyInjuries ? 10 : 0);
+    const awayWeight = awayForm * 0.4 + awayXg * 25;
 
     const totalWeight = homeWeight + awayWeight + 30;
     const homeProb = Math.min(88, Math.max(15, Math.round((homeWeight / totalWeight) * 100)));
