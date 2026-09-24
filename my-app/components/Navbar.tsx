@@ -72,9 +72,10 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch("/api/auth", {
+      const res = await fetch(`/api/auth?_t=${Date.now()}`, {
         headers,
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) {
         setIsLoggedIn(false);
@@ -107,6 +108,15 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
 
   useEffect(() => {
     checkAuthStatus();
+    const handleAuth = () => {
+      checkAuthStatus();
+    };
+    window.addEventListener("jt_auth_change", handleAuth);
+    window.addEventListener("storage", handleAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", handleAuth);
+      window.removeEventListener("storage", handleAuth);
+    };
   }, [checkAuthStatus]);
 
   // Scroll listener for dynamic navbar styling

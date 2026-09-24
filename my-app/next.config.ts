@@ -40,11 +40,19 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/api/matches/:path*",
+        source: "/api/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=120, stale-while-revalidate=600",
+            value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+          {
+            key: "Pragma",
+            value: "no-cache",
+          },
+          {
+            key: "Expires",
+            value: "0",
           },
         ],
       },

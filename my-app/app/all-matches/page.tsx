@@ -20,7 +20,7 @@ import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
 
-// Module-level persistent cache across page navigations (Zero DB calls on page switch)
+// Module-level persistent cache across page navigations with auth token scoping
 export const clientAllMatchesCache = new Map<
   string,
   {
@@ -29,6 +29,7 @@ export const clientAllMatchesCache = new Map<
     freeTipsLimit: number;
     freeTipsUsed: number;
     cachedAt: number;
+    cachedToken: string | null;
   }
 >();
 
@@ -45,8 +46,20 @@ export default function AllMatchesPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
 
-  // Instant render from client cache if user already visited
-  const initialCache = clientAllMatchesCache.get("0");
+  // Validate initial cache against current stored token
+  const getValidInitialCache = () => {
+    if (typeof window === "undefined") return undefined;
+    const currentToken = localStorage.getItem("jt_auth_token");
+    const cached = clientAllMatchesCache.get("0");
+    if (!cached) return undefined;
+    if (cached.cachedToken !== currentToken) {
+      clientAllMatchesCache.clear();
+      return undefined;
+    }
+    return cached;
+  };
+
+  const initialCache = getValidInitialCache();
   const [matches, setMatches] = useState<MatchData[]>(initialCache ? initialCache.matches : []);
   const [loading, setLoading] = useState(!initialCache);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -58,34 +71,37 @@ export default function AllMatchesPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-    // 1. Check client cache: only use if cache matches current auth state
+    // 1. Check client cache: only use if cache matches current auth token exactly
     const cached = clientAllMatchesCache.get(dayVal);
-    const isCacheTierMismatched = Boolean(
-      cached && (
-        (token && cached.userTier === "free") ||
-        (!token && cached.userTier === "premium")
-      )
-    );
+    const isTokenMismatched = cached ? cached.cachedToken !== token : false;
 
-    if (cached && !forceSync && !isCacheTierMismatched) {
+    if (isTokenMismatched) {
+      clientAllMatchesCache.clear();
+    }
+
+    if (cached && !forceSync && !isTokenMismatched) {
       setMatches(cached.matches);
       setUserTier(cached.userTier);
       setFreeTipsLimit(cached.freeTipsLimit);
       setFreeTipsUsed(cached.freeTipsUsed);
       setLoading(false);
 
-      // If cached recently (within 5 mins), return without refetching
-      if (Date.now() - cached.cachedAt < 5 * 60 * 1000) {
+      // If cached recently (within 2 mins), return without refetching
+      if (Date.now() - cached.cachedAt < 2 * 60 * 1000) {
         return;
       }
     }
 
     try {
-      if (!cached || isCacheTierMismatched) setLoading(true);
+      if (!cached || isTokenMismatched) setLoading(true);
 
       const tz = -new Date().getTimezoneOffset();
-      const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}`;
-      const res = await fetch(url, { headers, credentials: "include" });
+      const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}&_t=${Date.now()}`;
+      const res = await fetch(url, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) {
         setLoading(false);
         return;
@@ -108,13 +124,14 @@ export default function AllMatchesPage() {
         // Always accept authoritative server state without preserving stale unlocked predictions
         setMatches(data.matches);
 
-        // Store into client memory cache so returning to this page is 100% instant
+        // Store into client memory cache scoped to current auth token
         clientAllMatchesCache.set(dayVal, {
           matches: data.matches,
           userTier: uTier,
           freeTipsLimit: fLimit,
           freeTipsUsed: fUsed,
           cachedAt: Date.now(),
+          cachedToken: token,
         });
       }
     } catch (err) {
@@ -130,7 +147,11 @@ export default function AllMatchesPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch(`/api/matches/live?d=${d}`, { headers });
+      const res = await fetch(`/api/matches/live?d=${d}&_t=${Date.now()}`, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const contentType = res.headers.get("content-type") || "";
       if (!contentType.includes("json")) return;

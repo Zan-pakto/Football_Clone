@@ -76,7 +76,11 @@ export default function HitAndWinPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch("/api/hitandwin", { headers });
+      const res = await fetch(`/api/hitandwin?_t=${Date.now()}`, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -102,6 +106,15 @@ export default function HitAndWinPage() {
 
   useEffect(() => {
     fetchData();
+    const handleAuth = () => {
+      fetchData();
+    };
+    window.addEventListener("jt_auth_change", handleAuth);
+    window.addEventListener("storage", handleAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", handleAuth);
+      window.removeEventListener("storage", handleAuth);
+    };
   }, [fetchData]);
 
   // Handle pick selection

@@ -92,6 +92,15 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
+// Prevent browsers, proxies, or intermediate CDNs from caching user-dependent and live prediction API responses
+app.use("/api", (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+  next();
+});
+
 // API Routes
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);

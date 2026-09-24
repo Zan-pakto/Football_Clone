@@ -76,8 +76,14 @@ export default function BetBuilderPage() {
   useEffect(() => {
     async function fetchMatches() {
       try {
-        setLoading(true);
-        const res = await fetch("/api/matches?d=0");
+        const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const res = await fetch(`/api/matches?d=0&_t=${Date.now()}`, {
+          headers,
+          credentials: "include",
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.matches)) {
@@ -145,6 +151,16 @@ export default function BetBuilderPage() {
       }
     }
     fetchMatches();
+
+    const handleAuth = () => {
+      fetchMatches();
+    };
+    window.addEventListener("jt_auth_change", handleAuth);
+    window.addEventListener("storage", handleAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", handleAuth);
+      window.removeEventListener("storage", handleAuth);
+    };
   }, []);
 
   // Filter matches based on selections

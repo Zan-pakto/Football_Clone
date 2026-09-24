@@ -54,6 +54,8 @@ function AuthContent() {
     if (googleAuthParam === "success" && tokenParam) {
       if (typeof window !== "undefined") {
         localStorage.setItem("jt_auth_token", tokenParam);
+        sessionStorage.clear();
+        window.dispatchEvent(new Event("jt_auth_change"));
       }
       setSuccess("Welcome to JollofTips! Signed in with Google. Redirecting...");
       setTimeout(() => {
@@ -100,7 +102,11 @@ function AuthContent() {
                     });
                     const data = await res.json();
                     if (data.success && data.token) {
-                      localStorage.setItem("jt_auth_token", data.token);
+                      if (typeof window !== "undefined") {
+                        localStorage.setItem("jt_auth_token", data.token);
+                        sessionStorage.clear();
+                        window.dispatchEvent(new Event("jt_auth_change"));
+                      }
                       setSuccess("Welcome to JollofTips! Signed in with Google. Redirecting...");
                       setTimeout(() => {
                         window.location.href = redirectUrl;
@@ -230,6 +236,8 @@ function AuthContent() {
 
       if (data.token && typeof window !== "undefined") {
         localStorage.setItem("jt_auth_token", data.token);
+        sessionStorage.clear();
+        window.dispatchEvent(new Event("jt_auth_change"));
       }
 
       setSuccess(mode === "register" ? "Account registered successfully! Redirecting..." : "Welcome back! Redirecting...");

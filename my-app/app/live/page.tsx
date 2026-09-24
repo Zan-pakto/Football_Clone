@@ -19,7 +19,11 @@ export default function LivePage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch("/api/matches/live?d=0", { headers });
+      const res = await fetch(`/api/matches/live?d=0&_t=${Date.now()}`, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const contentType = res.headers.get("content-type") || "";
       if (!contentType.includes("json")) return;
@@ -40,7 +44,11 @@ export default function LivePage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await fetch("/api/matches/live?d=0", { headers });
+      const res = await fetch(`/api/matches/live?d=0&_t=${Date.now()}`, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const contentType = res.headers.get("content-type") || "";
       if (!contentType.includes("json")) return;
@@ -55,6 +63,18 @@ export default function LivePage() {
   }, []);
 
   useEffect(() => { fetchLiveMatches(); }, [fetchLiveMatches]);
+
+  useEffect(() => {
+    const handleAuth = () => {
+      fetchLiveMatches();
+    };
+    window.addEventListener("jt_auth_change", handleAuth);
+    window.addEventListener("storage", handleAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", handleAuth);
+      window.removeEventListener("storage", handleAuth);
+    };
+  }, [fetchLiveMatches]);
 
   useEffect(() => {
     const interval = setInterval(pollLiveUpdates, 15000);

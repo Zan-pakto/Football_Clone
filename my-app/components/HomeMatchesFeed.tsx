@@ -29,7 +29,11 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
         const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const res = await fetch("/api/fixtures?d=0", { headers, credentials: "include" });
+        const res = await fetch(`/api/fixtures?d=0&_t=${Date.now()}`, {
+          headers,
+          credentials: "include",
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.groups)) {
