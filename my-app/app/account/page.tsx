@@ -64,11 +64,13 @@ export default function AccountPage() {
     user && (
       user.isPremium ||
       user.role === "ADMIN" ||
-      user.subscriptionPlan === "VIP_PRO" ||
-      user.subscriptionPlan === "PRO" ||
-      user.subscriptionPlan === "PREMIUM" ||
-      user.subscriptionPlan === "VIP" ||
-      user.subscriptionStatus === "ACTIVE"
+      ((user.subscriptionPlan === "VIP_PRO" ||
+        user.subscriptionPlan === "VIP_MONTHLY" ||
+        user.subscriptionPlan === "VIP_ANNUAL" ||
+        user.subscriptionPlan === "PRO" ||
+        user.subscriptionPlan === "PREMIUM" ||
+        user.subscriptionPlan === "VIP") &&
+        user.subscriptionStatus === "ACTIVE")
     )
   );
 

@@ -243,33 +243,69 @@ export class PaymentService {
   }
 
   /**
-   * 4. Query current user's subscription details
+   * 4. Query current user's subscription details (with real-time expiration validation)
    */
   async getUserSubscriptionStatus(userId: string) {
-    const activeSub = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        status: { in: ["ACTIVE", "TRIALING"] },
-      },
+    const latestSub = await prisma.subscription.findFirst({
+      where: { userId },
       orderBy: { createdAt: "desc" },
     });
 
-    if (!activeSub) {
+    if (!latestSub) {
       return {
         hasActiveSubscription: false,
+        isExpired: false,
         plan: "FREE",
         status: "FREE",
         provider: this.provider.name,
       };
     }
 
+    const expiry = latestSub.currentPeriodEnd || latestSub.expiresAt;
+    const isExpiredByDate = expiry ? new Date(expiry).getTime() <= Date.now() : false;
+    const isActiveStatus = latestSub.status === "ACTIVE" || latestSub.status === "TRIALING";
+
+    // If subscription period has elapsed, auto-downgrade to EXPIRED
+    if (isActiveStatus && isExpiredByDate) {
+      prisma.subscription
+        .update({
+          where: { id: latestSub.id },
+          data: { status: "EXPIRED" },
+        })
+        .catch(() => {});
+
+      return {
+        hasActiveSubscription: false,
+        isExpired: true,
+        plan: "FREE",
+        previousPlan: latestSub.plan,
+        status: "EXPIRED",
+        provider: latestSub.provider,
+        expiredAt: expiry?.toISOString(),
+      };
+    }
+
+    if (!isActiveStatus || isExpiredByDate) {
+      return {
+        hasActiveSubscription: false,
+        isExpired: latestSub.status === "EXPIRED" || isExpiredByDate,
+        plan: "FREE",
+        previousPlan: latestSub.plan,
+        status: latestSub.status,
+        provider: latestSub.provider,
+        expiredAt: expiry?.toISOString(),
+      };
+    }
+
     return {
       hasActiveSubscription: true,
-      plan: activeSub.plan,
-      status: activeSub.status,
-      provider: activeSub.provider,
-      currentPeriodEnd: activeSub.currentPeriodEnd,
-      cancelAtPeriodEnd: activeSub.cancelAtPeriodEnd,
+      isExpired: false,
+      plan: latestSub.plan,
+      status: latestSub.status,
+      provider: latestSub.provider,
+      currentPeriodEnd: latestSub.currentPeriodEnd || latestSub.expiresAt,
+      expiresAt: latestSub.expiresAt || latestSub.currentPeriodEnd,
+      cancelAtPeriodEnd: latestSub.cancelAtPeriodEnd,
     };
   }
 }

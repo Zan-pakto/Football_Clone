@@ -67,6 +67,26 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
 
+    // Guard against duplicate checkout if user already has an active non-expired VIP subscription
+    const currentSub = await paymentService.getUserSubscriptionStatus(user.id);
+    if (currentSub.hasActiveSubscription) {
+      const formattedDate = currentSub.currentPeriodEnd
+        ? new Date(currentSub.currentPeriodEnd).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "active";
+
+      return res.status(400).json({
+        success: false,
+        alreadyActive: true,
+        currentPlan: currentSub.plan,
+        currentPeriodEnd: currentSub.currentPeriodEnd,
+        error: `You already have an active ${currentSub.plan} subscription valid until ${formattedDate}. You will be able to pay again once your current access expires.`,
+      });
+    }
+
     // Validate plan exists
     getPlanOrThrow(planId);
 

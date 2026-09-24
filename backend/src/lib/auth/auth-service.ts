@@ -14,6 +14,21 @@ export interface AuthUser {
   createdAt?: string;
 }
 
+// Helper to find non-expired active subscription
+export function findActiveValidSubscription(subscriptions?: any[]): any | null {
+  if (!subscriptions || !Array.isArray(subscriptions)) return null;
+  const now = Date.now();
+  for (const sub of subscriptions) {
+    if (sub.status === "ACTIVE" || sub.status === "TRIALING") {
+      const expiry = sub.currentPeriodEnd || sub.expiresAt;
+      if (!expiry || new Date(expiry).getTime() > now) {
+        return sub;
+      }
+    }
+  }
+  return null;
+}
+
 // Fallback user memory store
 export const memoryUsers = new Map<string, { id: string; email: string; passwordHash: string; name: string; role: "USER" | "ADMIN"; createdAt: string }>();
 
@@ -43,7 +58,6 @@ export class AuthService {
           role: role as any,
         },
       });
-
       user = {
         id: created.id,
         email: created.email,
@@ -51,7 +65,7 @@ export class AuthService {
         role: created.role as any,
         isPremium: created.role === "ADMIN",
         subscriptionPlan: created.role === "ADMIN" ? "VIP_PRO" : "FREE",
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: created.role === "ADMIN" ? "ACTIVE" : "FREE",
         createdAt: created.createdAt.toISOString(),
       };
     } catch {
@@ -71,7 +85,7 @@ export class AuthService {
         role,
         isPremium: role === "ADMIN",
         subscriptionPlan: role === "ADMIN" ? "VIP_PRO" : "FREE",
-        subscriptionStatus: "ACTIVE",
+        subscriptionStatus: role === "ADMIN" ? "ACTIVE" : "FREE",
         createdAt: nowIso,
       };
     }
@@ -188,7 +202,7 @@ export class AuthService {
       throw new Error("Invalid email or password");
     }
 
-    const activeSub = dbUser.subscriptions?.find((s: any) => s.status === "ACTIVE");
+    const activeSub = findActiveValidSubscription(dbUser.subscriptions);
     const isPremium = Boolean(activeSub || dbUser.role === "ADMIN");
 
     const user: AuthUser = {
@@ -198,7 +212,7 @@ export class AuthService {
       role: dbUser.role,
       isPremium,
       subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "ACTIVE",
+      subscriptionStatus: activeSub ? activeSub.status : "FREE",
       createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
     };
 
@@ -286,7 +300,7 @@ export class AuthService {
       if (e.message?.includes("suspended")) throw e;
     }
 
-    const activeSub = dbUser.subscriptions?.find((s: any) => s.status === "ACTIVE");
+    const activeSub = findActiveValidSubscription(dbUser.subscriptions);
     const isPremium = Boolean(activeSub || dbUser.role === "ADMIN");
 
     const user: AuthUser = {
@@ -296,7 +310,7 @@ export class AuthService {
       role: dbUser.role,
       isPremium,
       subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "ACTIVE",
+      subscriptionStatus: activeSub ? activeSub.status : "FREE",
       createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : nowIso,
     };
 
@@ -338,7 +352,7 @@ export class AuthService {
       dbUser = memoryUsers.get(payload.email);
     }
 
-    const activeSub = dbUser?.subscriptions?.find((s: any) => s.status === "ACTIVE");
+    const activeSub = findActiveValidSubscription(dbUser?.subscriptions);
     const isPremium = payload.role === "ADMIN" || Boolean(activeSub);
 
     return {
@@ -348,7 +362,7 @@ export class AuthService {
       role: payload.role,
       isPremium,
       subscriptionPlan: activeSub ? activeSub.plan : (payload.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "ACTIVE",
+      subscriptionStatus: activeSub ? activeSub.status : "FREE",
       createdAt: dbUser?.createdAt ? new Date(dbUser.createdAt).toISOString() : undefined,
     };
   }
@@ -379,7 +393,7 @@ export class AuthService {
       throw new Error("User not found");
     }
 
-    const activeSub = updated.subscriptions?.find((s: any) => s.status === "ACTIVE");
+    const activeSub = findActiveValidSubscription(updated.subscriptions);
     return {
       id: updated.id,
       email: updated.email,
@@ -387,7 +401,7 @@ export class AuthService {
       role: updated.role,
       isPremium: updated.role === "ADMIN" || Boolean(activeSub),
       subscriptionPlan: activeSub ? activeSub.plan : (updated.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "ACTIVE",
+      subscriptionStatus: activeSub ? activeSub.status : "FREE",
       createdAt: updated.createdAt ? new Date(updated.createdAt).toISOString() : new Date().toISOString(),
     };
   }
