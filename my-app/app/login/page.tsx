@@ -260,6 +260,8 @@ function AuthContent() {
       });
       if (typeof window !== "undefined") {
         localStorage.removeItem("jt_auth_token");
+        sessionStorage.clear();
+        window.dispatchEvent(new Event("jt_auth_change"));
       }
       setCurrentUser(null);
       setSuccess("Logged out successfully.");

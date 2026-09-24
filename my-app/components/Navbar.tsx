@@ -158,14 +158,17 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
         credentials: "include",
         body: JSON.stringify({ action: "logout" }),
       });
+    } catch (err) {
+      console.error("Logout request error:", err);
+    } finally {
       if (typeof window !== "undefined") {
         localStorage.removeItem("jt_auth_token");
+        sessionStorage.clear();
+        window.dispatchEvent(new Event("jt_auth_change"));
       }
       setIsLoggedIn(false);
       setCurrentUser(null);
-      window.location.reload();
-    } catch (err) {
-      console.error("Logout failed:", err);
+      window.location.href = "/";
     }
   };
 

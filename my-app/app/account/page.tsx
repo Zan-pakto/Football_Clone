@@ -107,14 +107,27 @@ export default function AccountPage() {
 
   const handleLogout = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       await fetch("/api/auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify({ action: "logout" }),
       });
-      window.location.href = "/login";
     } catch {
       // Fallback
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("jt_auth_token");
+        sessionStorage.clear();
+        window.dispatchEvent(new Event("jt_auth_change"));
+      }
+      window.location.href = "/login";
     }
   };
 

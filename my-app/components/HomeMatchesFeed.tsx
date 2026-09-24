@@ -20,11 +20,126 @@ interface HomeMatchesFeedProps {
 
 export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMatchesFeedProps) {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [groups, setGroups] = useState<LeagueGroupItem[]>(initialGroups);
+
+  // Sync feed on client mount and when auth state changes (e.g. login/logout)
+  React.useEffect(() => {
+    async function syncFeed() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const res = await fetch("/api/fixtures?d=0", { headers, credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.groups)) {
+          const mapped = data.groups.map((g: any) => ({
+            leagueName: g.league.name,
+            country: g.country.name,
+            flagUrl: g.country.flag || null,
+            matches: (g.fixtures || []).map((f: any) => {
+              const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
+              const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
+              const pBtts = f.predictions?.find((p: any) => p.market === "BTTS");
+              const pBest = f.predictions && f.predictions.length > 0
+                ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
+                : null;
+
+              const isGoalsBest = Boolean(pBest && pBest.market === "OVER_UNDER");
+              const isBttsBest = Boolean(pBest && pBest.market === "BTTS");
+              const is1x2Best = Boolean(pBest ? (!isGoalsBest && !isBttsBest) : true);
+              const bestMarket = isGoalsBest ? "goals" : isBttsBest ? "btts" : "pickScore";
+              const bestMarketLabel = isGoalsBest ? "O/U Goals" : isBttsBest ? "BTTS" : "1X2 Winner";
+
+              return {
+                id: f.id,
+                url: `/match/${f.id}`,
+                leagueName: g.league.name,
+                country: g.country.name,
+                flagUrl: g.country.flag || null,
+                homeTeam: f.homeTeam.name,
+                awayTeam: f.awayTeam.name,
+                homeLogo: f.homeTeam.logo || null,
+                awayLogo: f.awayTeam.logo || null,
+                kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",
+                status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
+                homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
+                awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
+                elapsed: f.elapsed,
+                isLive: f.status === "LIVE",
+                odds: {
+                  home: f.odds?.home ? String(f.odds.home) : "1.75",
+                  draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
+                  away: f.odds?.away ? String(f.odds.away) : "4.20",
+                },
+                rating: f.rating || null,
+                predictions: {
+                  pickScore: {
+                    pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
+                    odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+                    isLocked: Boolean(p1x2?.isLocked),
+                    market: "1X2",
+                    marketLabel: "1X2 Winner",
+                    confidence: p1x2?.confidence || null,
+                    rating: p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null),
+                    isBest: is1x2Best,
+                  },
+                  goals: {
+                    pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
+                    odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+                    isLocked: Boolean(pGoals?.isLocked),
+                    market: "OVER_UNDER",
+                    marketLabel: "O/U Goals",
+                    confidence: pGoals?.confidence || null,
+                    rating: pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null,
+                    isBest: isGoalsBest,
+                  },
+                  btts: {
+                    pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
+                    odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+                    isLocked: Boolean(pBtts?.isLocked),
+                    market: "BTTS",
+                    marketLabel: "Both Teams Score",
+                    confidence: pBtts?.confidence || null,
+                    rating: pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null,
+                    isBest: isBttsBest,
+                  },
+                  bestTip: {
+                    pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
+                    odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+                    isLocked: Boolean(pBest?.isLocked),
+                    market: pBest?.market || "1X2",
+                    marketLabel: bestMarketLabel,
+                    confidence: pBest?.confidence || null,
+                    rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5,
+                    isBest: true,
+                  },
+                  bestMarket,
+                },
+              };
+            }),
+          }));
+          setGroups(mapped);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    syncFeed();
+    const onAuth = () => syncFeed();
+    window.addEventListener("jt_auth_change", onAuth);
+    window.addEventListener("storage", onAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", onAuth);
+      window.removeEventListener("storage", onAuth);
+    };
+  }, []);
 
   // Collect all available leagues
   const availableLeagues = useMemo(() => {
     const map = new Map<string, { name: string; country: string; count: number }>();
-    initialGroups.forEach((g) => {
+    groups.forEach((g) => {
       const key = `${g.country || "Int"}_${g.leagueName}`;
       if (map.has(key)) {
         map.get(key)!.count += g.matches.length;
@@ -37,11 +152,11 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
       }
     });
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [initialGroups]);
+  }, [groups]);
 
   // Flatten and filter all matches
   const filteredGroups = useMemo(() => {
-    return initialGroups
+    return groups
       .map((group) => {
         // League filter
         if (filters.selectedLeagues.length > 0 && !filters.selectedLeagues.includes(group.leagueName)) {

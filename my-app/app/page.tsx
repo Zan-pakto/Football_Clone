@@ -13,7 +13,7 @@ import { cookies } from "next/headers";
 import { Flame, ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-export const revalidate = 120; // 2 min ISR for instant sub-0.8s LCP on pre-login pages
+export const dynamic = "force-dynamic";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
@@ -24,12 +24,14 @@ export default async function HomePage() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
-    const headers: Record<string, string> = token ? { Cookie: `auth_token=${token}` } : {};
+    const headers: Record<string, string> = token
+      ? { Cookie: `auth_token=${token}`, Authorization: `Bearer ${token}` }
+      : {};
 
     const [fixturesRes, liveRes] = await Promise.all([
       fetch(`${BACKEND_URL}/api/fixtures?d=0`, {
         headers,
-        next: { revalidate: 120 },
+        cache: "no-store",
       }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch(`${BACKEND_URL}/api/fixtures/live`, {
         headers,
@@ -40,7 +42,7 @@ export default async function HomePage() {
     groups = fixturesRes?.groups || [];
     liveMatches = liveRes?.matches || [];
   } catch {
-    // Backend offline / ISR fallback
+    // Backend offline / fallback
   }
 
   // Map to format expected by LeagueGroupCard

@@ -21,7 +21,7 @@ import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
 
 // Module-level persistent cache across page navigations (Zero DB calls on page switch)
-const clientAllMatchesCache = new Map<
+export const clientAllMatchesCache = new Map<
   string,
   {
     matches: MatchData[];
@@ -31,6 +31,10 @@ const clientAllMatchesCache = new Map<
     cachedAt: number;
   }
 >();
+
+export function clearClientMatchesCache() {
+  clientAllMatchesCache.clear();
+}
 
 export default function AllMatchesPage() {
   const [d, setD] = useState("0");
@@ -54,9 +58,14 @@ export default function AllMatchesPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-    // 1. Instant cache hit: render immediately with ZERO network or DB latency
+    // 1. Check client cache: only use if cache matches current auth state
     const cached = clientAllMatchesCache.get(dayVal);
-    const isCacheTierMismatched = Boolean(token && cached && cached.userTier === "free");
+    const isCacheTierMismatched = Boolean(
+      cached && (
+        (token && cached.userTier === "free") ||
+        (!token && cached.userTier === "premium")
+      )
+    );
 
     if (cached && !forceSync && !isCacheTierMismatched) {
       setMatches(cached.matches);
@@ -76,7 +85,7 @@ export default function AllMatchesPage() {
 
       const tz = -new Date().getTimezoneOffset();
       const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}`;
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, credentials: "include" });
       if (!res.ok) {
         setLoading(false);
         return;
@@ -96,21 +105,8 @@ export default function AllMatchesPage() {
         setFreeTipsLimit(fLimit);
         setFreeTipsUsed(fUsed);
 
-        setMatches((prev) => {
-          if (prev.length === 0) return data.matches;
-          const prevMap = new Map(prev.map((m) => [m.id, m]));
-          return data.matches.map((fresh: MatchData) => {
-            const existing = prevMap.get(fresh.id);
-            if (existing && existing.predictions?.bestTip?.pick && !fresh.predictions?.bestTip?.pick) {
-              return {
-                ...fresh,
-                predictions: existing.predictions,
-                confidence: existing.confidence || fresh.confidence,
-              };
-            }
-            return fresh;
-          });
-        });
+        // Always accept authoritative server state without preserving stale unlocked predictions
+        setMatches(data.matches);
 
         // Store into client memory cache so returning to this page is 100% instant
         clientAllMatchesCache.set(dayVal, {
@@ -165,6 +161,20 @@ export default function AllMatchesPage() {
   }, [d]);
 
   useEffect(() => { fetchMatches(d); }, [d, fetchMatches]);
+
+  // Listen for login/logout events to instantly wipe cache and refetch fresh matches
+  useEffect(() => {
+    const handleAuthChange = () => {
+      clientAllMatchesCache.clear();
+      fetchMatches(d, true);
+    };
+    window.addEventListener("jt_auth_change", handleAuthChange);
+    window.addEventListener("storage", handleAuthChange);
+    return () => {
+      window.removeEventListener("jt_auth_change", handleAuthChange);
+      window.removeEventListener("storage", handleAuthChange);
+    };
+  }, [d, fetchMatches]);
 
   useEffect(() => {
     const interval = setInterval(pollLiveMatches, 20000);
