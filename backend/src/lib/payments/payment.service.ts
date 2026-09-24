@@ -97,16 +97,23 @@ export class PaymentService {
       // 3. Process Lifecycle Events
       if (event.type === "checkout.completed" || event.type === "subscription.created") {
         if (event.userId || event.userEmail) {
-          // Resolve User
-          const user = event.userId
-            ? await tx.user.findUnique({ where: { id: event.userId } })
-            : await tx.user.findUnique({ where: { email: event.userEmail } });
+          // Resolve User (try by ID, then fallback to email)
+          let user = null;
+          if (event.userId) {
+            user = await tx.user.findUnique({ where: { id: event.userId } });
+          }
+          if (!user && event.userEmail) {
+            user = await tx.user.findFirst({
+              where: { email: { equals: event.userEmail.trim(), mode: "insensitive" } },
+            });
+          }
+
+          const plan = getPlanOrThrow(event.planId || "VIP_MONTHLY");
+          const expiresAt = event.currentPeriodEnd || new Date(Date.now() + (plan.interval === "year" ? 365 : 30) * 86400000);
+          const amountFormatted = event.amountPaid || `$${(plan.amountCents / 100).toFixed(2)}`;
 
           if (user) {
-            const plan = getPlanOrThrow(event.planId || "VIP_MONTHLY");
-            const expiresAt = event.currentPeriodEnd || new Date(Date.now() + (plan.interval === "year" ? 365 : 30) * 86400000);
-
-            // Upsert Subscription
+            // Upsert Subscription in database
             await tx.subscription.upsert({
               where: {
                 providerSubId: event.providerSubId || `sub_${user.id}_${plan.id}`,
@@ -135,16 +142,46 @@ export class PaymentService {
 
             console.log(`🎉 [PaymentService:Webhook] VIP subscription activated for user: ${user.email} (${user.id})`);
 
-            // Dispatched Confirmation Email (async without blocking transaction)
-            emailService.sendEmail(
-              emailService.getSubscriptionConfirmationEmail({
-                name: user.name || "Valued VIP Member",
-                email: user.email,
-                planName: plan.name,
-                amount: event.amountPaid || `$${(plan.amountCents / 100).toFixed(2)}`,
-                expiresAt: expiresAt.toISOString(),
+            // Dispatch VIP Confirmation Email to the user's account email
+            const confirmationEmail = emailService.getSubscriptionConfirmationEmail({
+              name: user.name || "Valued VIP Member",
+              email: user.email,
+              planName: plan.name,
+              amount: amountFormatted,
+              expiresAt: expiresAt.toISOString(),
+              orderId: event.providerSubId || event.eventId,
+              provider: event.provider,
+            });
+
+            emailService.sendEmail(confirmationEmail)
+              .then((sendRes) => {
+                if (sendRes.success) {
+                  console.log(`✉️ [PaymentService] VIP confirmation email delivered to: ${user.email} (Message ID: ${sendRes.messageId})`);
+                } else {
+                  console.warn(`⚠️ [PaymentService] VIP confirmation email not sent: ${sendRes.error}`);
+                }
               })
-            ).catch((err) => console.error(`Failed to send confirmation email:`, err));
+              .catch((err) => console.error(`❌ [PaymentService] Failed to send VIP confirmation email:`, err));
+          } else if (event.userEmail) {
+            // Purchaser email provided but user account not in DB yet (e.g. guest checkout)
+            console.log(`✉️ [PaymentService:Webhook] Sending VIP confirmation email to buyer email: ${event.userEmail}`);
+            const confirmationEmail = emailService.getSubscriptionConfirmationEmail({
+              name: "VIP Member",
+              email: event.userEmail,
+              planName: plan.name,
+              amount: amountFormatted,
+              expiresAt: expiresAt.toISOString(),
+              orderId: event.providerSubId || event.eventId,
+              provider: event.provider,
+            });
+
+            emailService.sendEmail(confirmationEmail)
+              .then((sendRes) => {
+                if (sendRes.success) {
+                  console.log(`✉️ [PaymentService] VIP confirmation email delivered to: ${event.userEmail} (Message ID: ${sendRes.messageId})`);
+                }
+              })
+              .catch((err) => console.error(`❌ [PaymentService] Failed to send VIP confirmation email:`, err));
           }
         }
       } else if (event.type === "subscription.updated") {

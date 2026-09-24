@@ -16,7 +16,7 @@ export class MockPaymentProvider implements IPaymentProvider {
     const mockCustId = `mock_cus_${input.userId}`;
 
     // For local development and testing, point to a mock checkout completion landing page
-    const checkoutUrl = `${input.successUrl}${input.successUrl.includes("?") ? "&" : "?"}mock_session_id=${mockSessionId}&planId=${plan.id}&mock_sub_id=${mockSubId}&mock_cus_id=${mockCustId}&mock_success=true`;
+    const checkoutUrl = `${input.successUrl}${input.successUrl.includes("?") ? "&" : "?"}mock_session_id=${mockSessionId}&planId=${plan.id}&mock_sub_id=${mockSubId}&mock_cus_id=${mockCustId}&mock_success=true&userId=${encodeURIComponent(input.userId)}&userEmail=${encodeURIComponent(input.userEmail)}`;
 
     console.log(`[MockPaymentProvider] Created mock checkout session for user: ${input.userEmail} (${input.userId}), Plan: ${plan.name}`);
 
@@ -48,15 +48,17 @@ export class MockPaymentProvider implements IPaymentProvider {
     const intervalDays = payload.planId === "VIP_ANNUAL" ? 365 : 30;
     const currentPeriodEnd = new Date(Date.now() + intervalDays * 86400000);
 
+    const derivedUserId = payload.userId || (typeof payload.providerCustId === "string" && payload.providerCustId.startsWith("mock_cus_") ? payload.providerCustId.replace("mock_cus_", "") : undefined);
+
     return {
       eventId,
       type: eventType,
       provider: this.name,
-      userId: payload.userId,
+      userId: derivedUserId,
       userEmail: payload.userEmail,
       planId: payload.planId || "VIP_MONTHLY",
       providerSubId: payload.providerSubId || `mock_sub_${Date.now()}`,
-      providerCustId: payload.providerCustId || `mock_cus_${payload.userId || "anon"}`,
+      providerCustId: payload.providerCustId || `mock_cus_${derivedUserId || "anon"}`,
       status: payload.status || "ACTIVE",
       currentPeriodEnd,
       cancelAtPeriodEnd: Boolean(payload.cancelAtPeriodEnd),

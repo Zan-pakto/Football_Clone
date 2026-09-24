@@ -25,10 +25,14 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jose": "^6.2.12",
+    "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
     "prisma": "^6.19.3",
     "stripe": "^22.6.2",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
   }
 }

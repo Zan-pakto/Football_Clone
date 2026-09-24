@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { paymentService } from "../lib/payments/payment.service";
 import { SUBSCRIPTION_PLANS, getPlanOrThrow } from "../lib/payments/plans.config";
 import { authService } from "../lib/auth/auth-service";
+import { emailService } from "../lib/email/email-service";
 
 const router = Router();
 
@@ -184,6 +185,65 @@ router.get("/subscription-status", async (req: Request, res: Response) => {
       userId: user.id,
       email: user.email,
       ...status,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * 6. GET /api/payments/email-status
+ * Check if email service (SMTP / Resend) is configured and active
+ */
+router.get("/email-status", async (_req: Request, res: Response) => {
+  try {
+    const status = await emailService.verifyConfiguration();
+    return res.json({
+      success: true,
+      ...status,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * 7. POST /api/payments/test-vip-email
+ * Send a test VIP Access confirmation email to verify credentials
+ */
+router.post("/test-vip-email", async (req: Request, res: Response) => {
+  try {
+    const token = getAuthToken(req);
+    const user = await authService.getCurrentUser(token);
+
+    const targetEmail = req.body?.email || user?.email;
+    if (!targetEmail) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing recipient 'email' parameter.",
+      });
+    }
+
+    const planId = req.body?.planId || "VIP_MONTHLY";
+    const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS] || SUBSCRIPTION_PLANS.VIP_MONTHLY;
+
+    const payload = emailService.getSubscriptionConfirmationEmail({
+      name: user?.name || "VIP Tester",
+      email: targetEmail,
+      planName: plan.name,
+      amount: `$${(plan.amountCents / 100).toFixed(2)}`,
+      expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+      orderId: `test_vip_${Date.now()}`,
+      provider: paymentService.getProviderName(),
+    });
+
+    const result = await emailService.sendEmail(payload);
+
+    return res.json({
+      success: result.success,
+      recipient: targetEmail,
+      messageId: result.messageId,
+      error: result.error,
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });

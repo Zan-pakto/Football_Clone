@@ -118,13 +118,14 @@ export class StripePaymentProvider implements IPaymentProvider {
         const planId = session.metadata?.planId || "VIP_MONTHLY";
         const providerSubId = typeof session.subscription === "string" ? session.subscription : (session.subscription as any)?.id;
         const providerCustId = typeof session.customer === "string" ? session.customer : (session.customer as any)?.id;
+        const userEmail = session.customer_email || session.metadata?.userEmail || (session.customer_details as any)?.email;
 
         return {
           eventId,
           type: "checkout.completed",
           provider: this.name,
           userId: userId || undefined,
-          userEmail: session.customer_email || session.metadata?.userEmail,
+          userEmail: userEmail || undefined,
           planId,
           providerSubId: providerSubId || undefined,
           providerCustId: providerCustId || undefined,
@@ -137,6 +138,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
         const userId = sub.metadata?.userId;
+        const userEmail = sub.metadata?.userEmail;
         const planId = sub.metadata?.planId || "VIP_MONTHLY";
         const providerCustId = typeof sub.customer === "string" ? sub.customer : (sub.customer as any)?.id;
 
@@ -155,6 +157,7 @@ export class StripePaymentProvider implements IPaymentProvider {
           type: event.type === "customer.subscription.created" ? "subscription.created" : "subscription.updated",
           provider: this.name,
           userId: userId || undefined,
+          userEmail: userEmail || undefined,
           planId,
           providerSubId: sub.id,
           providerCustId: providerCustId || undefined,

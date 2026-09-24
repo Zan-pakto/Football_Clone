@@ -44,6 +44,8 @@ function SuccessContent() {
     const planId = searchParams.get("planId");
     const mockSubId = searchParams.get("mock_sub_id");
     const mockCustId = searchParams.get("mock_cus_id");
+    const userId = searchParams.get("userId");
+    const userEmail = searchParams.get("userEmail");
 
     if (isMock && mockSessionId) {
       // In local dev with MockProvider, simulate the webhook delivery automatically
@@ -56,6 +58,8 @@ function SuccessContent() {
           planId: planId || "VIP_MONTHLY",
           providerSubId: mockSubId,
           providerCustId: mockCustId,
+          userId: userId || undefined,
+          userEmail: userEmail || undefined,
         }),
       }).then(() => {
         setTimeout(fetchStatus, 500);
