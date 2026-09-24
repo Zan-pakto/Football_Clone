@@ -9,11 +9,21 @@ interface MatchRowProps {
 }
 
 /**
- * Format raw verbose picks (e.g. "1 (Arsenal Win)" -> "1", "Over 2.5 Goals" -> "O2.5", "Under 3.5" -> "U3.5")
+ * Format raw verbose picks (e.g. "away team wins or draw" -> "X2", "at least 3 goals scored" -> "O2.5", "1 (Arsenal Win)" -> "1")
  */
 export function cleanPickLabel(rawPick: string | null | undefined): string | null {
   if (!rawPick) return null;
   const p = rawPick.trim();
+
+  // Natural language double chance
+  if (/^away\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+away/i.test(p) || /^x2\b/i.test(p)) return "X2";
+  if (/^home\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+home/i.test(p) || /^1x\b/i.test(p)) return "1X";
+  if (/^home\s+(?:team\s+)?or\s+away/i.test(p) || /^away\s+or\s+home/i.test(p) || /^12\b/i.test(p)) return "12";
+
+  // Natural language 1X2 single
+  if (/^home\s+(?:team\s+)?(?:wins?|to\s+win|scores?)/i.test(p) || /^home\s+win/i.test(p) || p.toLowerCase() === "home") return "1";
+  if (/^away\s+(?:team\s+)?(?:wins?|to\s+win|scores?)/i.test(p) || /^away\s+win/i.test(p) || p.toLowerCase() === "away") return "2";
+  if (/^draw\b/i.test(p) || p.toLowerCase() === "tie") return "X";
 
   // 1X2 patterns
   const doubleChanceMatch = p.match(/^(1X|X2|12)\b/i);
@@ -24,6 +34,15 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
     return singleMatch[1].toUpperCase();
   }
 
+  // Verbose Goals phrases
+  if (/at\s+least\s+4\s+goals?/i.test(p) || /over\s+3\.5/i.test(p)) return "O3.5";
+  if (/at\s+least\s+3\s+goals?/i.test(p) || /over\s+2\.5/i.test(p)) return "O2.5";
+  if (/at\s+least\s+2\s+goals?/i.test(p) || /over\s+1\.5/i.test(p)) return "O1.5";
+  if (/at\s+least\s+1\s+goal/i.test(p) || /over\s+0\.5/i.test(p)) return "O0.5";
+  if (/maximum\s+1\s+goal/i.test(p) || /under\s+1\.5/i.test(p)) return "U1.5";
+  if (/maximum\s+2\s+goals?/i.test(p) || /under\s+2\.5/i.test(p)) return "U2.5";
+  if (/maximum\s+3\s+goals?/i.test(p) || /under\s+3\.5/i.test(p)) return "U3.5";
+
   // Goals: "Over 2.5 Goals" -> "O2.5", "Under 3.5" -> "U3.5"
   const overUnderMatch = p.match(/^(?:Over|O|\+)\s*([0-9.]+)/i);
   if (overUnderMatch) return `O${overUnderMatch[1]}`;
@@ -32,8 +51,8 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   if (underMatch) return `U${underMatch[1]}`;
 
   // BTTS
-  if (/^(Yes|GG|Both Teams To Score|BTTS Yes)$/i.test(p)) return "Yes";
-  if (/^(No|NG|BTTS No|No BTTS)$/i.test(p)) return "No";
+  if (/both\s+teams?\s+(?:will\s+)?score/i.test(p) || /^(Yes|GG|Both Teams To Score|BTTS Yes)$/i.test(p)) return "Yes";
+  if (/both\s+teams?\s+(?:won'?t|will\s+not)\s+score/i.test(p) || /one\s+or\s+neither/i.test(p) || /^(No|NG|BTTS No|No BTTS)$/i.test(p)) return "No";
 
   // Score format e.g. "2-1", "1:0"
   const scoreMatch = p.match(/^(\d+)[:\-]\s*(\d+)$/);

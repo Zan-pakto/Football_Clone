@@ -253,7 +253,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               const isActive =
                 pathname === link.href ||
                 (link.href === "/hit-and-win" && pathname === "/hitandwin") ||
-                (link.href === "/hitandwin" && pathname === "/hit-and-win");
+                (link.href === "/hitandwin" && pathname === "/hit-and-win") ||
+                (link.href === "/leagues" && (pathname.startsWith("/leagues") || pathname.startsWith("/football-leagues")));
               return (
                 <Link
                   key={link.href}
@@ -681,7 +682,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 const isActive =
                   pathname === link.href ||
                   (link.href === "/hit-and-win" && pathname === "/hitandwin") ||
-                  (link.href === "/hitandwin" && pathname === "/hit-and-win");
+                  (link.href === "/hitandwin" && pathname === "/hit-and-win") ||
+                  (link.href === "/leagues" && (pathname.startsWith("/leagues") || pathname.startsWith("/football-leagues")));
                 const IconComponent = link.icon;
                 return (
                   <Link
