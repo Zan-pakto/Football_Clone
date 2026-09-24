@@ -524,21 +524,38 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    title="Log out"
+                    title="Log Out"
+                    aria-label="Log Out"
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "transparent",
-                      border: "1px solid rgba(167, 159, 255, 0.15)",
-                      color: "#7874a4",
-                      display: "flex",
+                      display: "inline-flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      gap: 5,
+                      height: 32,
+                      padding: "0 10px",
+                      borderRadius: 8,
+                      background: "rgba(251, 113, 133, 0.08)",
+                      border: "1px solid rgba(251, 113, 133, 0.22)",
+                      color: "#fb7185",
+                      fontSize: 12,
+                      fontWeight: 700,
                       cursor: "pointer",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.18)";
+                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.45)";
+                      e.currentTarget.style.color = "#ffffff";
+                      e.currentTarget.style.boxShadow = "0 0 10px rgba(251, 113, 133, 0.25)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.08)";
+                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.22)";
+                      e.currentTarget.style.color = "#fb7185";
+                      e.currentTarget.style.boxShadow = "none";
                     }}
                   >
-                    <LogOut size={14} />
+                    <LogOut size={13} />
+                    <span>Log Out</span>
                   </button>
                 </div>
               ) : (
@@ -804,21 +821,32 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     }}
                     style={{
                       width: "100%",
-                      height: 40,
+                      height: 44,
                       borderRadius: 10,
-                      background: "transparent",
-                      border: "1px solid rgba(251, 113, 133, 0.3)",
+                      background: "rgba(251, 113, 133, 0.08)",
+                      border: "1px solid rgba(251, 113, 133, 0.28)",
                       color: "#fb7185",
-                      fontWeight: 700,
-                      fontSize: 13,
+                      fontWeight: 800,
+                      fontSize: 13.5,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 6,
+                      gap: 8,
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.16)";
+                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.55)";
+                      e.currentTarget.style.color = "#ffffff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(251, 113, 133, 0.08)";
+                      e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.28)";
+                      e.currentTarget.style.color = "#fb7185";
                     }}
                   >
-                    <LogOut size={14} />
+                    <LogOut size={15} />
                     <span>Log Out</span>
                   </button>
                 </>

@@ -105,8 +105,11 @@ export default function AccountPage() {
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const handleLogout = async () => {
     try {
+      setLoggingOut(true);
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -187,14 +190,58 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
               onClick={handleLogout}
-              className="gold-outline-btn"
-              style={{ padding: "8px 16px", fontSize: 13 }}
+              disabled={loggingOut}
+              aria-label="Sign out of your account"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "9px 18px",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                background: "rgba(251, 113, 133, 0.08)",
+                border: "1px solid rgba(251, 113, 133, 0.28)",
+                color: "#fb7185",
+                cursor: loggingOut ? "not-allowed" : "pointer",
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                letterSpacing: "0.2px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                opacity: loggingOut ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!loggingOut) {
+                  e.currentTarget.style.background = "rgba(251, 113, 133, 0.16)";
+                  e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.55)";
+                  e.currentTarget.style.color = "#ffffff";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(251, 113, 133, 0.25)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loggingOut) {
+                  e.currentTarget.style.background = "rgba(251, 113, 133, 0.08)";
+                  e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.28)";
+                  e.currentTarget.style.color = "#fb7185";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.2)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }
+              }}
             >
-              <LogOut size={15} />
-              <span>Log Out</span>
+              {loggingOut ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Signing out...</span>
+                </>
+              ) : (
+                <>
+                  <LogOut size={14} />
+                  <span>Log Out</span>
+                </>
+              )}
             </button>
           </div>
         </div>

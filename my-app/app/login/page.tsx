@@ -329,8 +329,37 @@ function AuthContent() {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="gold-outline-btn"
-                    style={{ padding: "12px", minHeight: 46 }}
+                    disabled={loading}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      padding: "12px",
+                      minHeight: 46,
+                      borderRadius: 10,
+                      background: "rgba(251, 113, 133, 0.08)",
+                      border: "1px solid rgba(251, 113, 133, 0.28)",
+                      color: "#fb7185",
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = "rgba(251, 113, 133, 0.16)";
+                        e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.55)";
+                        e.currentTarget.style.color = "#ffffff";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = "rgba(251, 113, 133, 0.08)";
+                        e.currentTarget.style.borderColor = "rgba(251, 113, 133, 0.28)";
+                        e.currentTarget.style.color = "#fb7185";
+                      }
+                    }}
                   >
                     <LogOut size={16} />
                     <span>Log Out</span>
