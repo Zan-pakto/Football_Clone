@@ -3,6 +3,7 @@
 import { MatchData } from "@/lib/types";
 import { Check, X, Shield, Sparkles, Flame, Target, Lock, Radio } from "lucide-react";
 import Link from "next/link";
+import TeamLogo from "@/components/TeamLogo";
 
 interface MatchRowProps {
   match: MatchData;
@@ -292,33 +293,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           {/* Home Team */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {match.homeLogo ? (
-                <img
-                  src={match.homeLogo}
-                  alt=""
-                  style={{ width: 18, height: 18, objectFit: "contain", flexShrink: 0 }}
-                  onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: "#1b183d",
-                    border: "1px solid rgba(167, 159, 255, 0.2)",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 8,
-                    fontWeight: 800,
-                    color: "#a79fff",
-                  }}
-                >
-                  {match.homeTeam.charAt(0)}
-                </div>
-              )}
+              <TeamLogo src={match.homeLogo} name={match.homeTeam} size={18} />
               <span
                 style={{
                   fontSize: 13.5,
@@ -350,33 +325,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           {/* Away Team */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {match.awayLogo ? (
-                <img
-                  src={match.awayLogo}
-                  alt=""
-                  style={{ width: 18, height: 18, objectFit: "contain", flexShrink: 0 }}
-                  onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: "#1b183d",
-                    border: "1px solid rgba(167, 159, 255, 0.2)",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 8,
-                    fontWeight: 800,
-                    color: "#a79fff",
-                  }}
-                >
-                  {match.awayTeam.charAt(0)}
-                </div>
-              )}
+              <TeamLogo src={match.awayLogo} name={match.awayTeam} size={18} />
               <span
                 style={{
                   fontSize: 13.5,
@@ -579,13 +528,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           {/* Home */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {match.homeLogo ? (
-                <img src={match.homeLogo} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} />
-              ) : (
-                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#1b183d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#a79fff" }}>
-                  {match.homeTeam.charAt(0)}
-                </span>
-              )}
+              <TeamLogo src={match.homeLogo} name={match.homeTeam} size={20} />
               <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {match.homeTeam}
               </span>
@@ -600,13 +543,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           {/* Away */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {match.awayLogo ? (
-                <img src={match.awayLogo} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} />
-              ) : (
-                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#1b183d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#a79fff" }}>
-                  {match.awayTeam.charAt(0)}
-                </span>
-              )}
+              <TeamLogo src={match.awayLogo} name={match.awayTeam} size={20} />
               <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {match.awayTeam}
               </span>

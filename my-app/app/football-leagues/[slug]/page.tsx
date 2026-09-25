@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Calendar, Trophy, Flame, Snowflake, Shield, RefreshCw } from "lucide-react";
 import MatchRow from "@/components/MatchRow";
+import TeamLogo from "@/components/TeamLogo";
+import { toCachedLogoUrl } from "@/lib/logo-utils";
 import { MatchData } from "@/lib/types";
 import "@/app/leagues/leagues.css";
 
@@ -187,7 +189,7 @@ export default function SingleLeaguePage({
             <div className="tm-hero__id">
               {league.logo ? (
                 <img
-                  src={league.logo}
+                  src={toCachedLogoUrl(league.logo) || league.logo}
                   alt={league.name}
                   width={84}
                   height={84}
@@ -351,10 +353,8 @@ export default function SingleLeaguePage({
                     <span className="lgp-trend__l" style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <Flame size={13} /> Hot Team
                     </span>
-                    <span className="lgp-trend__team">
-                      {trends.hotTeam.logo && (
-                        <img src={trends.hotTeam.logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                      )}
+                    <span className="lgp-trend__team" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <TeamLogo src={trends.hotTeam.logo} name={trends.hotTeam.name} size={18} />
                       {trends.hotTeam.name}
                     </span>
                   </div>
@@ -367,10 +367,8 @@ export default function SingleLeaguePage({
                     <span className="lgp-trend__l" style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <Snowflake size={13} /> Cold Team
                     </span>
-                    <span className="lgp-trend__team">
-                      {trends.coldTeam.logo && (
-                        <img src={trends.coldTeam.logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                      )}
+                    <span className="lgp-trend__team" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <TeamLogo src={trends.coldTeam.logo} name={trends.coldTeam.name} size={18} />
                       {trends.coldTeam.name}
                     </span>
                   </div>
@@ -381,10 +379,8 @@ export default function SingleLeaguePage({
                 <div className="lgp-trend lgp-trend--const">
                   <div className="lgp-trend__body">
                     <span className="lgp-trend__l">Constant</span>
-                    <span className="lgp-trend__team">
-                      {trends.constantTeam.logo && (
-                        <img src={trends.constantTeam.logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                      )}
+                    <span className="lgp-trend__team" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <TeamLogo src={trends.constantTeam.logo} name={trends.constantTeam.name} size={18} />
                       {trends.constantTeam.name}
                     </span>
                   </div>
@@ -578,14 +574,8 @@ export default function SingleLeaguePage({
                       <tr key={team.name}>
                         <td className="st-rank">{team.rank}</td>
                         <td>
-                          <div className="st-team">
-                            {team.logo && (
-                              <img
-                                src={team.logo}
-                                alt=""
-                                onError={(e) => { e.currentTarget.style.display = "none"; }}
-                              />
-                            )}
+                          <div className="st-team" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <TeamLogo src={team.logo} name={team.name} size={18} />
                             <span>{team.name}</span>
                           </div>
                         </td>

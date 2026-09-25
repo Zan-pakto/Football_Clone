@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { fixtureService } from "../lib/football/fixture-service";
 import { authService } from "../lib/auth/auth-service";
 import { accessControlService } from "../lib/subscriptions/access-service";
+import { toCachedLogoUrl } from "../lib/logo-utils";
 
 const router = Router();
 
@@ -115,11 +116,13 @@ router.get("/", async (req: Request, res: Response) => {
             id: m.homeTeam,
             name: m.homeTeam,
             externalId: m.homeTeam,
+            logo: toCachedLogoUrl(m.homeLogo),
           },
           awayTeam: {
             id: m.awayTeam,
             name: m.awayTeam,
             externalId: m.awayTeam,
+            logo: toCachedLogoUrl(m.awayLogo),
           },
           matchDate: m.matchDate || new Date().toISOString().split("T")[0],
           kickoffTime: m.kickTime || "00:00",
@@ -286,11 +289,13 @@ router.get("/:id", async (req: Request, res: Response) => {
             id: storeMatch.homeTeam,
             name: storeMatch.homeTeam,
             externalId: storeMatch.homeTeam,
+            logo: toCachedLogoUrl(storeMatch.homeLogo),
           },
           awayTeam: {
             id: storeMatch.awayTeam,
             name: storeMatch.awayTeam,
             externalId: storeMatch.awayTeam,
+            logo: toCachedLogoUrl(storeMatch.awayLogo),
           },
 
           matchDate: storeMatch.matchDate || new Date().toISOString().split("T")[0],
@@ -365,13 +370,13 @@ router.get("/:id", async (req: Request, res: Response) => {
           id: hTeam.name.toLowerCase().replace(/\s+/g, "-"),
           name: hTeam.name,
           externalId: hTeam.name,
-          logo: hTeam.logo,
+          logo: toCachedLogoUrl(hTeam.logo),
         },
         awayTeam: {
           id: aTeam.name.toLowerCase().replace(/\s+/g, "-"),
           name: aTeam.name,
           externalId: aTeam.name,
-          logo: aTeam.logo,
+          logo: toCachedLogoUrl(aTeam.logo),
         },
         matchDate: matchDetails.hero.date || new Date().toISOString().split("T")[0],
         kickoffTime: matchDetails.hero.time || "20:00",

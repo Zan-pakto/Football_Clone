@@ -4,6 +4,7 @@ import { fixtureService } from "../lib/football/fixture-service";
 import { authService } from "../lib/auth/auth-service";
 import { accessControlService, FREE_DAILY_TIPS_LIMIT } from "../lib/subscriptions/access-service";
 import { MatchData, LiveMatchUpdate } from "../lib/types";
+import { toCachedLogoUrl } from "../lib/logo-utils";
 
 const router = Router();
 
@@ -117,8 +118,8 @@ router.get("/live", async (req: Request, res: Response) => {
         flagUrl: f.league?.country?.flag || null,
         homeTeam: f.homeTeam.name,
         awayTeam: f.awayTeam.name,
-        homeLogo: f.homeTeam.logo || null,
-        awayLogo: f.awayTeam.logo || null,
+        homeLogo: toCachedLogoUrl(f.homeTeam.logo),
+        awayLogo: toCachedLogoUrl(f.awayTeam.logo),
         kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
         status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
         homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
@@ -316,8 +317,8 @@ router.get("/", async (req: Request, res: Response) => {
           flagUrl: f.league?.country?.flag || null,
           homeTeam: f.homeTeam.name,
           awayTeam: f.awayTeam.name,
-          homeLogo: f.homeTeam.logo || null,
-          awayLogo: f.awayTeam.logo || null,
+          homeLogo: toCachedLogoUrl(f.homeTeam.logo),
+          awayLogo: toCachedLogoUrl(f.awayTeam.logo),
           kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
           status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
           homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,

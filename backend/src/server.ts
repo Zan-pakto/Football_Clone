@@ -19,6 +19,7 @@ import betOfTheDayRoutes from "./routes/bet-of-the-day.routes";
 import progressRoutes from "./routes/progress.routes";
 import hitandwinRoutes from "./routes/hitandwin.routes";
 import leaguesRoutes from "./routes/leagues.routes";
+import logoCacheRoutes from "./routes/logo-cache.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -114,6 +115,7 @@ app.use("/api/bet-of-the-day", betOfTheDayRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/hitandwin", hitandwinRoutes);
 app.use("/api/leagues", leaguesRoutes);
+app.use("/api/logo-cache", logoCacheRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

@@ -5,6 +5,7 @@ import { MatchData } from "@/lib/types";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/MatchFilterModal";
 import { RefreshCw, RotateCcw } from "lucide-react";
+import { toCachedLogoUrl } from "@/lib/logo-utils";
 
 interface LeagueGroupItem {
   leagueName: string;
@@ -63,8 +64,8 @@ export default function HomeMatchesFeed({ initialGroups, totalMatches }: HomeMat
                 flagUrl: g.country.flag || null,
                 homeTeam: f.homeTeam.name,
                 awayTeam: f.awayTeam.name,
-                homeLogo: f.homeTeam.logo || null,
-                awayLogo: f.awayTeam.logo || null,
+                homeLogo: toCachedLogoUrl(f.homeTeam?.logo || f.homeLogo),
+                awayLogo: toCachedLogoUrl(f.awayTeam?.logo || f.awayLogo),
                 kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",
                 status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
                 homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,

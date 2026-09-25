@@ -3,6 +3,7 @@ import { ScrapedMatch } from "./nerdytips-scraper";
 import { resolveDateString } from "../utils";
 import { getCountryFlagUrl } from "../flags";
 import { adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
+import { toCachedLogoUrl } from "../logo-utils";
 
 export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   const matchDate = resolveDateString(m.dParam);
@@ -56,8 +57,8 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     flagUrl: getCountryFlagUrl(normalizedCountry),
     homeTeam: m.homeTeam,
     awayTeam: m.awayTeam,
-    homeLogo: m.homeLogo || null,
-    awayLogo: m.awayLogo || null,
+    homeLogo: toCachedLogoUrl(m.homeLogo),
+    awayLogo: toCachedLogoUrl(m.awayLogo),
     kickTime: m.kickoff,
     matchDate,
     status: m.status.toLowerCase(),

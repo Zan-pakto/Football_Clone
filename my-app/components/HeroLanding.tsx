@@ -21,6 +21,9 @@ import {
   Plus,
   ChevronDown,
 } from "lucide-react";
+import { toCachedLogoUrl } from "@/lib/logo-utils";
+
+const cdn = (url: string) => toCachedLogoUrl(url) || url;
 
 interface HeroLandingProps {
   totalMatches?: number;
@@ -78,8 +81,8 @@ const SIMULATIONS_DATA: MatchSimulation[] = [
     time: "Tonight • 20:00",
     homeTeam: "Real Madrid",
     awayTeam: "Inter Milan",
-    homeLogo: "https://cdn.nerdytips.com/public/img/logos/541.webp?width=48",
-    awayLogo: "https://cdn.nerdytips.com/public/img/logos/505.webp?width=48",
+    homeLogo: cdn("https://cdn.nerdytips.com/public/img/logos/541.webp?width=48"),
+    awayLogo: cdn("https://cdn.nerdytips.com/public/img/logos/505.webp?width=48"),
     homeXg: 2.54,
     awayXg: 0.98,
     possession: { h: 62, a: 38 },
@@ -116,8 +119,8 @@ const SIMULATIONS_DATA: MatchSimulation[] = [
     time: "LIVE IN-PLAY",
     homeTeam: "Arsenal",
     awayTeam: "Chelsea",
-    homeLogo: "https://cdn.nerdytips.com/public/img/logos/42.webp?width=48",
-    awayLogo: "https://cdn.nerdytips.com/public/img/logos/49.webp?width=48",
+    homeLogo: cdn("https://cdn.nerdytips.com/public/img/logos/42.webp?width=48"),
+    awayLogo: cdn("https://cdn.nerdytips.com/public/img/logos/49.webp?width=48"),
     homeScore: 1,
     awayScore: 0,
     isLive: true,
@@ -158,8 +161,8 @@ const SIMULATIONS_DATA: MatchSimulation[] = [
     time: "Tomorrow • 19:45",
     homeTeam: "Napoli",
     awayTeam: "AS Roma",
-    homeLogo: "https://cdn.nerdytips.com/public/img/logos/492.webp?width=48",
-    awayLogo: "https://cdn.nerdytips.com/public/img/logos/497.webp?width=48",
+    homeLogo: cdn("https://cdn.nerdytips.com/public/img/logos/492.webp?width=48"),
+    awayLogo: cdn("https://cdn.nerdytips.com/public/img/logos/497.webp?width=48"),
     homeXg: 1.88,
     awayXg: 1.45,
     possession: { h: 54, a: 46 },
@@ -196,8 +199,8 @@ const SIMULATIONS_DATA: MatchSimulation[] = [
     time: "Weekend Special",
     homeTeam: "Bayern Munich",
     awayTeam: "Dortmund",
-    homeLogo: "https://cdn.nerdytips.com/public/img/logos/157.webp?width=48",
-    awayLogo: "https://cdn.nerdytips.com/public/img/logos/165.webp?width=48",
+    homeLogo: cdn("https://cdn.nerdytips.com/public/img/logos/157.webp?width=48"),
+    awayLogo: cdn("https://cdn.nerdytips.com/public/img/logos/165.webp?width=48"),
     homeXg: 2.82,
     awayXg: 1.34,
     possession: { h: 64, a: 36 },
@@ -227,16 +230,16 @@ const SIMULATIONS_DATA: MatchSimulation[] = [
 ];
 
 const MARQUEE_VERIFIED_WINS = [
-  { match: "Sevilla vs Valencia", pick: "1X", logoH: "https://cdn.nerdytips.com/public/img/logos/536.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/532.webp?width=48" },
-  { match: "Venezia vs Fiorentina", pick: "Over 1.5", logoH: "https://cdn.nerdytips.com/public/img/logos/517.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/502.webp?width=48" },
-  { match: "Union Berlin vs Schalke", pick: "Over 2.5", logoH: "https://cdn.nerdytips.com/public/img/logos/182.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/174.webp?width=48" },
-  { match: "Cagliari vs Lecce", pick: "1X", logoH: "https://cdn.nerdytips.com/public/img/logos/490.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/867.webp?width=48" },
-  { match: "Juventus vs AC Milan", pick: "1X", logoH: "https://cdn.nerdytips.com/public/img/logos/496.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/489.webp?width=48" },
-  { match: "Arsenal vs Chelsea", pick: "Under 3.5", logoH: "https://cdn.nerdytips.com/public/img/logos/42.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/49.webp?width=48" },
-  { match: "Frankfurt vs Augsburg", pick: "Over 2.5", logoH: "https://cdn.nerdytips.com/public/img/logos/169.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/170.webp?width=48" },
-  { match: "Real Madrid vs Inter", pick: "1X & O1.5", logoH: "https://cdn.nerdytips.com/public/img/logos/541.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/505.webp?width=48" },
-  { match: "Bayern vs Dortmund", pick: "Over 2.5", logoH: "https://cdn.nerdytips.com/public/img/logos/157.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/165.webp?width=48" },
-  { match: "Swansea vs Burnley", pick: "Under 3.5", logoH: "https://cdn.nerdytips.com/public/img/logos/76.webp?width=48", logoA: "https://cdn.nerdytips.com/public/img/logos/44.webp?width=48" },
+  { match: "Sevilla vs Valencia", pick: "1X", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/536.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/532.webp?width=48") },
+  { match: "Venezia vs Fiorentina", pick: "Over 1.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/517.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/502.webp?width=48") },
+  { match: "Union Berlin vs Schalke", pick: "Over 2.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/182.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/174.webp?width=48") },
+  { match: "Cagliari vs Lecce", pick: "1X", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/490.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/867.webp?width=48") },
+  { match: "Juventus vs AC Milan", pick: "1X", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/496.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/489.webp?width=48") },
+  { match: "Arsenal vs Chelsea", pick: "Under 3.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/42.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/49.webp?width=48") },
+  { match: "Frankfurt vs Augsburg", pick: "Over 2.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/169.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/170.webp?width=48") },
+  { match: "Real Madrid vs Inter", pick: "1X & O1.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/541.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/505.webp?width=48") },
+  { match: "Bayern vs Dortmund", pick: "Over 2.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/157.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/165.webp?width=48") },
+  { match: "Swansea vs Burnley", pick: "Under 3.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/76.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/44.webp?width=48") },
 ];
 
 export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
@@ -296,7 +299,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: "url('https://cdn.nerdytips.com/public/img/st/header-bg-st.webp')",
+            backgroundImage: `url('${cdn("https://cdn.nerdytips.com/public/img/st/header-bg-st.webp")}')`,
             backgroundSize: "cover",
             backgroundPosition: "center top",
             backgroundRepeat: "no-repeat",

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Trophy, Check, X, Info, Sparkles, LogIn, RefreshCw, Award } from "lucide-react";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
+import TeamLogo from "@/components/TeamLogo";
 
 interface HitAndWinMatch {
   index: number;
@@ -344,19 +345,11 @@ export default function HitAndWinPage() {
                       {/* Home & Away Teams */}
                       <div className="hw-match__teams">
                         <div className="hw-team">
-                          {m.homeTeam.logo ? (
-                            <img src={m.homeTeam.logo} alt={m.homeTeam.name} loading="lazy" />
-                          ) : (
-                            <CountryFlag country={m.homeTeam.name} size={18} />
-                          )}
+                          <TeamLogo src={m.homeTeam.logo} name={m.homeTeam.name} size={18} />
                           <span>{m.homeTeam.name}</span>
                         </div>
                         <div className="hw-team">
-                          {m.awayTeam.logo ? (
-                            <img src={m.awayTeam.logo} alt={m.awayTeam.name} loading="lazy" />
-                          ) : (
-                            <CountryFlag country={m.awayTeam.name} size={18} />
-                          )}
+                          <TeamLogo src={m.awayTeam.logo} name={m.awayTeam.name} size={18} />
                           <span>{m.awayTeam.name}</span>
                         </div>
                       </div>

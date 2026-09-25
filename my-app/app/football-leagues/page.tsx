@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
+import TeamLogo from "@/components/TeamLogo";
 import { Search, Sparkles, RefreshCw } from "lucide-react";
 import "@/app/leagues/leagues.css";
 
@@ -165,23 +166,7 @@ export default function FootballLeaguesPage() {
                       href={`/football-leagues/${league.slug}`}
                       className="lgs-pop__card"
                     >
-                      {league.logo ? (
-                        <img
-                          src={league.logo}
-                          alt={league.name}
-                          width={38}
-                          height={38}
-                          className="lgs-pop__img"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <span className="lg-badge" style={{ width: 38, height: 38 }}>
-                          {league.name.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
+                      <TeamLogo src={league.logo} name={league.name} size={38} className="lgs-pop__img" />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <span className="lgs-pop__name">{league.name}</span>
                         <div style={{ fontSize: 11, color: "#7874a4", marginTop: 2 }}>
@@ -253,22 +238,7 @@ export default function FootballLeaguesPage() {
                               href={`/football-leagues/${l.slug}`}
                               className="lgs-league"
                             >
-                              {l.logo && !l.logo.startsWith("/flags/") ? (
-                                <img
-                                  src={l.logo}
-                                  alt=""
-                                  width={20}
-                                  height={20}
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none";
-                                  }}
-                                />
-                              ) : (
-                                <span className="lg-badge" style={{ width: 22, height: 22, fontSize: 10 }}>
-                                  {l.name.slice(0, 2).toUpperCase()}
-                                </span>
-                              )}
+                              <TeamLogo src={l.logo && !l.logo.startsWith("/flags/") ? l.logo : null} name={l.name} size={22} />
                               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                                 {l.name}
                               </span>

@@ -17,6 +17,7 @@ import { nerdyTipsScraper } from "../scraper/nerdytips-scraper";
 import { normalizeScrapedMatchToMatchData } from "../scraper/nerdytips-normalizer";
 import { resolveDateString, isMatchLive } from "../utils";
 import { MatchData } from "../types";
+import { toCachedLogoUrl } from "../logo-utils";
 
 export function matchDataToFixture(m: MatchData): Fixture {
   const statusUpper: FixtureStatus =
@@ -147,7 +148,7 @@ export function matchDataToFixture(m: MatchData): Fixture {
       id: `team_${m.homeTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
       name: m.homeTeam,
       externalId: m.homeTeam,
-      logo: m.homeLogo,
+      logo: toCachedLogoUrl(m.homeLogo),
       country: m.country,
     },
     awayTeamId: `team_${m.awayTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
@@ -155,7 +156,7 @@ export function matchDataToFixture(m: MatchData): Fixture {
       id: `team_${m.awayTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
       name: m.awayTeam,
       externalId: m.awayTeam,
-      logo: m.awayLogo,
+      logo: toCachedLogoUrl(m.awayLogo),
       country: m.country,
     },
     matchDate: m.matchDate || resolveDateString("0"),

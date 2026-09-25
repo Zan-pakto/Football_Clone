@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { nerdyTipsScraper, ScrapedMatch } from "../lib/scraper/nerdytips-scraper";
 import { authService } from "../lib/auth/auth-service";
 import { adjustOdd, adjustRating, adjustConfidence } from "../lib/ai/ai-variance";
+import { toCachedLogoUrl } from "../lib/logo-utils";
 
 const router = Router();
 
@@ -64,6 +65,8 @@ router.get("/", async (req: Request, res: Response) => {
 
       return {
         ...m,
+        homeLogo: toCachedLogoUrl(m.homeLogo),
+        awayLogo: toCachedLogoUrl(m.awayLogo),
         odds: {
           home: homeOdd,
           draw: drawOdd,

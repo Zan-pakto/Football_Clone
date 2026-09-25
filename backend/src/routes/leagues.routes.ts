@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../lib/db/prisma";
 import { store } from "../lib/db/store";
 import { MatchData } from "../lib/types";
+import { toCachedLogoUrl } from "../lib/logo-utils";
+import { getCountryFlagUrl } from "../lib/flags";
 
 const router = Router();
 
@@ -305,8 +307,8 @@ function formatDbFixture(f: any): MatchData {
     flagUrl: f.league?.logo || null,
     homeTeam: f.homeTeam?.name || "Home Team",
     awayTeam: f.awayTeam?.name || "Away Team",
-    homeLogo: f.homeTeam?.logo || null,
-    awayLogo: f.awayTeam?.logo || null,
+    homeLogo: toCachedLogoUrl(f.homeTeam?.logo),
+    awayLogo: toCachedLogoUrl(f.awayTeam?.logo),
     kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
     matchDate: f.matchDate,
     status: activeStatus,
@@ -380,7 +382,7 @@ router.get("/", async (_req: Request, res: Response) => {
         name: l.name,
         slug: lSlug,
         externalId: l.externalId,
-        logo: l.logo,
+        logo: toCachedLogoUrl(l.logo),
         fixturesCount: l._count.fixtures,
       });
     }
@@ -407,7 +409,7 @@ router.get("/", async (_req: Request, res: Response) => {
         name: pop.name,
         country: pop.country,
         slug: pop.slug,
-        logo: pop.logo,
+        logo: toCachedLogoUrl(pop.logo),
         fixturesCount: dbMatch?._count.fixtures || 0,
       };
     });
@@ -474,8 +476,8 @@ router.get("/:slug", async (req: Request, res: Response) => {
 
     const popDef = POPULAR_LEAGUES_DEFINITIONS.find((p) => p.slug === slug);
     const leagueName = popDef?.name || (matchedLeague ? matchedLeague.name : cleanSlugToTitle(slug));
-    const leagueCountry = popDef ? popDef.country : (matchedLeague ? resolveLeagueCountry(matchedLeague) : "World");
-    const leagueLogo = popDef?.logo || (matchedLeague?.logo && !matchedLeague.logo.startsWith("/flags/") ? matchedLeague.logo : null) || `https://cdn.nerdytips.com/public/img/flags/${leagueCountry}.svg`;
+    const leagueCountry = popDef?.country || (matchedLeague ? resolveLeagueCountry(matchedLeague) : "World");
+    const leagueLogo = toCachedLogoUrl(popDef?.logo) || (matchedLeague?.logo && !matchedLeague.logo.startsWith("/flags/") ? toCachedLogoUrl(matchedLeague.logo) : null) || getCountryFlagUrl(leagueCountry);
 
     // Query all fixtures for this league from the database
     let dbFixtures = matchedLeague
@@ -555,8 +557,8 @@ router.get("/:slug", async (req: Request, res: Response) => {
       teamsSet.add(m.homeTeam);
       teamsSet.add(m.awayTeam);
 
-      const hTeam = getOrCreateTeam(m.homeTeam, m.homeLogo);
-      const aTeam = getOrCreateTeam(m.awayTeam, m.awayLogo);
+      const hTeam = getOrCreateTeam(m.homeTeam, toCachedLogoUrl(m.homeLogo));
+      const aTeam = getOrCreateTeam(m.awayTeam, toCachedLogoUrl(m.awayLogo));
 
       const conf = parseFloat(m.confidence?.replace("%", "") || "75");
       confidenceSum += conf;
@@ -677,9 +679,9 @@ router.get("/:slug", async (req: Request, res: Response) => {
         bttsPct,
       },
       trends: {
-        hotTeam: hotTeam ? { name: hotTeam.name, logo: hotTeam.logo, wins: hotTeam.won } : null,
-        coldTeam: coldTeam ? { name: coldTeam.name, logo: coldTeam.logo, losses: coldTeam.lost } : null,
-        constantTeam: constantTeam ? { name: constantTeam.name, logo: constantTeam.logo } : null,
+        hotTeam: hotTeam ? { name: hotTeam.name, logo: toCachedLogoUrl(hotTeam.logo), wins: hotTeam.won } : null,
+        coldTeam: coldTeam ? { name: coldTeam.name, logo: toCachedLogoUrl(coldTeam.logo), losses: coldTeam.lost } : null,
+        constantTeam: constantTeam ? { name: constantTeam.name, logo: toCachedLogoUrl(constantTeam.logo) } : null,
       },
       upcomingMatches,
       recentMatches: recentMatches.length > 0 ? recentMatches : convertedMatches,

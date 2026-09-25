@@ -23,6 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { getCountryFlagUrl, normalizeCountryName } from "@/lib/flags";
+import TeamLogo from "@/components/TeamLogo";
 
 export interface BotdMatch {
   id: string;
@@ -33,6 +34,8 @@ export interface BotdMatch {
   league: string;
   homeTeam: string;
   awayTeam: string;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
   odds: {
     home: number | null;
     draw: number | null;
@@ -945,10 +948,13 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                         </div>
 
                         {/* Home Team */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f1eff8" }}>
-                            {match.homeTeam}
-                          </span>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <TeamLogo src={match.homeLogo} name={match.homeTeam} size={18} />
+                            <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f1eff8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {match.homeTeam}
+                            </span>
+                          </div>
                           {homeScore !== undefined && (
                             <span style={{ fontSize: 14, fontWeight: 900, color: "#ffffff", marginLeft: 8 }}>
                               {homeScore}
@@ -958,9 +964,12 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
 
                         {/* Away Team */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f1eff8" }}>
-                            {match.awayTeam}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <TeamLogo src={match.awayLogo} name={match.awayTeam} size={18} />
+                            <span style={{ fontSize: 13.5, fontWeight: 700, color: "#f1eff8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {match.awayTeam}
+                            </span>
+                          </div>
                           {awayScore !== undefined && (
                             <span style={{ fontSize: 14, fontWeight: 900, color: "#ffffff", marginLeft: 8 }}>
                               {awayScore}
@@ -1167,12 +1176,18 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                           </span>
                         </div>
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "#f1eff8" }}>{match.homeTeam}</span>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <TeamLogo src={match.homeLogo} name={match.homeTeam} size={16} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#f1eff8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{match.homeTeam}</span>
+                          </div>
                           {homeScore !== undefined && <b style={{ fontSize: 13, color: "#fff" }}>{homeScore}</b>}
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: "#f1eff8" }}>{match.awayTeam}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <TeamLogo src={match.awayLogo} name={match.awayTeam} size={16} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#f1eff8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{match.awayTeam}</span>
+                          </div>
                           {awayScore !== undefined && <b style={{ fontSize: 13, color: "#fff" }}>{awayScore}</b>}
                         </div>
                       </div>

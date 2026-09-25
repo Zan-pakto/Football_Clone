@@ -1,6 +1,7 @@
 import { MatchData, LiveMatchUpdate } from "../types";
 import { isMatchLive, resolveDateString } from "../utils";
 import { prisma } from "./prisma";
+import { toCachedLogoUrl } from "../logo-utils";
 
 export { resolveDateString };
 
@@ -294,8 +295,8 @@ class MatchStore {
               flagUrl: df.league?.logo || null,
               homeTeam: df.homeTeam.name,
               awayTeam: df.awayTeam.name,
-              homeLogo: df.homeTeam.logo || null,
-              awayLogo: df.awayTeam.logo || null,
+              homeLogo: toCachedLogoUrl(df.homeTeam.logo),
+              awayLogo: toCachedLogoUrl(df.awayTeam.logo),
               kickTime: df.kickoffTime ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
               status: activeStatus.toLowerCase(),
               homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : df.homeScore !== null ? String(df.homeScore) : null,
@@ -367,8 +368,8 @@ class MatchStore {
                   flagUrl: f.league?.country?.flag || null,
                   homeTeam: f.homeTeam.name,
                   awayTeam: f.awayTeam.name,
-                  homeLogo: f.homeTeam.logo || null,
-                  awayLogo: f.awayTeam.logo || null,
+                  homeLogo: toCachedLogoUrl(f.homeTeam.logo),
+                  awayLogo: toCachedLogoUrl(f.awayTeam.logo),
                   kickTime: f.kickoffTime ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
                   status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
                   homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
