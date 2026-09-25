@@ -118,7 +118,7 @@ export default function RolloversPage() {
           </p>
         </div>
 
-        {/* ── Primary Option Tabs (AI Rollover vs Manual Rollover) ── */}
+        {/* ── Primary Option Tabs (AI Rollover vs Expert Rollover) ── */}
         <div
           style={{
             display: "flex",
@@ -214,7 +214,7 @@ export default function RolloversPage() {
             }}
           >
             <ShieldCheck size={16} />
-            <span>2. Manual Rollover</span>
+            <span>2. Expert Rollover</span>
             <span
               style={{
                 fontSize: 11,
@@ -364,7 +364,7 @@ export default function RolloversPage() {
                           }}
                         >
                           {rollover.type === "AI" ? <Sparkles size={12} /> : <ShieldCheck size={12} />}
-                          <span>{rollover.type === "AI" ? "AI Rollover" : "Manual Rollover"}</span>
+                          <span>{rollover.type === "AI" ? "AI Rollover" : "Expert Rollover"}</span>
                         </span>
 
                         {/* Status Badge */}

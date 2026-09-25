@@ -840,7 +840,7 @@ export class RolloverService {
     await this.addStep(ai001.id, { match: "Barcelona vs Sevilla", prediction: "Barcelona Win", odds: 1.55, matchDate: "In 3 Days", status: "PENDING" });
     await this.recalculateRolloverProgression(ai001.id);
 
-    // 2. Manual Rollover: Jolloftips Weekend Rollover (Active, 1/5 progress, ₦500 -> ₦750)
+    // 2. Expert Rollover: Jolloftips Weekend Rollover (Active, 1/5 progress, ₦500 -> ₦750)
     const manual001 = await this.createRollover({
       name: "Jolloftips Weekend Rollover",
       type: "MANUAL",

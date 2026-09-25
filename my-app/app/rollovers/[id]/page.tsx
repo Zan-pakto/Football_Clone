@@ -216,7 +216,7 @@ export default function RolloverDetailPage({ params }: PageProps) {
                   }}
                 >
                   {rollover.type === "AI" ? <Sparkles size={12} /> : <ShieldCheck size={12} />}
-                  <span>{rollover.type === "AI" ? "AI Rollover Plan" : "Manual Expert Plan"}</span>
+                  <span>{rollover.type === "AI" ? "AI Rollover Plan" : "Expert Rollover Plan"}</span>
                 </span>
 
                 {/* Status Badge */}

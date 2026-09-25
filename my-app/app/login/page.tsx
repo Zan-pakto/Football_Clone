@@ -643,7 +643,7 @@ function AuthContent() {
                         style={{ marginTop: 2, accentColor: "var(--gold)", width: 16, height: 16, flexShrink: 0 }}
                       />
                       <span>
-                        I agree to the <Link href="/terms" style={{ color: "var(--gold)", textDecoration: "underline" }}>Terms of Service</Link> and Privacy Policy.
+                        I agree to the <Link href="/terms" style={{ color: "var(--gold)", textDecoration: "underline" }}>Terms of Service</Link> and <Link href="/privacy" style={{ color: "var(--gold)", textDecoration: "underline" }}>Privacy Policy</Link>.
                       </span>
                     </label>
                   )}

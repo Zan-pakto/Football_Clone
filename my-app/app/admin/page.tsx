@@ -1224,7 +1224,7 @@ export default function AdminDashboardPage() {
                       style={{ padding: "9px 18px", fontSize: 13 }}
                     >
                       <Plus size={16} />
-                      <span>Create Manual Rollover</span>
+                      <span>Create Expert Rollover</span>
                     </button>
 
                     <button
@@ -1357,7 +1357,7 @@ export default function AdminDashboardPage() {
                               outline: "none",
                             }}
                           >
-                            <option value="MANUAL">Manual Rollover (Expert Curated)</option>
+                            <option value="MANUAL">Expert Rollover (Analyst Curated)</option>
                             <option value="AI">AI Rollover (Prediction Engine)</option>
                           </select>
                         </div>
