@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import crypto from "crypto";
 
-// Ensure local cache directory exists in public/cache/logos
-const CACHE_DIR = path.join(process.cwd(), "public", "cache", "logos");
+// Ensure local cache directory exists in tmp directory (works on Vercel read-only serverless environment)
+const CACHE_DIR = path.join(os.tmpdir(), "jolloftips_logo_cache");
 
 function ensureCacheDir() {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-  }
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+  } catch {}
 }
 
 // In-memory buffer cache for ultra-low latency (<1ms)
@@ -84,7 +87,7 @@ export async function GET(req: NextRequest) {
       return new NextResponse(new Uint8Array(cached.buffer), {
         headers: {
           "Content-Type": cached.contentType,
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
           "X-Cache": "MEM-HIT",
         },
       });
@@ -101,7 +104,7 @@ export async function GET(req: NextRequest) {
         return new NextResponse(new Uint8Array(fileBuffer), {
           headers: {
             "Content-Type": contentType,
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
             "X-Cache": "DISK-HIT",
           },
         });
@@ -143,7 +146,7 @@ export async function GET(req: NextRequest) {
         return new NextResponse(new Uint8Array(buffer), {
           headers: {
             "Content-Type": resolvedType,
-            "Cache-Control": "public, max-age=31536000, immutable",
+            "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
             "X-Cache": "MISS-CACHED",
           },
         });

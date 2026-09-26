@@ -16,10 +16,14 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   if (!rawPick) return null;
   const p = rawPick.trim();
 
-  // Natural language double chance
+  // Natural language double chance & explicit DC variations
+  if (/^1x\s*(?:double\s*chance|\/|\b)|double\s*chance\s*1x/i.test(p)) return "1X";
+  if (/^x2\s*(?:double\s*chance|\/|\b)|double\s*chance\s*x2/i.test(p)) return "X2";
+  if (/^12\s*(?:double\s*chance|\/|\b)|double\s*chance\s*12/i.test(p)) return "12";
   if (/^away\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+away/i.test(p) || /^x2\b/i.test(p)) return "X2";
   if (/^home\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+home/i.test(p) || /^1x\b/i.test(p)) return "1X";
   if (/^home\s+(?:team\s+)?or\s+away/i.test(p) || /^away\s+or\s+home/i.test(p) || /^12\b/i.test(p)) return "12";
+  if (/^(?:1x2\s*(?:\/|\-)\s*)?double\s*chance$/i.test(p)) return "1X";
 
   // Natural language 1X2 single
   if (/^home\s+(?:team\s+)?(?:wins?|to\s+win|scores?)/i.test(p) || /^home\s+win/i.test(p) || p.toLowerCase() === "home") return "1";
@@ -34,6 +38,10 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   if (singleMatch && (p.length === 1 || p.includes("(") || p.toLowerCase().includes("win"))) {
     return singleMatch[1].toUpperCase();
   }
+
+  // NerdyTips specific short codes
+  if (p === "AS" || /^away\s+scores?/i.test(p)) return "AS";
+  if (p === "HS" || /^home\s+scores?/i.test(p)) return "HS";
 
   // Verbose Goals phrases
   if (/at\s+least\s+4\s+goals?/i.test(p) || /over\s+3\.5/i.test(p)) return "O3.5";
@@ -792,39 +800,27 @@ function NerdyTipPill({
         </span>
       )}
 
-      {/* Market Tag inside Highlight Pill */}
-      {isHighlightPill && marketTag && (
-        <span
-          style={{
-            fontSize: 8,
-            fontWeight: 900,
-            color: "#ffb020",
-            letterSpacing: "0.03em",
-            textTransform: "uppercase",
-            marginBottom: 1,
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            lineHeight: 1,
-          }}
-        >
-          <span>★</span> {marketTag}
-        </span>
-      )}
-
+      {/* Main Pick (Clean & Bold) */}
       <span
         style={{
-          fontSize: isHighlightPill ? 11 : 11.5,
-          fontWeight: 800,
+          fontSize: 12,
+          fontWeight: 900,
           color: pickColor,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           maxWidth: "100%",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
         }}
       >
+        {isHighlightPill && <span style={{ color: "#ffb020", fontSize: 9 }}>★</span>}
         {pick}
       </span>
+
+      {/* Odd indicator */}
       {odd && (
         <span
           style={{

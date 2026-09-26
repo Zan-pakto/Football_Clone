@@ -72,14 +72,14 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     rating: ratingOutOf10,
     predictions: {
       bestTip: {
-        pick: m.bestTip,
+        pick: m.bestTip ? m.bestTip.replace(/^(?:Double Chance\s*)+/i, "").trim() || m.bestTip : "1",
         odd: adjustOddStr(m.tipOdds ? m.tipOdds.toFixed(2) : (homeOddStr || "1.85"), `${m.id}_best_odd`) || (homeOddStr || "1.85"),
         rating: ratingOutOf10,
         confidence: adjustedConf,
         trust: `${ratingOutOf10}/10`,
         isBest: true,
         market: bestMarket,
-        marketLabel: bestMarket === "goals" ? "Over/Under" : bestMarket === "btts" ? "Both Teams to Score" : "1X2 / Double Chance",
+        marketLabel: bestMarket === "goals" ? "O/U Goals" : bestMarket === "btts" ? "BTTS" : (m.bestTip && /double/i.test(m.bestTip) ? "Double Chance" : "1X2 Winner"),
         isLocked: false,
       },
       pickScore: {

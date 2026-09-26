@@ -1,30 +1,38 @@
 import { Router, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import crypto from "crypto";
 
 const router = Router();
 
 // Try to write to my-app/public/cache/logos so Next.js static asset serving also benefits,
-// otherwise fall back to backend/cache/logos
+// otherwise fall back to backend/cache/logos or os.tmpdir()
 const PRIMARY_CACHE_DIR = path.resolve(__dirname, "../../../my-app/public/cache/logos");
 const FALLBACK_CACHE_DIR = path.resolve(__dirname, "../../cache/logos");
+const TMP_CACHE_DIR = path.join(os.tmpdir(), "jolloftips_logo_cache");
 
 function getCacheDir(): string {
-  if (fs.existsSync(path.resolve(__dirname, "../../../my-app/public"))) {
-    if (!fs.existsSync(PRIMARY_CACHE_DIR)) {
-      try {
+  try {
+    if (fs.existsSync(path.resolve(__dirname, "../../../my-app/public"))) {
+      if (!fs.existsSync(PRIMARY_CACHE_DIR)) {
         fs.mkdirSync(PRIMARY_CACHE_DIR, { recursive: true });
-      } catch {}
+      }
+      return PRIMARY_CACHE_DIR;
     }
-    return PRIMARY_CACHE_DIR;
-  }
-  if (!fs.existsSync(FALLBACK_CACHE_DIR)) {
-    try {
+  } catch {}
+  try {
+    if (!fs.existsSync(FALLBACK_CACHE_DIR)) {
       fs.mkdirSync(FALLBACK_CACHE_DIR, { recursive: true });
-    } catch {}
-  }
-  return FALLBACK_CACHE_DIR;
+    }
+    return FALLBACK_CACHE_DIR;
+  } catch {}
+  try {
+    if (!fs.existsSync(TMP_CACHE_DIR)) {
+      fs.mkdirSync(TMP_CACHE_DIR, { recursive: true });
+    }
+  } catch {}
+  return TMP_CACHE_DIR;
 }
 
 const memCache = new Map<string, { buffer: Buffer; contentType: string }>();
@@ -85,7 +93,7 @@ router.get("/", async (req: Request, res: Response) => {
     if (memCache.has(hash)) {
       const cached = memCache.get(hash)!;
       res.setHeader("Content-Type", cached.contentType);
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
       res.setHeader("X-Cache", "MEM-HIT");
       return res.send(cached.buffer);
     }
@@ -99,7 +107,7 @@ router.get("/", async (req: Request, res: Response) => {
         const fileBuffer = fs.readFileSync(filePath);
         memCache.set(hash, { buffer: fileBuffer, contentType });
         res.setHeader("Content-Type", contentType);
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
         res.setHeader("X-Cache", "DISK-HIT");
         return res.send(fileBuffer);
       } catch (readErr) {
@@ -138,7 +146,7 @@ router.get("/", async (req: Request, res: Response) => {
         memCache.set(hash, { buffer, contentType: resolvedType });
 
         res.setHeader("Content-Type", resolvedType);
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
         res.setHeader("X-Cache", "MISS-CACHED");
         return res.send(buffer);
       }

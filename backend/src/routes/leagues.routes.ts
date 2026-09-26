@@ -4,6 +4,7 @@ import { store } from "../lib/db/store";
 import { MatchData } from "../lib/types";
 import { toCachedLogoUrl } from "../lib/logo-utils";
 import { getCountryFlagUrl } from "../lib/flags";
+import { nerdyTipsScraper } from "../lib/scraper/nerdytips-scraper";
 
 const router = Router();
 
@@ -442,6 +443,31 @@ router.get("/:slug", async (req: Request, res: Response) => {
     const slug = req.params.slug?.toLowerCase().trim();
     if (!slug) {
       return res.status(400).json({ success: false, error: "League slug is required" });
+    }
+
+    // Try fetching live league page with official standings and team logos directly (public GET)
+    try {
+      const liveData = await nerdyTipsScraper.scrapeLeagueDetails(slug);
+      if (liveData && liveData.standings?.length > 0) {
+        // Asynchronously update team logos in DB cache
+        (async () => {
+          try {
+            for (const team of liveData.standings) {
+              if (team.name && team.logo) {
+                const teamExtId = `team_${team.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+                await prisma.team.updateMany({
+                  where: { externalId: teamExtId },
+                  data: { logo: team.logo },
+                }).catch(() => {});
+              }
+            }
+          } catch {}
+        })();
+
+        return res.json(liveData);
+      }
+    } catch (scrapeErr) {
+      console.warn(`[LeagueRoute] Scrape error for ${slug}:`, scrapeErr);
     }
 
     // Find the league in DB
