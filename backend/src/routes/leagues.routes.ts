@@ -447,18 +447,55 @@ router.get("/:slug", async (req: Request, res: Response) => {
 
     // Try fetching live league page with official standings and team logos directly (public GET)
     try {
-      const liveData = await nerdyTipsScraper.scrapeLeagueDetails(slug);
+      const countryQuery = (req.query.country as string) || "";
+      const dbLeagueCandidate = await prisma.league.findFirst({
+        where: {
+          OR: [
+            { id: slug },
+            { externalId: { equals: `league_${slug.replace(/-/g, "_")}`, mode: "insensitive" } },
+            { name: { equals: slug.replace(/-/g, " "), mode: "insensitive" } },
+          ],
+        },
+        include: {
+          fixtures: {
+            take: 1,
+            select: {
+              homeTeam: { select: { country: true } },
+              awayTeam: { select: { country: true } },
+            },
+          },
+        },
+      });
+      const countryHint = countryQuery || (dbLeagueCandidate ? resolveLeagueCountry(dbLeagueCandidate) : "");
+
+      const liveData = await nerdyTipsScraper.scrapeLeagueDetails(slug, countryHint);
       if (liveData && liveData.standings?.length > 0) {
-        // Asynchronously update team logos in DB cache
+        // Asynchronously update team logos and fixtures in DB cache
         (async () => {
           try {
             for (const team of liveData.standings) {
               if (team.name && team.logo) {
-                const teamExtId = `team_${team.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
                 await prisma.team.updateMany({
-                  where: { externalId: teamExtId },
+                  where: { name: { equals: team.name, mode: "insensitive" } },
                   data: { logo: team.logo },
                 }).catch(() => {});
+              }
+            }
+            if (liveData.upcomingMatches || liveData.recentMatches) {
+              const allM = [...(liveData.upcomingMatches || []), ...(liveData.recentMatches || [])];
+              for (const m of allM) {
+                if (m.homeTeam && m.homeLogo) {
+                  await prisma.team.updateMany({
+                    where: { name: { equals: m.homeTeam, mode: "insensitive" } },
+                    data: { logo: m.homeLogo },
+                  }).catch(() => {});
+                }
+                if (m.awayTeam && m.awayLogo) {
+                  await prisma.team.updateMany({
+                    where: { name: { equals: m.awayTeam, mode: "insensitive" } },
+                    data: { logo: m.awayLogo },
+                  }).catch(() => {});
+                }
               }
             }
           } catch {}

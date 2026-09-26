@@ -235,7 +235,7 @@ export default function FootballLeaguesPage() {
                           {c.leagues.map((l) => (
                             <Link
                               key={l.id || l.slug}
-                              href={`/football-leagues/${l.slug}`}
+                              href={`/football-leagues/${l.slug}?country=${encodeURIComponent(c.country)}`}
                               className="lgs-league"
                             >
                               <TeamLogo src={l.logo && !l.logo.startsWith("/flags/") ? l.logo : null} name={l.name} size={22} />

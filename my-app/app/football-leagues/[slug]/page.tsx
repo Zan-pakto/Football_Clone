@@ -73,7 +73,9 @@ export default function SingleLeaguePage({
     async function fetchLeagueDetails() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/leagues/${encodeURIComponent(slug)}`);
+        const searchCountry = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("country") : "";
+        const countryQuery = searchCountry ? `?country=${encodeURIComponent(searchCountry)}` : "";
+        const res = await fetch(`/api/leagues/${encodeURIComponent(slug)}${countryQuery}`);
         if (!res.ok) return;
         const json = await res.json();
         if (json.success) {

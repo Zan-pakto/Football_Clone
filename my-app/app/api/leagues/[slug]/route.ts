@@ -8,10 +8,12 @@ export async function GET(
   const { slug } = await params;
   const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
+  const countryParam = req.nextUrl?.searchParams?.get("country") || "";
+
   // 1. Try backend API first
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-    const res = await fetch(`${backendUrl}/api/leagues/${encodeURIComponent(cleanSlug)}`, {
+    const res = await fetch(`${backendUrl}/api/leagues/${encodeURIComponent(cleanSlug)}${countryParam ? `?country=${encodeURIComponent(countryParam)}` : ""}`, {
       headers: { "Content-Type": "application/json" },
       cache: "no-store",
     });
@@ -26,15 +28,56 @@ export async function GET(
     console.warn("[Next.js League Route] Backend unreachable, trying direct scrape fallback:", err.message);
   }
 
-  // 2. Direct public GET fallback from nerdytips.com
+  // 2. Direct public GET fallback from nerdytips.com with dynamic index resolution
   try {
+    let resolvedCandidateHref = "";
+    try {
+      const idxRes = await fetch("https://nerdytips.com/football-leagues", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        next: { revalidate: 86400 },
+      });
+      if (idxRes.ok) {
+        const idxHtml = await idxRes.text();
+        const leagueRegex = /<a\b[^>]*href=["']([^"']+)["'][^>]*class=["'][^"']*lgs-league[^"']*["'][^>]*data-name=["']([^"']*)["'][^>]*>/gi;
+        const candidates: Array<{ href: string; dataName: string }> = [];
+        let lm: RegExpExecArray | null;
+        while ((lm = leagueRegex.exec(idxHtml)) !== null) {
+          const href = lm[1];
+          const dataName = lm[2].toLowerCase();
+          if (href.includes(cleanSlug) || dataName.includes(cleanSlug.replace(/-/g, " "))) {
+            candidates.push({ href, dataName });
+          }
+        }
+
+        const cleanCountry = countryParam.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (candidates.length === 1) {
+          resolvedCandidateHref = candidates[0].href;
+        } else if (candidates.length > 1 && cleanCountry) {
+          const cm = candidates.find(
+            (c) =>
+              c.dataName.includes(cleanCountry) ||
+              c.href.includes(cleanCountry) ||
+              (cleanCountry.includes("arabia") && c.href.includes("saudi-arabia"))
+          );
+          if (cm) resolvedCandidateHref = cm.href;
+          else resolvedCandidateHref = candidates[0].href;
+        } else if (candidates.length > 0) {
+          resolvedCandidateHref = candidates[0].href;
+        }
+      }
+    } catch {}
+
     const urlsToTry = [
+      resolvedCandidateHref ? `https://nerdytips.com${resolvedCandidateHref.startsWith("/") ? resolvedCandidateHref : "/" + resolvedCandidateHref}` : "",
       `https://nerdytips.com/${cleanSlug}`,
       `https://nerdytips.com/football-predictions-for-${cleanSlug}`,
-    ];
-    if (cleanSlug === "championship") urlsToTry.push("https://nerdytips.com/football-predictions-for-championship-england");
-    if (cleanSlug === "eredivisie") urlsToTry.push("https://nerdytips.com/football-predictions-for-eredivisie-netherlands");
-    if (cleanSlug === "serie-b") urlsToTry.push("https://nerdytips.com/football-predictions-for-serie-b-italy");
+    ].filter(Boolean);
+
+    if (countryParam) {
+      urlsToTry.push(`https://nerdytips.com/football-predictions-for-${cleanSlug}-${countryParam.toLowerCase().replace(/[^a-z0-9]/g, "-")}`);
+    }
 
     let html = "";
     for (const url of urlsToTry) {

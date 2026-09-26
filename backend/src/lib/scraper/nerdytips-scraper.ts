@@ -1223,25 +1223,129 @@ export class NerdyTipsScraper {
     ];
   }
 
+  private leagueIndexCache: Array<{ href: string; dataName: string; name: string; logo: string | null }> | null = null;
+  private leagueIndexTimestamp: number = 0;
+
+  async getLeagueIndex(): Promise<Array<{ href: string; dataName: string; name: string; logo: string | null }>> {
+    const now = Date.now();
+    if (this.leagueIndexCache && now - this.leagueIndexTimestamp < 86400000) {
+      return this.leagueIndexCache;
+    }
+
+    try {
+      const res = await fetch(`${this.baseUrl}/football-leagues`, {
+        headers: {
+          "User-Agent": this.userAgent,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+      });
+      if (res.ok) {
+        const html = await res.text();
+        const entries: Array<{ href: string; dataName: string; name: string; logo: string | null }> = [];
+        const leagueRegex = /<a\b[^>]*href=["']([^"']+)["'][^>]*class=["'][^"']*lgs-league[^"']*["'][^>]*data-name=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let match: RegExpExecArray | null;
+        while ((match = leagueRegex.exec(html)) !== null) {
+          const href = match[1];
+          const dataName = match[2];
+          const inner = match[3];
+          const nameMatch = inner.match(/<span>([\s\S]*?)<\/span>/i);
+          const logoMatch = inner.match(/<img[^>]*src=["']([^"']+)["']/i);
+          entries.push({
+            href,
+            dataName: dataName.toLowerCase(),
+            name: nameMatch ? nameMatch[1].trim() : dataName,
+            logo: logoMatch ? logoMatch[1] : null,
+          });
+        }
+
+        // Popular top leagues
+        const popMatches = ["/premier-league", "/bundesliga", "/serie-a", "/la-liga", "/ligue-1"];
+        for (const p of popMatches) {
+          entries.push({
+            href: p,
+            dataName: p.replace("/", "").replace(/-/g, " "),
+            name: p.replace("/", "").replace(/-/g, " "),
+            logo: null,
+          });
+        }
+
+        if (entries.length > 50) {
+          this.leagueIndexCache = entries;
+          this.leagueIndexTimestamp = now;
+          return entries;
+        }
+      }
+    } catch (err: any) {
+      console.warn("[NerdyTipsScraper] Failed to fetch league index:", err.message);
+    }
+
+    return this.leagueIndexCache || [];
+  }
+
+  resolveLeagueHref(
+    slug: string,
+    country?: string | null,
+    entries: Array<{ href: string; dataName: string; name: string; logo: string | null }> = []
+  ): string {
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const cleanCountry = (country || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    // 1. Popular canonical top tier
+    if (["premier-league", "la-liga", "serie-a", "bundesliga"].includes(cleanSlug)) {
+      return `/${cleanSlug}`;
+    }
+
+    // 2. Exact match in index
+    const exact = entries.find((l) => l.href === `/${cleanSlug}` || l.href === `/football-predictions-for-${cleanSlug}`);
+    if (exact) return exact.href;
+
+    // 3. Candidates matching slug
+    const candidates = entries.filter(
+      (l) => l.href.includes(cleanSlug) || l.dataName.includes(cleanSlug.replace(/-/g, " "))
+    );
+
+    if (candidates.length === 1) return candidates[0].href;
+
+    if (candidates.length > 1 && cleanCountry) {
+      const countryMatch = candidates.find(
+        (c) =>
+          c.dataName.includes(cleanCountry) ||
+          c.href.includes(cleanCountry) ||
+          (cleanCountry.includes("arabia") && c.href.includes("saudi-arabia"))
+      );
+      if (countryMatch) return countryMatch.href;
+    }
+
+    if (candidates.length > 0) return candidates[0].href;
+
+    return `/football-predictions-for-${cleanSlug}`;
+  }
+
   /**
-   * Scrapes public league page (e.g. /serie-a, /premier-league) directly via public GET request.
+   * Scrapes public league page (e.g. /serie-a, /football-predictions-for-division-1-saudi-arabia) directly via public GET request.
    * Returns live standings with team logos, match list with team logos, KPIs, statistics, and trends.
    */
-  async scrapeLeagueDetails(slug: string): Promise<any | null> {
+  async scrapeLeagueDetails(slug: string, country?: string | null): Promise<any | null> {
     const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
-    const cacheKey = `scraped_league_${cleanSlug}`;
+    const cleanCountry = (country || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const cacheKey = `scraped_league_${cleanSlug}_${cleanCountry || "all"}`;
     const cached = await cacheService.get<any>(cacheKey);
     if (cached) return cached;
 
-    // List of URLs to try
+    // Resolve exact URL from full index
+    const index = await this.getLeagueIndex();
+    const resolvedPath = this.resolveLeagueHref(slug, country, index);
+
+    // List of candidate URLs to try
     const urlsToTry = [
+      `${this.baseUrl}${resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath}`,
       `${this.baseUrl}/${cleanSlug}`,
       `${this.baseUrl}/football-predictions-for-${cleanSlug}`,
     ];
 
-    if (cleanSlug === "championship") urlsToTry.push(`${this.baseUrl}/football-predictions-for-championship-england`);
-    if (cleanSlug === "eredivisie") urlsToTry.push(`${this.baseUrl}/football-predictions-for-eredivisie-netherlands`);
-    if (cleanSlug === "serie-b") urlsToTry.push(`${this.baseUrl}/football-predictions-for-serie-b-italy`);
+    if (cleanCountry) {
+      urlsToTry.push(`${this.baseUrl}/football-predictions-for-${cleanSlug}-${cleanCountry}`);
+    }
 
     let html = "";
     for (const url of urlsToTry) {
