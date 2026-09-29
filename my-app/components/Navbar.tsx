@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   ShieldCheck,
+  Radio,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -32,6 +33,7 @@ interface NavbarProps {
 const navLinks = [
   { href: "/bet-of-the-day", label: "Bet of the day", icon: Flame },
   { href: "/all-matches", label: "All Matches", icon: Activity },
+  { href: "/live", label: "Live", icon: Radio, isLive: true },
   { href: "/rollovers", label: "Rollover", icon: TrendingUp },
   { href: "/bet-builder", label: "Bet Builder", icon: Zap },
   { href: "/leagues", label: "Leagues", icon: Trophy },
@@ -306,29 +308,66 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: isActive ? 800 : 600,
-                    color: isActive ? "#ffffff" : "#a79fff",
-                    background: isActive ? "rgba(124, 108, 245, 0.18)" : "transparent",
+                    color: isActive ? "#ffffff" : (link as any).isLive ? "#ff5d78" : "#a79fff",
+                    background: isActive
+                      ? ((link as any).isLive ? "rgba(255, 93, 120, 0.2)" : "rgba(124, 108, 245, 0.18)")
+                      : ((link as any).isLive ? "rgba(255, 93, 120, 0.08)" : "transparent"),
                     transition: "all 0.15s ease",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
                     whiteSpace: "nowrap",
-                    border: isActive ? "1px solid rgba(124, 108, 245, 0.4)" : "1px solid transparent",
+                    border: isActive
+                      ? ((link as any).isLive ? "1px solid rgba(255, 93, 120, 0.55)" : "1px solid rgba(124, 108, 245, 0.4)")
+                      : ((link as any).isLive ? "1px solid rgba(255, 93, 120, 0.25)" : "1px solid transparent"),
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
                       e.currentTarget.style.color = "#ffffff";
-                      e.currentTarget.style.background = "#1b183d";
+                      e.currentTarget.style.background = (link as any).isLive ? "rgba(255, 93, 120, 0.18)" : "#1b183d";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.color = "#a79fff";
-                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = (link as any).isLive ? "#ff5d78" : "#a79fff";
+                      e.currentTarget.style.background = (link as any).isLive ? "rgba(255, 93, 120, 0.08)" : "transparent";
                     }
                   }}
                 >
-                  {link.label}
+                  {(link as any).isLive ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#ff5d78",
+                          boxShadow: "0 0 8px #ff5d78",
+                          display: "inline-block",
+                          animation: "pulseDot 1.4s ease-in-out infinite",
+                        }}
+                      />
+                      <span>{link.label}</span>
+                      {liveCount > 0 && (
+                        <span
+                          style={{
+                            background: "rgba(255, 93, 120, 0.22)",
+                            border: "1px solid rgba(255, 93, 120, 0.45)",
+                            color: "#ff8299",
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: "0.5px 5.5px",
+                            borderRadius: 999,
+                            fontFamily: "var(--font-mono)",
+                          }}
+                        >
+                          {liveCount}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    link.label
+                  )}
                 </Link>
               );
             })}
@@ -915,8 +954,41 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <IconComponent size={16} color={isActive ? "#8b7ff5" : "#7874a4"} />
-                      <span>{link.label}</span>
+                      <IconComponent size={16} color={isActive ? "#8b7ff5" : (link as any).isLive ? "#ff5d78" : "#7874a4"} />
+                      {(link as any).isLive ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: "#ff5d78",
+                              boxShadow: "0 0 8px #ff5d78",
+                              display: "inline-block",
+                              animation: "pulseDot 1.4s ease-in-out infinite",
+                            }}
+                          />
+                          <span>{link.label}</span>
+                          {liveCount > 0 && (
+                            <span
+                              style={{
+                                background: "rgba(255, 93, 120, 0.25)",
+                                border: "1px solid rgba(255, 93, 120, 0.45)",
+                                color: "#ff8299",
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: "1px 6px",
+                                borderRadius: 999,
+                                fontFamily: "var(--font-mono)",
+                              }}
+                            >
+                              {liveCount}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span>{link.label}</span>
+                      )}
                     </div>
                     <ChevronRight size={14} color="#7874a4" />
                   </Link>

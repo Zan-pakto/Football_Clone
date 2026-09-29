@@ -5,11 +5,40 @@ import { getCountryFlagUrl } from "../flags";
 import { adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 import { toCachedLogoUrl } from "../logo-utils";
 
+function computeLiveElapsed(elapsed?: string | null, kickoff?: string | null): string {
+  if (elapsed && elapsed.trim().length > 0) return elapsed.trim();
+  if (!kickoff) return "LIVE";
+  try {
+    const parts = kickoff.trim().split(":");
+    if (parts.length >= 2) {
+      const kh = parseInt(parts[0], 10);
+      const km = parseInt(parts[1], 10);
+      if (!isNaN(kh) && !isNaN(km)) {
+        const now = new Date();
+        const nowMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+        const kickMins = kh * 60 + km;
+        let diff = nowMins - kickMins;
+        if (diff < -720) diff += 1440;
+        if (diff >= 0 && diff <= 130) {
+          if (diff <= 1) return "1'";
+          if (diff <= 45) return `${diff}'`;
+          if (diff <= 60) return "HT";
+          if (diff <= 105) return `${diff - 15}'`;
+          return "90+'";
+        }
+      }
+    }
+  } catch { /* fallback */ }
+  return "LIVE";
+}
+
 export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   const matchDate = resolveDateString(m.dParam);
   const homeOddStr = adjustOddStr(m.odds.home ? m.odds.home.toFixed(2) : null, `${m.id}_home`);
   const drawOddStr = adjustOddStr(m.odds.draw ? m.odds.draw.toFixed(2) : null, `${m.id}_draw`);
   const awayOddStr = adjustOddStr(m.odds.away ? m.odds.away.toFixed(2) : null, `${m.id}_away`);
+  const isMatchLiveStatus = m.status === "LIVE";
+  const activeElapsed = isMatchLiveStatus ? computeLiveElapsed(m.elapsed, m.kickoff) : m.elapsed || null;
 
   // Determine market category for the best tip
   let bestMarket = "pickScore";
@@ -110,7 +139,8 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
       isLocked: false,
     },
     confidence: `${adjustedConf}%`,
-    isLive: m.status === "LIVE",
+    elapsed: activeElapsed,
+    isLive: isMatchLiveStatus,
     isLocked: false,
     queryTags: `${m.homeTeam} ${m.awayTeam} ${m.league} ${m.country}`.toLowerCase(),
   };

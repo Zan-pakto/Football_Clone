@@ -44,6 +44,7 @@ export interface ScrapedMatch {
   homeLogo?: string | null;
   awayLogo?: string | null;
   isPremium?: boolean;
+  elapsed?: string | null;
   dParam: string;
 }
 
@@ -201,6 +202,23 @@ export class NerdyTipsScraper {
       else if (sLower === "postponed") status = "POSTPONED";
       else if (sLower === "cancelled") status = "CANCELLED";
 
+      // Extract live elapsed minute (e.g. 34', HT, 82')
+      let elapsed: string | null = null;
+      if (status === "LIVE") {
+        const elapsedAttrMatch = fullAttrs.match(/data-(?:elapsed|minute|time)=["']([^"']*)["']/i);
+        if (elapsedAttrMatch && elapsedAttrMatch[1].trim()) {
+          elapsed = elapsedAttrMatch[1].trim();
+        } else {
+          const innerElapsedMatch = innerHtml.match(/(?:tb-min|tb-time|live-minute|nt-time)[^>]*>([\s\S]*?)<\/(?:span|div)/i);
+          if (innerElapsedMatch) {
+            const rawMinute = innerElapsedMatch[1].replace(/<[^>]+>/g, "").trim();
+            if (/^(?:\d+['′]|HT|\d+\+\d+['′]|FT)$/i.test(rawMinute)) {
+              elapsed = rawMinute;
+            }
+          }
+        }
+      }
+
       // Premium flag: High confidence (>78%) or special indicators
       const isPremium = confidence >= 80 || innerHtml.includes("is-premium") || innerHtml.includes("vip") || innerHtml.includes("data-locked");
 
@@ -214,6 +232,7 @@ export class NerdyTipsScraper {
         href: `${this.baseUrl}${href}`,
         kickoff: kick || "00:00",
         status,
+        elapsed,
         country: country || "International",
         league: league || "Other League",
         homeTeam: homeTeam || "Home Team",

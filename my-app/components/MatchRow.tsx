@@ -255,7 +255,7 @@ export default function MatchRow({ match }: MatchRowProps) {
                 display: "inline-flex",
                 flexDirection: "column",
                 alignItems: "center",
-                fontSize: 10.5,
+                fontSize: 11,
                 fontWeight: 900,
                 color: "#ff5d78",
                 lineHeight: 1.15,
@@ -263,16 +263,19 @@ export default function MatchRow({ match }: MatchRowProps) {
             >
               <span
                 style={{
-                  width: 6,
-                  height: 6,
+                  width: 7,
+                  height: 7,
                   borderRadius: "50%",
                   background: "#ff5d78",
-                  boxShadow: "0 0 8px #ff5d78",
+                  boxShadow: "0 0 10px #ff5d78, 0 0 4px #ff5d78",
                   display: "inline-block",
-                  marginBottom: 3,
+                  marginBottom: 4,
+                  animation: "pulseDot 1.4s ease-in-out infinite",
                 }}
               />
-              <span>{match.elapsed || "LIVE"}</span>
+              <span style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>
+                {match.elapsed || "LIVE"}
+              </span>
             </div>
           ) : (
             <div
@@ -512,9 +515,9 @@ export default function MatchRow({ match }: MatchRowProps) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {isLive ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255, 93, 120, 0.16)", color: "#ff5d78", fontWeight: 800, fontSize: 10.5 }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff5d78" }} />
-                LIVE {match.elapsed || ""}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2.5px 8px", borderRadius: 999, background: "rgba(255, 93, 120, 0.16)", border: "1px solid rgba(255, 93, 120, 0.35)", color: "#ff5d78", fontWeight: 800, fontSize: 10.5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff5d78", boxShadow: "0 0 8px #ff5d78", animation: "pulseDot 1.4s ease-in-out infinite" }} />
+                <span>LIVE {match.elapsed ? `· ${match.elapsed}` : ""}</span>
               </span>
             ) : (
               <span style={{ color: "#7874a4", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
@@ -658,6 +661,10 @@ export default function MatchRow({ match }: MatchRowProps) {
           .nt-mobile-row {
             display: flex !important;
           }
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.35; transform: scale(1.25); }
         }
       `}</style>
     </Link>

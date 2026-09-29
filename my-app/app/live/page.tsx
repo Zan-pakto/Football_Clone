@@ -116,10 +116,20 @@ export default function LivePage() {
       <main style={{ flex: 1, maxWidth: 1280, width: "100%", margin: "0 auto", padding: "84px 20px 60px", display: "flex", flexDirection: "column", gap: 24 }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 18, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 24, fontWeight: 900, color: "#fff" }}>
-              <Radio style={{ width: 22, height: 22, color: "#10b981", animation: "pulse 2s infinite" }} />
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: "#ff5d78",
+                  boxShadow: "0 0 12px #ff5d78, 0 0 4px #ff5d78",
+                  display: "inline-block",
+                  animation: "pulse 1.4s infinite",
+                }}
+              />
               Live In-Progress Matches
             </h1>
             <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
@@ -129,12 +139,12 @@ export default function LivePage() {
 
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
-            background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)",
+            background: "rgba(255, 93, 120, 0.1)", border: "1px solid rgba(255, 93, 120, 0.3)",
             padding: "8px 14px", borderRadius: 12,
-            fontSize: 12, fontWeight: 700, color: "#34d399",
+            fontSize: 12, fontWeight: 700, color: "#ff8299",
           }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", animation: "ping 1.2s infinite" }} />
-            Auto-polling every 15s
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5d78", boxShadow: "0 0 8px #ff5d78" }} />
+            Live Telemetry Active
           </div>
         </div>
 

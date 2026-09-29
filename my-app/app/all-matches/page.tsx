@@ -3,8 +3,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import DateSelector from "@/components/DateSelector";
+import MatchRow, { checkPredictionWon } from "@/components/MatchRow";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
-import { checkPredictionWon } from "@/components/MatchRow";
+import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 import { MatchData } from "@/lib/types";
 import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/MatchFilterModal";
 import {
@@ -15,6 +16,9 @@ import {
   ArrowUpDown,
   Lock,
   Sparkles,
+  HelpCircle,
+  Radio,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
@@ -45,6 +49,8 @@ export default function AllMatchesPage() {
   const [modalFilters, setModalFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
+  const [showTipsExplained, setShowTipsExplained] = useState(false);
+  const [freeSectionOpen, setFreeSectionOpen] = useState(true);
 
   // Validate initial cache against current stored token
   const getValidInitialCache = () => {
@@ -93,7 +99,10 @@ export default function AllMatchesPage() {
     }
 
     try {
-      if (!cached || isTokenMismatched) setLoading(true);
+      if (!cached || isTokenMismatched) {
+        if (matches.length === 0) setLoading(true);
+        else setIsSyncing(true);
+      }
 
       const tz = -new Date().getTimezoneOffset();
       const url = `/api/matches?d=${dayVal}&tz=${tz}${forceSync ? "&sync=true" : ""}&_t=${Date.now()}`;
@@ -138,8 +147,9 @@ export default function AllMatchesPage() {
       console.error("Failed to load matches:", err);
     } finally {
       setLoading(false);
+      setIsSyncing(false);
     }
-  }, []);
+  }, [matches.length]);
 
 
   const pollLiveMatches = useCallback(async () => {
@@ -357,6 +367,14 @@ export default function AllMatchesPage() {
     return Array.from(map.values());
   }, [filteredMatches]);
 
+  const freeMatches = useMemo(() => {
+    return filteredMatches.filter((m) => {
+      const isExplicitlyUnlocked = !m.isLocked;
+      const isUnderLimit = typeof m.freeTipIndex === "number" && m.freeTipIndex < freeTipsLimit;
+      return isExplicitlyUnlocked || isUnderLimit;
+    });
+  }, [filteredMatches, freeTipsLimit]);
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)", color: "var(--foreground)" }}>
       <Navbar liveCount={statCounts.live} />
@@ -562,16 +580,41 @@ export default function AllMatchesPage() {
                 style={{
                   padding: "16px 20px",
                   borderRadius: 14,
-                  background: activeFilter === "live" ? "var(--surface-raised)" : "var(--surface)",
-                  border: activeFilter === "live" ? "1px solid var(--accent-indigo)" : "1px solid var(--border-color)",
-                  boxShadow: activeFilter === "live" ? "0 0 20px rgba(85, 88, 230, 0.28)" : "none",
+                  background: activeFilter === "live"
+                    ? "linear-gradient(135deg, rgba(255, 93, 120, 0.22) 0%, rgba(30, 20, 45, 0.8) 100%)"
+                    : statCounts.live > 0
+                    ? "rgba(255, 93, 120, 0.06)"
+                    : "var(--surface)",
+                  border: activeFilter === "live"
+                    ? "1px solid #ff5d78"
+                    : statCounts.live > 0
+                    ? "1px solid rgba(255, 93, 120, 0.35)"
+                    : "1px solid var(--border-color)",
+                  boxShadow: activeFilter === "live"
+                    ? "0 0 24px rgba(255, 93, 120, 0.35)"
+                    : statCounts.live > 0
+                    ? "0 0 14px rgba(255, 93, 120, 0.14)"
+                    : "none",
                   textAlign: "left",
                   cursor: "pointer",
                   transition: "all 0.18s ease",
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-                  LIVE
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: "#ff5d78",
+                      boxShadow: "0 0 8px #ff5d78",
+                      display: "inline-block",
+                      animation: statCounts.live > 0 ? "pulseDot 1.4s ease-in-out infinite" : "none",
+                    }}
+                  />
+                  <div style={{ fontSize: 11, fontWeight: 800, color: activeFilter === "live" ? "#ff8299" : "#ff5d78", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    LIVE
+                  </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "#FFFFFF", lineHeight: 1 }}>
                   {statCounts.live}
@@ -601,7 +644,77 @@ export default function AllMatchesPage() {
               </button>
             </div>
 
-            {/* ── 4. NerdyTips Master Filter Toolbar & Modal ── */}
+            {/* ── 4. NerdyTips Master Filter Toolbar & Info Bar ── */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  {d === "0" ? "Today's Matches" : d === "1" ? "Tomorrow's Matches" : d === "-1" ? "Yesterday's Matches" : `Matches (Day ${d})`}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "rgba(124, 108, 245, 0.15)",
+                    color: "#a79fff",
+                    border: "1px solid rgba(124, 108, 245, 0.3)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {filteredMatches.length} Matches
+                </span>
+                {isSyncing && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#2fd08a" }}>
+                    <RefreshCw size={12} className="animate-spin" />
+                    Updating telemetry...
+                  </span>
+                )}
+              </div>
+
+              {/* Betting Tips Explained Trigger */}
+              <button
+                type="button"
+                onClick={() => setShowTipsExplained(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  background: "rgba(124, 108, 245, 0.12)",
+                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                  color: "#d4cde3",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.18s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.24)";
+                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.6)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.12)";
+                  e.currentTarget.style.color = "#d4cde3";
+                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.35)";
+                }}
+              >
+                <HelpCircle size={14} color="#8b7ff5" />
+                <span>Betting Tips Explained</span>
+              </button>
+            </div>
+
             <MatchFilterModal
               filters={modalFilters}
               onFilterChange={setModalFilters}
@@ -610,7 +723,101 @@ export default function AllMatchesPage() {
               filteredCount={filteredMatches.length}
             />
 
-            {/* ── 5. League Groups Feed ── */}
+            {/* ── 5. Free AI Football Predictions Top Section (NerdyTips Style) ── */}
+            {freeMatches.length > 0 && activeFilter !== "won" && (
+              <div
+                style={{
+                  marginBottom: 18,
+                  borderRadius: 14,
+                  background: "linear-gradient(180deg, rgba(30, 24, 68, 0.85) 0%, rgba(18, 15, 45, 0.95) 100%)",
+                  border: "1px solid rgba(124, 108, 245, 0.38)",
+                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35), 0 0 20px rgba(124, 108, 245, 0.14)",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  onClick={() => setFreeSectionOpen((p) => !p)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 18px",
+                    cursor: "pointer",
+                    background: "rgba(124, 108, 245, 0.12)",
+                    borderBottom: freeSectionOpen ? "1px solid rgba(124, 108, 245, 0.25)" : "none",
+                    userSelect: "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #8b7ff5, #2fd08a)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 0 10px rgba(47, 208, 138, 0.5)",
+                      }}
+                    >
+                      <Sparkles size={13} color="#ffffff" />
+                    </span>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", letterSpacing: "0.01em" }}>
+                      Free AI Football Predictions
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: userTier === "premium" ? "rgba(255, 184, 0, 0.2)" : "rgba(47, 208, 138, 0.18)",
+                        color: userTier === "premium" ? "#ffd700" : "#2fd08a",
+                        border: userTier === "premium" ? "1px solid rgba(255, 184, 0, 0.4)" : "1px solid rgba(47, 208, 138, 0.35)",
+                        fontFamily: "var(--font-mono)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      {userTier === "premium" ? (
+                        <>
+                          <Crown size={11} color="#ffd700" />
+                          VIP Full Access Unlocked
+                        </>
+                      ) : (
+                        `${Math.min(freeMatches.length, freeTipsLimit)} Free Tips Unlocked`
+                      )}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "#a79fff", fontWeight: 600 }}>
+                      {freeSectionOpen ? "Hide" : "Show"}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      color="#a79fff"
+                      style={{
+                        transform: freeSectionOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {freeSectionOpen && (
+                  <div>
+                    {freeMatches.slice(0, freeTipsLimit).map((m) => (
+                      <MatchRow key={`free_${m.id}`} match={m} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── 6. League Groups Feed ── */}
             {loading ? (
               <div
                 style={{
@@ -652,6 +859,12 @@ export default function AllMatchesPage() {
         </div>
       </main>
 
+      {/* Betting Tips Explained Modal */}
+      <BettingTipsExplainedModal
+        isOpen={showTipsExplained}
+        onClose={() => setShowTipsExplained(false)}
+      />
+
       <style>{`
         .country-sidebar { display: none !important; }
         @media (min-width: 960px) {
@@ -661,6 +874,10 @@ export default function AllMatchesPage() {
           .stat-cards-grid {
             grid-template-columns: 1fr 1fr !important;
           }
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.35; transform: scale(1.25); }
         }
       `}</style>
     </div>
