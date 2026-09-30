@@ -159,6 +159,13 @@ if (process.env.NODE_ENV !== "test") {
         scraperScheduler.start();
       })
       .catch((e) => console.warn("[Server] Failed to start scraper scheduler:", e.message));
+
+    // Start Telegram Bot Service
+    import("./lib/telegram/bot.service")
+      .then(({ telegramBotService }) => {
+        telegramBotService.start();
+      })
+      .catch((e) => console.warn("[Server] Failed to start Telegram bot:", e.message));
   });
 }
 
