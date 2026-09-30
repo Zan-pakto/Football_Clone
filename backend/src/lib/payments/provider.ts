@@ -20,7 +20,8 @@ export interface IPaymentProvider {
    */
   verifyAndParseWebhook(
     rawBody: string | Buffer,
-    signature?: string
+    signature?: string,
+    headers?: Record<string, string | string[] | undefined>
   ): Promise<StandardWebhookEvent>;
 
   /**

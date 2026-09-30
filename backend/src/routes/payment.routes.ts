@@ -124,15 +124,19 @@ router.post("/checkout", async (req: Request, res: Response) => {
  */
 router.post("/webhook", async (req: Request, res: Response) => {
   try {
-    const signature = (req.headers["stripe-signature"] as string) || undefined;
+    const signature =
+      (req.headers["webhook-signature"] as string) ||
+      (req.headers["whop-signature"] as string) ||
+      (req.headers["stripe-signature"] as string) ||
+      undefined;
 
-    // Express text/raw body handling
-    let rawBody: string | Buffer = req.body;
+    // Express raw / text body handling
+    let rawBody: string | Buffer = (req as any).rawBody || req.body;
     if (typeof rawBody !== "string" && !Buffer.isBuffer(rawBody)) {
       rawBody = JSON.stringify(rawBody);
     }
 
-    const result = await paymentService.handleWebhook(rawBody, signature);
+    const result = await paymentService.handleWebhook(rawBody, signature, req.headers as any);
 
     return res.status(200).json({
       received: true,

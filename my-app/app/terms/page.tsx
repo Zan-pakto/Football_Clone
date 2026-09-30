@@ -337,7 +337,7 @@ export default function TermsPage() {
             </p>
             <ul style={{ paddingLeft: 20, marginBottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
               <li><strong>Billing Cycle:</strong> Subscriptions are billed on an automated recurring cycle (monthly or annually) according to the package selected at checkout.</li>
-              <li><strong>Payment Gateways:</strong> Transactions are handled by globally accredited gateways (Stripe and Paystack) ensuring end-to-end tokenized security.</li>
+              <li><strong>Payment Gateways:</strong> Transactions are handled by globally accredited gateways (Whop and secure merchant networks) ensuring end-to-end tokenized security.</li>
               <li><strong>Cancel Anytime:</strong> You may cancel your VIP subscription renewal at any moment directly from your <strong>Account Settings</strong>. Upon cancellation, you retain full VIP benefits until the conclusion of your current billing period.</li>
               <li><strong>Digital Product Delivery & Refunds:</strong> Because statistical predictions and data feeds are digital items delivered instantly upon subscription, payments are generally non-refundable once the billing cycle begins, except where mandated by statutory consumer protection laws.</li>
             </ul>

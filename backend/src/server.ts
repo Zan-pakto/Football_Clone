@@ -44,8 +44,17 @@ app.use(
       return callback(null, true); // Permissive in dev/local
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "stripe-signature"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "webhook-id",
+      "webhook-timestamp",
+      "webhook-signature",
+      "whop-signature",
+      "stripe-signature",
+    ],
   })
 );
 

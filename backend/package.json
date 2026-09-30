@@ -28,6 +28,7 @@
     "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
     "prisma": "^6.19.3",
+    "standardwebhooks": "^1.1.1",
     "stripe": "^22.6.2",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3"

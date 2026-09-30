@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
     {
       icon: <ShieldCheck size={20} color="#eab308" />,
       title: "PCI-DSS Compliant Billing",
-      desc: "Payment processing is handled exclusively through tier-1 gateways (Stripe & Paystack). We never store raw card numbers.",
+      desc: "Payment processing is handled exclusively through tier-1 gateways (Whop & accredited payment networks). We never store raw card numbers.",
     },
   ];
 
@@ -220,7 +220,7 @@ export default function PrivacyPolicyPage() {
                 <strong>Account Credentials:</strong> Email address, username, password hashes (computed via one-way bcrypt hashing; plaintext passwords are never visible or stored).
               </li>
               <li>
-                <strong>Subscription & Transaction Metadata:</strong> Payment verification status, subscription tier (Free, PRO, VIP), renewal timestamps, invoice identifiers, and payment gateway references. <em>Notice: All financial card numbers, expiration dates, and security codes are transmitted directly to PCI-DSS Level 1 certified gateways (Stripe & Paystack). JollofTips servers never touch or store raw card information.</em>
+                <strong>Subscription & Transaction Metadata:</strong> Payment verification status, subscription tier (Free, PRO, VIP), renewal timestamps, invoice identifiers, and payment gateway references. <em>Notice: All financial transactions are transmitted directly to PCI-DSS Level 1 certified gateways (Whop & secure card networks). JollofTips servers never touch or store raw card information.</em>
               </li>
               <li>
                 <strong>Telemetry & Technical Data:</strong> IP address, device fingerprints, browser version, operating system, session timestamps, and referral sources, gathered automatically to defend against distributed denial-of-service (DDoS) threats and automated scraping bots.
@@ -317,7 +317,7 @@ export default function PrivacyPolicyPage() {
               We share minimum required data exclusively with certified service vendors under strict confidentiality and data protection contracts:
             </p>
             <ul style={{ paddingLeft: 20, marginBottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>Payment Processors:</strong> Stripe Inc. and Paystack Payments Ltd., for PCI-compliant billing and subscriptions.</li>
+              <li><strong>Payment Processors:</strong> Whop Inc. and accredited merchant processors, for PCI-compliant billing and subscriptions.</li>
               <li><strong>Cloud & Hosting Infrastructure:</strong> High-security cloud compute and database clusters with TLS 1.3 encryption and automated redundancy.</li>
               <li><strong>Transactional Email Dispatchers:</strong> Encrypted SMTP gateways to send password resets and VIP confirmation receipts.</li>
             </ul>

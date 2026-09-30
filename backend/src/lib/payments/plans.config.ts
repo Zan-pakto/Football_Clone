@@ -8,6 +8,8 @@ export interface PlanDefinition {
   amountCents: number; // in cents e.g. 1999 = $19.99
   currency: string;
   interval: "month" | "year";
+  whopPlanId?: string;
+  whopCheckoutUrl?: string;
   stripePriceId?: string;
   features: string[];
 }
@@ -21,6 +23,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
     amountCents: 1999, // $19.99
     currency: "usd",
     interval: "month",
+    whopPlanId: process.env.WHOP_PLAN_VIP_MONTHLY || undefined,
+    whopCheckoutUrl: process.env.WHOP_CHECKOUT_URL_VIP_MONTHLY || undefined,
     stripePriceId: process.env.STRIPE_PRICE_VIP_MONTHLY || undefined,
     features: [
       "Unlimited Banker of the Day Access",
@@ -38,6 +42,8 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
     amountCents: 17999, // $179.99/yr (~$14.99/mo)
     currency: "usd",
     interval: "year",
+    whopPlanId: process.env.WHOP_PLAN_VIP_ANNUAL || undefined,
+    whopCheckoutUrl: process.env.WHOP_CHECKOUT_URL_VIP_ANNUAL || undefined,
     stripePriceId: process.env.STRIPE_PRICE_VIP_ANNUAL || undefined,
     features: [
       "All VIP Monthly Features Included",

@@ -1,6 +1,7 @@
 import { prisma } from "../db/prisma";
 import { emailService } from "../email/email-service";
 import { IPaymentProvider } from "./provider";
+import { WhopPaymentProvider } from "./whop.provider";
 import { StripePaymentProvider } from "./stripe.provider";
 import { MockPaymentProvider } from "./mock.provider";
 import {
@@ -15,13 +16,16 @@ export class PaymentService {
   private provider: IPaymentProvider;
 
   constructor() {
-    const providerName = (process.env.PAYMENT_PROVIDER || "mock").toLowerCase().trim();
-    if (providerName === "stripe") {
+    const providerName = (process.env.PAYMENT_PROVIDER || "whop").toLowerCase().trim();
+    if (providerName === "whop") {
+      this.provider = new WhopPaymentProvider();
+      console.log("💳 [PaymentService] Initialized with WHOP connector");
+    } else if (providerName === "stripe") {
       this.provider = new StripePaymentProvider();
       console.log("💳 [PaymentService] Initialized with STRIPE connector");
     } else {
       this.provider = new MockPaymentProvider();
-      console.log("💳 [PaymentService] Initialized with MOCK connector (Zero-Stripe dev/test mode)");
+      console.log("💳 [PaymentService] Initialized with MOCK connector (Zero-Stripe/Zero-Whop dev mode)");
     }
   }
 
@@ -62,10 +66,11 @@ export class PaymentService {
    */
   async handleWebhook(
     rawBody: string | Buffer,
-    signature?: string
+    signature?: string,
+    headers?: Record<string, string | string[] | undefined>
   ): Promise<{ status: "processed" | "already_processed" | "ignored"; eventId: string; type: string }> {
     // Cryptographically verify & normalize into standard event
-    const event: StandardWebhookEvent = await this.provider.verifyAndParseWebhook(rawBody, signature);
+    const event: StandardWebhookEvent = await this.provider.verifyAndParseWebhook(rawBody, signature, headers);
 
     if (event.type === "ignored") {
       return { status: "ignored", eventId: event.eventId, type: event.type };

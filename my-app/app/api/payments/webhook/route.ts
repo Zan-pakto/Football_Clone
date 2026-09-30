@@ -5,13 +5,23 @@ const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_U
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("stripe-signature");
-
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (signature) {
-      headers["stripe-signature"] = signature;
+
+    const forwardHeaders = [
+      "webhook-id",
+      "webhook-timestamp",
+      "webhook-signature",
+      "whop-signature",
+      "stripe-signature",
+    ];
+
+    for (const h of forwardHeaders) {
+      const val = req.headers.get(h);
+      if (val) {
+        headers[h] = val;
+      }
     }
 
     const res = await fetch(`${BACKEND_URL}/api/payments/webhook`, {
