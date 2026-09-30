@@ -50,7 +50,6 @@ export default function AllMatchesPage() {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
   const [showTipsExplained, setShowTipsExplained] = useState(false);
-  const [freeSectionOpen, setFreeSectionOpen] = useState(true);
   const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
 
   // Validate initial cache against current stored token
@@ -374,14 +373,6 @@ export default function AllMatchesPage() {
     });
     return Array.from(map.values());
   }, [filteredMatches]);
-
-  const freeMatches = useMemo(() => {
-    return filteredMatches.filter((m) => {
-      const isExplicitlyUnlocked = !m.isLocked;
-      const isUnderLimit = typeof m.freeTipIndex === "number" && m.freeTipIndex < freeTipsLimit;
-      return isExplicitlyUnlocked || isUnderLimit;
-    });
-  }, [filteredMatches, freeTipsLimit]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)", color: "var(--foreground)" }}>
@@ -753,99 +744,6 @@ export default function AllMatchesPage() {
               filteredCount={filteredMatches.length}
             />
 
-            {/* ── 5. Free AI Football Predictions Top Section (NerdyTips Style) ── */}
-            {freeMatches.length > 0 && activeFilter !== "won" && (
-              <div
-                style={{
-                  marginBottom: 18,
-                  borderRadius: 14,
-                  background: "linear-gradient(180deg, rgba(30, 24, 68, 0.85) 0%, rgba(18, 15, 45, 0.95) 100%)",
-                  border: "1px solid rgba(124, 108, 245, 0.38)",
-                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35), 0 0 20px rgba(124, 108, 245, 0.14)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  onClick={() => setFreeSectionOpen((p) => !p)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 18px",
-                    cursor: "pointer",
-                    background: "rgba(124, 108, 245, 0.12)",
-                    borderBottom: freeSectionOpen ? "1px solid rgba(124, 108, 245, 0.25)" : "none",
-                    userSelect: "none",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #8b7ff5, #2fd08a)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "0 0 10px rgba(47, 208, 138, 0.5)",
-                      }}
-                    >
-                      <Sparkles size={13} color="#ffffff" />
-                    </span>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", letterSpacing: "0.01em" }}>
-                      Free AI Football Predictions
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: userTier === "premium" ? "rgba(255, 184, 0, 0.2)" : "rgba(47, 208, 138, 0.18)",
-                        color: userTier === "premium" ? "#ffd700" : "#2fd08a",
-                        border: userTier === "premium" ? "1px solid rgba(255, 184, 0, 0.4)" : "1px solid rgba(47, 208, 138, 0.35)",
-                        fontFamily: "var(--font-mono)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      {userTier === "premium" ? (
-                        <>
-                          <Crown size={11} color="#ffd700" />
-                          VIP Full Access Unlocked
-                        </>
-                      ) : (
-                        `${Math.min(freeMatches.length, freeTipsLimit)} Free Tips Unlocked`
-                      )}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "#a79fff", fontWeight: 600 }}>
-                      {freeSectionOpen ? "Hide" : "Show"}
-                    </span>
-                    <ChevronDown
-                      size={16}
-                      color="#a79fff"
-                      style={{
-                        transform: freeSectionOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 0.2s ease",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {freeSectionOpen && (
-                  <div>
-                    {freeMatches.slice(0, freeTipsLimit).map((m) => (
-                      <MatchRow key={`free_${m.id}`} match={m} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* ── 6. League Groups Feed ── */}
             {loading ? (
