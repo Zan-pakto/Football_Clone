@@ -27,9 +27,14 @@ export class WhopPaymentProvider implements IPaymentProvider {
     // If an official Whop API Key is configured, attempt to dynamically create a checkout configuration
     if (this.apiKey && !this.apiKey.includes("placeholder")) {
       try {
+        // Whop requires HTTPS for redirect URLs. If on localhost (http), fallback to production or omit
+        const clientRedirectUrl = input.successUrl.startsWith("https://")
+          ? input.successUrl
+          : (process.env.CLIENT_APP_URL?.startsWith("https://") ? `${process.env.CLIENT_APP_URL}/pricing/success` : undefined);
+
         const payload: Record<string, any> = {
           plan_id: plan.whopPlanId,
-          redirect_url: input.successUrl,
+          ...(clientRedirectUrl ? { redirect_url: clientRedirectUrl } : {}),
           ...(process.env.WHOP_ACCOUNT_ID ? { account_id: process.env.WHOP_ACCOUNT_ID } : {}),
           metadata: {
             userId: input.userId,
@@ -49,7 +54,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
 
         if (res.ok) {
           const data = await res.json();
-          const checkoutUrl = data.url || data.checkout_url || (data.id ? `https://whop.com/checkout/${data.id}` : null);
+          const checkoutUrl = data.purchase_url || data.url || data.checkout_url || (data.id ? `https://whop.com/checkout/${data.id}` : null);
           if (checkoutUrl) {
             return {
               sessionId: data.id || `whop_${Date.now()}`,
@@ -66,13 +71,16 @@ export class WhopPaymentProvider implements IPaymentProvider {
       }
     }
 
-    // Direct Whop Checkout URL / Plan ID resolution
-    const directUrl = plan.whopCheckoutUrl || (plan.whopPlanId ? `https://whop.com/checkout/${plan.whopPlanId}` : null);
+    // Direct Whop Checkout URL resolution:
+    // ALWAYS prefer https://whop.com/checkout/{plan_id} over storefront links so users go straight to payment
+    const directUrl = (plan.whopPlanId ? `https://whop.com/checkout/${plan.whopPlanId}` : null) || plan.whopCheckoutUrl;
 
     if (directUrl) {
       try {
         const url = new URL(directUrl);
-        url.searchParams.set("redirect_url", input.successUrl);
+        if (input.successUrl.startsWith("https://")) {
+          url.searchParams.set("redirect_url", input.successUrl);
+        }
         if (input.userEmail) {
           url.searchParams.set("email", input.userEmail);
         }
