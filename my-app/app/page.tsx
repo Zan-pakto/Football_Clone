@@ -188,13 +188,13 @@ export default async function HomePage() {
                 marginBottom: 6,
               }}
             >
-              FREE AI FOOTBALL PREDICTIONS
+              FREE AI FOOTBALL PREDICTIONS (10 DAILY PICKS)
             </span>
             <h2 style={{ fontSize: "clamp(24px, 3.5vw, 34px)", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em", margin: 0 }}>
-              Free football predictions
+              10 Free Football Predictions
             </h2>
             <p style={{ fontSize: 13, color: "#7874a4", margin: "4px 0 0", fontWeight: 600 }}>
-              High-confidence AI quantitative tips graded by mathematical algorithms
+              Top 10 mathematically graded quantitative tips for today • VIP Pro unlocks all {totalMatches > 0 ? `${totalMatches}+ ` : ""}matches
             </p>
           </div>
 

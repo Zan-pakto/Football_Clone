@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { MatchData } from "@/lib/types";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/MatchFilterModal";
-import { RotateCcw, CheckCircle2, ShieldCheck, Flame, Calendar, RefreshCw } from "lucide-react";
+import { RotateCcw, CheckCircle2, ShieldCheck, Flame, Calendar, RefreshCw, Crown, Lock, ArrowRight } from "lucide-react";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
 
 export interface LeagueGroupItem {
@@ -204,6 +205,41 @@ export default function HomeMatchesFeed({
     };
   }, []);
 
+  // Check if current logged in user has an active VIP subscription
+  const [isVip, setIsVip] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function checkSubscription() {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+        if (!token) {
+          setIsVip(false);
+          return;
+        }
+        const res = await fetch("/api/payments/subscription-status", {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success) {
+          setIsVip(Boolean(data.hasActiveSubscription || data.userTier === "premium" || data.isPremium));
+        }
+      } catch {
+        setIsVip(false);
+      }
+    }
+
+    checkSubscription();
+    const onAuth = () => checkSubscription();
+    window.addEventListener("jt_auth_change", onAuth);
+    window.addEventListener("storage", onAuth);
+    return () => {
+      window.removeEventListener("jt_auth_change", onAuth);
+      window.removeEventListener("storage", onAuth);
+    };
+  }, []);
+
   // Active groups depending on selected day tab
   const activeGroups = activeDay === "today" ? todayGroups : yesterdayGroups;
   const activeTotalMatches = activeDay === "today"
@@ -297,6 +333,39 @@ export default function HomeMatchesFeed({
     return filteredGroups.reduce((acc, g) => acc + g.matches.length, 0);
   }, [filteredGroups]);
 
+  // Enforce strictly 10 free predictions for landing page free visitors
+  const FREE_PREDICTIONS_LIMIT = 10;
+
+  const displayGroups = useMemo(() => {
+    if (isVip) return filteredGroups;
+
+    let matchCounter = 0;
+    const limitedGroups: LeagueGroupItem[] = [];
+
+    for (const group of filteredGroups) {
+      if (matchCounter >= FREE_PREDICTIONS_LIMIT) break;
+
+      const remainingSlots = FREE_PREDICTIONS_LIMIT - matchCounter;
+      const allowedMatches = group.matches.slice(0, remainingSlots);
+
+      if (allowedMatches.length > 0) {
+        limitedGroups.push({
+          ...group,
+          matches: allowedMatches,
+        });
+        matchCounter += allowedMatches.length;
+      }
+    }
+
+    return limitedGroups;
+  }, [filteredGroups, isVip]);
+
+  const displayedMatchesCount = useMemo(() => {
+    return displayGroups.reduce((acc, g) => acc + g.matches.length, 0);
+  }, [displayGroups]);
+
+  const remainingLockedCount = Math.max(0, activeTotalMatches - displayedMatchesCount);
+
   const countToday = todayGroups.reduce((acc, g) => acc + g.matches.length, 0) || totalTodayMatches;
   const countYesterday = yesterdayGroups.reduce((acc, g) => acc + g.matches.length, 0) || totalYesterdayMatches;
 
@@ -354,7 +423,7 @@ export default function HomeMatchesFeed({
                 fontFamily: "var(--font-mono, monospace)",
               }}
             >
-              {countToday}
+              {isVip ? countToday : `${Math.min(FREE_PREDICTIONS_LIMIT, countToday)} Free`}
             </span>
           </button>
 
@@ -392,7 +461,9 @@ export default function HomeMatchesFeed({
                 fontFamily: "var(--font-mono, monospace)",
               }}
             >
-              {countYesterday > 0 ? countYesterday : (loadingYesterday ? "..." : "18")}
+              {countYesterday > 0
+                ? (isVip ? countYesterday : `${Math.min(FREE_PREDICTIONS_LIMIT, countYesterday)} Free`)
+                : (loadingYesterday ? "..." : `${FREE_PREDICTIONS_LIMIT} Free`)}
             </span>
           </button>
         </div>
@@ -423,17 +494,26 @@ export default function HomeMatchesFeed({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                color: "#a79fff",
+                color: isVip ? "#2fd08a" : "#ffd700",
                 fontSize: 12.5,
-                fontWeight: 600,
-                background: "rgba(124, 108, 245, 0.1)",
-                border: "1px solid rgba(124, 108, 245, 0.2)",
+                fontWeight: 700,
+                background: isVip ? "rgba(47, 208, 138, 0.12)" : "rgba(255, 215, 0, 0.12)",
+                border: isVip ? "1px solid rgba(47, 208, 138, 0.28)" : "1px solid rgba(255, 215, 0, 0.28)",
                 padding: "6px 14px",
                 borderRadius: 999,
               }}
             >
-              <Flame size={14} color="#ffaa00" />
-              <span>Quantitative 1X2, Goals &amp; BTTS AI Picks</span>
+              {isVip ? (
+                <>
+                  <Crown size={14} color="#2fd08a" />
+                  <span>VIP Pro Unlocked • All {activeTotalMatches} Matches</span>
+                </>
+              ) : (
+                <>
+                  <Flame size={14} color="#ffd700" />
+                  <span>10 Free AI Picks • {remainingLockedCount > 0 ? `${remainingLockedCount}+ Locked (VIP)` : "VIP Access"}</span>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -456,10 +536,10 @@ export default function HomeMatchesFeed({
         </div>
       )}
 
-      {/* ── League Groups Feed ── */}
-      {!loadingYesterday && filteredGroups.length > 0 ? (
+      {/* ── League Groups Feed (Strictly 10 Free Predictions for Free Visitors) ── */}
+      {!loadingYesterday && displayGroups.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {filteredGroups.map((group, idx) => (
+          {displayGroups.map((group, idx) => (
             <LeagueGroupCard
               key={`${activeDay}_${group.country || "Int"}_${group.leagueName}_${idx}`}
               leagueName={group.leagueName}
@@ -468,6 +548,253 @@ export default function HomeMatchesFeed({
               matches={group.matches}
             />
           ))}
+
+          {/* ── High-Converting VIP Pro Paywall Card (Strictly after 10 free picks) ── */}
+          {!isVip && remainingLockedCount > 0 && (
+            <div
+              style={{
+                marginTop: 12,
+                borderRadius: 16,
+                padding: "32px 24px",
+                background: "radial-gradient(ellipse at top, rgba(124, 108, 245, 0.22) 0%, #141132 75%)",
+                border: "1px solid rgba(255, 215, 0, 0.38)",
+                boxShadow: "0 12px 36px -8px rgba(0, 0, 0, 0.65), 0 0 24px rgba(255, 215, 0, 0.1)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Glow accent */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: -40,
+                  right: -40,
+                  width: 160,
+                  height: 160,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(255, 215, 0, 0.25) 0%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                  maxWidth: 680,
+                  margin: "0 auto",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              >
+                {/* Badge */}
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 14px",
+                    borderRadius: 999,
+                    background: "rgba(255, 215, 0, 0.15)",
+                    border: "1px solid rgba(255, 215, 0, 0.35)",
+                    color: "#ffd700",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    marginBottom: 14,
+                  }}
+                >
+                  <Lock size={13} color="#ffd700" />
+                  <span>Free Daily Limit Reached (10 / 10 Predictions Shown)</span>
+                </div>
+
+                {/* Headline */}
+                <h3
+                  style={{
+                    fontSize: "clamp(20px, 3.2vw, 26px)",
+                    fontWeight: 900,
+                    color: "#ffffff",
+                    letterSpacing: "-0.02em",
+                    margin: "0 0 10px",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  Unlock <span style={{ color: "#ffd700" }}>{remainingLockedCount}+ Remaining Matches</span> Today with VIP Pro
+                </h3>
+
+                {/* Subtext */}
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "#c3beff",
+                    margin: "0 0 22px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  You have viewed all 10 free AI quantitative tips for today. Upgrade to VIP Pro to instantly unlock every match, live algorithmic banker picks, and real-time Telegram bot alerts.
+                </p>
+
+                {/* Features pill grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 10,
+                    width: "100%",
+                    marginBottom: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(167, 159, 255, 0.15)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#2fd08a" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ffffff" }}>
+                      Unlimited Daily Matches
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(167, 159, 255, 0.15)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#2fd08a" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ffffff" }}>
+                      85%+ High-Odds Banker Picks
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(167, 159, 255, 0.15)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#2fd08a" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ffffff" }}>
+                      Instant Telegram Bot Access
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(167, 159, 255, 0.15)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#2fd08a" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ffffff" }}>
+                      All Markets: 1X2, Goals &amp; BTTS
+                    </span>
+                  </div>
+                </div>
+
+                {/* CTAs */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    width: "100%",
+                  }}
+                >
+                  <Link
+                    href="/pricing"
+                    style={{
+                      padding: "12px 28px",
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #ffd700 0%, #ffaa00 100%)",
+                      color: "#0a081d",
+                      fontSize: 14,
+                      fontWeight: 900,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      boxShadow: "0 4px 18px rgba(255, 215, 0, 0.4)",
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <Crown size={17} color="#0a081d" />
+                    <span>Get VIP Pro Access — $19.99/mo</span>
+                    <ArrowRight size={15} color="#0a081d" />
+                  </Link>
+
+                  <Link
+                    href="/all-matches"
+                    style={{
+                      padding: "12px 22px",
+                      borderRadius: 12,
+                      background: "rgba(124, 108, 245, 0.15)",
+                      border: "1px solid rgba(124, 108, 245, 0.35)",
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span>View All Fixtures Schedule</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+
+                {/* Trust guarantee */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    marginTop: 18,
+                    fontSize: 11.5,
+                    color: "#8b7ff5",
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>⚡ Instant Whop Activation</span>
+                  <span>•</span>
+                  <span>🛡️ Cancel Anytime</span>
+                  <span>•</span>
+                  <span>🔒 Secure Stripe/Apple Pay</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : !loadingYesterday ? (
         <div

@@ -1,7 +1,7 @@
 import { Fixture, Prediction } from "../football/types";
 import { AuthUser } from "../auth/auth-service";
 
-export const FREE_DAILY_TIPS_LIMIT = 7;
+export const FREE_DAILY_TIPS_LIMIT = 10;
 
 export class AccessControlService {
   /**
@@ -64,20 +64,20 @@ export class AccessControlService {
         };
       }
 
-      // 5. Daily free quota limit (first 7 tips/day are free)
+      // 5. Daily free quota limit (first 10 tips/day are free)
       if (!isUnderFreeDailyQuota) {
         return {
           ...pred,
           isLocked: true,
           lockReason: "free_limit_reached",
-          selection: "Daily Free Limit (7/7)",
+          selection: "Daily Free Limit (10/10)",
           confidence: 0,
           probability: null,
           odd: null,
         };
       }
 
-      // 6. Free tier within quota (tips 1 through 7)
+      // 6. Free tier within quota (tips 1 through 10)
       return {
         ...pred,
         isLocked: false,
