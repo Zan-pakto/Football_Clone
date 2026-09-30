@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
-import HomeMatchesFeed from "@/components/HomeMatchesFeed";
+import HomeMatchesFeed, { LeagueGroupItem } from "@/components/HomeMatchesFeed";
 import {
   TrustStrip,
   HowJollofTipsWorks,
@@ -18,8 +18,116 @@ export const dynamic = "force-dynamic";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
+function mapRawFixtureGroups(groups: any[]): LeagueGroupItem[] {
+  return (groups || []).map((g: any) => ({
+    leagueName: g.league.name,
+    country: g.country.name,
+    flagUrl: g.country.flag || null,
+    matches: (g.fixtures || []).map((f: any) => {
+      const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
+      const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
+      const pBtts = f.predictions?.find((p: any) => p.market === "BTTS");
+      const pBest = f.predictions && f.predictions.length > 0
+        ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
+        : null;
+
+      const isMatchLocked = Boolean(
+        pBest?.isLocked ||
+        (f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked))
+      );
+
+      const isGoalsBest = Boolean(pBest && pBest.market === "OVER_UNDER");
+      const isBttsBest = Boolean(pBest && pBest.market === "BTTS");
+      const is1x2Best = Boolean(pBest ? (!isGoalsBest && !isBttsBest) : true);
+      const bestMarket = isGoalsBest ? "goals" : isBttsBest ? "btts" : "pickScore";
+      const bestMarketLabel = isGoalsBest ? "O/U Goals" : isBttsBest ? "BTTS" : "1X2 Winner";
+
+      const hasScores = f.homeScore !== null && f.homeScore !== undefined && f.awayScore !== null && f.awayScore !== undefined;
+
+      return {
+        id: f.id,
+        url: `/match/${f.id}`,
+        leagueName: g.league.name,
+        country: g.country.name,
+        flagUrl: g.country.flag || null,
+        homeTeam: f.homeTeam.name,
+        awayTeam: f.awayTeam.name,
+        homeLogo: toCachedLogoUrl(f.homeTeam?.logo || f.homeLogo),
+        awayLogo: toCachedLogoUrl(f.awayTeam?.logo || f.awayLogo),
+        kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",
+        status: f.status === "LIVE" ? "live" : (f.status === "FINISHED" || hasScores) ? "won" : "upcoming",
+        homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
+        awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
+        elapsed: f.elapsed,
+        isLive: f.status === "LIVE",
+        odds: {
+          home: f.odds?.home ? String(f.odds.home) : "1.75",
+          draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
+          away: f.odds?.away ? String(f.odds.away) : "4.20",
+        },
+        rating: f.rating || null,
+        predictions: {
+          pickScore: {
+            pick: (p1x2?.isLocked || isMatchLocked) ? null : (p1x2?.selection || null),
+            odd: (p1x2?.isLocked || isMatchLocked) ? null : (p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(p1x2?.isLocked || isMatchLocked),
+            market: "1X2",
+            marketLabel: "1X2 Winner",
+            confidence: p1x2?.confidence || null,
+            rating: p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null),
+            isBest: is1x2Best,
+          },
+          goals: {
+            pick: (pGoals?.isLocked || isMatchLocked) ? null : (pGoals?.selection || null),
+            odd: (pGoals?.isLocked || isMatchLocked) ? null : (pGoals?.odd ? String(pGoals.odd) : null),
+            isLocked: Boolean(pGoals?.isLocked || isMatchLocked),
+            market: "OVER_UNDER",
+            marketLabel: "O/U Goals",
+            confidence: pGoals?.confidence || null,
+            rating: pGoals?.rating ?? (pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null),
+            isBest: isGoalsBest,
+          },
+          btts: {
+            pick: (pBtts?.isLocked || isMatchLocked) ? null : (pBtts?.selection || null),
+            odd: (pBtts?.isLocked || isMatchLocked) ? null : (pBtts?.odd ? String(pBtts.odd) : null),
+            isLocked: Boolean(pBtts?.isLocked || isMatchLocked),
+            market: "BTTS",
+            marketLabel: "Both Teams Score",
+            confidence: pBtts?.confidence || null,
+            rating: pBtts?.rating ?? (pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null),
+            isBest: isBttsBest,
+          },
+          bestTip: {
+            pick: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.selection || p1x2?.selection || null),
+            odd: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
+            isLocked: Boolean(pBest?.isLocked || isMatchLocked),
+            market: pBest?.market || "1X2",
+            marketLabel: bestMarketLabel,
+            confidence: pBest?.confidence || null,
+            rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : (f.rating || 8.0),
+            isBest: true,
+          },
+          bestMarket,
+          isLocked: isMatchLocked,
+        },
+        isLocked: isMatchLocked,
+        lockReason: f.predictions && f.predictions[0]?.lockReason,
+        confidence: (() => {
+          if (isMatchLocked) return null;
+          if (f.confidence) return f.confidence;
+          const top = f.predictions && f.predictions.length > 0
+            ? Math.max(...f.predictions.map((p: any) => p.confidence || 80))
+            : 80;
+          return `${top}%`;
+        })(),
+      };
+    }),
+  }));
+}
+
 export default async function HomePage() {
-  let groups: any[] = [];
+  let todayGroups: LeagueGroupItem[] = [];
+  let yesterdayGroups: LeagueGroupItem[] = [];
   let liveMatches: any[] = [];
 
   try {
@@ -29,8 +137,12 @@ export default async function HomePage() {
       ? { Cookie: `auth_token=${token}`, Authorization: `Bearer ${token}` }
       : {};
 
-    const [fixturesRes, liveRes] = await Promise.all([
+    const [todayRes, yesterdayRes, liveRes] = await Promise.all([
       fetch(`${BACKEND_URL}/api/fixtures?d=0`, {
+        headers,
+        cache: "no-store",
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${BACKEND_URL}/api/fixtures?d=-1`, {
         headers,
         cache: "no-store",
       }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
@@ -40,122 +152,17 @@ export default async function HomePage() {
       }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
 
-    groups = fixturesRes?.groups || [];
+    todayGroups = mapRawFixtureGroups(todayRes?.groups || []);
+    yesterdayGroups = mapRawFixtureGroups(yesterdayRes?.groups || []);
     liveMatches = liveRes?.matches || [];
   } catch {
     // Backend offline / fallback
   }
 
-  // Map to format expected by LeagueGroupCard
-  const mappedGroups = groups.map((g: any) => ({
-    leagueName: g.league.name,
-    country: g.country.name,
-    flagUrl: g.country.flag || null,
-    matches: (g.fixtures || []).map((f: any) => ({
-      id: f.id,
-      url: `/match/${f.id}`,
-      leagueName: g.league.name,
-      country: g.country.name,
-      flagUrl: g.country.flag || null,
-      homeTeam: f.homeTeam.name,
-      awayTeam: f.awayTeam.name,
-      homeLogo: toCachedLogoUrl(f.homeTeam?.logo || f.homeLogo),
-      awayLogo: toCachedLogoUrl(f.awayTeam?.logo || f.awayLogo),
-      kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",
-      status: f.status === "LIVE" ? "live" : f.status === "FINISHED" ? "won" : "upcoming",
-      homeScore: f.homeScore !== null && f.homeScore !== undefined ? String(f.homeScore) : null,
-      awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
-      elapsed: f.elapsed,
-      isLive: f.status === "LIVE",
-      odds: {
-        home: f.odds?.home ? String(f.odds.home) : "1.75",
-        draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
-        away: f.odds?.away ? String(f.odds.away) : "4.20",
-      },
-      rating: f.rating || null,
-      predictions: (() => {
-        const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
-        const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
-        const pBtts = f.predictions?.find((p: any) => p.market === "BTTS");
-        const pBest = f.predictions && f.predictions.length > 0
-          ? [...f.predictions].sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))[0]
-          : null;
-
-        const isMatchLocked = Boolean(
-          pBest?.isLocked ||
-          (f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked))
-        );
-
-        const isGoalsBest = Boolean(pBest && pBest.market === "OVER_UNDER");
-        const isBttsBest = Boolean(pBest && pBest.market === "BTTS");
-        const is1x2Best = Boolean(pBest ? (!isGoalsBest && !isBttsBest) : true);
-        const bestMarket = isGoalsBest ? "goals" : isBttsBest ? "btts" : "pickScore";
-        const bestMarketLabel = isGoalsBest ? "O/U Goals" : isBttsBest ? "BTTS" : "1X2 Winner";
-
-        return {
-          pickScore: {
-            pick: p1x2?.isLocked ? null : (p1x2?.selection || null),
-            odd: p1x2?.isLocked ? null : (p1x2?.odd ? String(p1x2.odd) : null),
-            isLocked: Boolean(p1x2?.isLocked),
-            market: "1X2",
-            marketLabel: "1X2 Winner",
-            confidence: p1x2?.confidence || null,
-            rating: p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null),
-            isBest: is1x2Best,
-          },
-          goals: {
-            pick: pGoals?.isLocked ? null : (pGoals?.selection || null),
-            odd: pGoals?.isLocked ? null : (pGoals?.odd ? String(pGoals.odd) : null),
-            isLocked: Boolean(pGoals?.isLocked),
-            market: "OVER_UNDER",
-            marketLabel: "O/U Goals",
-            confidence: pGoals?.confidence || null,
-            rating: pGoals?.rating ?? (pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null),
-            isBest: isGoalsBest,
-          },
-          btts: {
-            pick: pBtts?.isLocked ? null : (pBtts?.selection || null),
-            odd: pBtts?.isLocked ? null : (pBtts?.odd ? String(pBtts.odd) : null),
-            isLocked: Boolean(pBtts?.isLocked),
-            market: "BTTS",
-            marketLabel: "Both Teams Score",
-            confidence: pBtts?.confidence || null,
-            rating: pBtts?.rating ?? (pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null),
-            isBest: isBttsBest,
-          },
-          bestTip: {
-            pick: pBest?.isLocked ? null : (pBest?.selection || p1x2?.selection || null),
-            odd: pBest?.isLocked ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
-            isLocked: Boolean(pBest?.isLocked),
-            market: pBest?.market || "1X2",
-            marketLabel: bestMarketLabel,
-            confidence: pBest?.confidence || null,
-            rating: pBest?.rating ?? (pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : (f.rating || 8.0)),
-            isBest: true,
-          },
-          bestMarket,
-          isLocked: isMatchLocked,
-        };
-      })(),
-      isLocked: Boolean(
-        f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked)
-      ),
-      lockReason: f.predictions && f.predictions[0]?.lockReason,
-      confidence: (() => {
-        const isMatchLocked = f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked);
-        if (isMatchLocked) return null;
-        if (f.confidence) return f.confidence;
-        const top = f.predictions && f.predictions.length > 0
-          ? Math.max(...f.predictions.map((p: any) => p.confidence || 80))
-          : 80;
-        return `${top}%`;
-      })(),
-    })),
-  }));
-
-  const totalMatches = mappedGroups.reduce((acc, g) => acc + g.matches.length, 0);
-  const allMatchesFlat = mappedGroups.flatMap((g) => g.matches);
-  const featuredMatch = allMatchesFlat.length > 0 ? allMatchesFlat[0] : null;
+  const totalMatches = todayGroups.reduce((acc, g) => acc + g.matches.length, 0);
+  const totalYesterday = yesterdayGroups.reduce((acc, g) => acc + g.matches.length, 0);
+  const allTodayMatchesFlat = todayGroups.flatMap((g) => g.matches);
+  const featuredMatch = allTodayMatchesFlat.length > 0 ? allTodayMatchesFlat[0] : null;
 
   return (
     <div style={{ background: "#0a081d", minHeight: "100vh", color: "#f1eff8" }}>
@@ -165,7 +172,7 @@ export default async function HomePage() {
       {/* ── 2. Hero Section ── */}
       <HeroLanding totalMatches={totalMatches} />
 
-      {/* ── 3. Today's Free Predictions Feed (Immediate Value) ── */}
+      {/* ── 3. Free Predictions Feed (Today & Yesterday Free Picks) ── */}
       <main id="matches-feed" className="scroll-mt-16" style={{ maxWidth: 1280, margin: "0 auto", padding: "40px 16px 70px" }}>
         {/* Section Header */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
@@ -184,10 +191,10 @@ export default async function HomePage() {
               FREE AI FOOTBALL PREDICTIONS
             </span>
             <h2 style={{ fontSize: "clamp(24px, 3.5vw, 34px)", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em", margin: 0 }}>
-              Today&apos;s free picks
+              Free football predictions
             </h2>
             <p style={{ fontSize: 13, color: "#7874a4", margin: "4px 0 0", fontWeight: 600 }}>
-              Sep 12 • Rated and graded by algorithmic certainty
+              High-confidence AI quantitative tips graded by mathematical algorithms
             </p>
           </div>
 
@@ -254,7 +261,7 @@ export default async function HomePage() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Link
-                href={featuredMatch ? featuredMatch.url : "/all-matches"}
+                href={featuredMatch?.url || "/all-matches"}
                 className="btn-primary"
                 style={{
                   padding: "9px 18px",
@@ -268,91 +275,13 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Date Selector & Track Record Proof */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Link
-              href="/all-matches?d=-1"
-              style={{
-                padding: "8px 16px",
-                borderRadius: 10,
-                background: "#1b183d",
-                border: "1px solid rgba(167, 159, 255, 0.12)",
-                color: "#a79fff",
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Yesterday
-            </Link>
-            <Link
-              href="/all-matches?d=0"
-              style={{
-                padding: "8px 18px",
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #7c6cf5 0%, #6a5cf0 100%)",
-                border: "1px solid rgba(167, 159, 255, 0.3)",
-                color: "#ffffff",
-                fontSize: 13,
-                fontWeight: 800,
-                textDecoration: "none",
-                boxShadow: "0 4px 14px rgba(124, 108, 245, 0.4)",
-              }}
-            >
-              Today ({totalMatches})
-            </Link>
-            <Link
-              href="/all-matches?d=1"
-              style={{
-                padding: "8px 16px",
-                borderRadius: 10,
-                background: "#1b183d",
-                border: "1px solid rgba(167, 159, 255, 0.12)",
-                color: "#a79fff",
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Tomorrow
-            </Link>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Link
-              href="/progress"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                color: "#2fd08a",
-                fontSize: 13,
-                fontWeight: 700,
-                textDecoration: "none",
-                background: "rgba(47, 208, 138, 0.1)",
-                border: "1px solid rgba(47, 208, 138, 0.25)",
-                padding: "6px 12px",
-                borderRadius: 999,
-              }}
-            >
-              <ShieldCheck size={14} color="#2fd08a" />
-              <span>Verified 89.4% Win-Rate Track Record</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Grouped Match Cards with Interactive Filter Bar & Modal */}
-        <HomeMatchesFeed initialGroups={mappedGroups as any} totalMatches={totalMatches} />
+        {/* Feed with Today's Free Picks and Yesterday's Free Picks Switcher */}
+        <HomeMatchesFeed
+          initialTodayGroups={todayGroups}
+          initialYesterdayGroups={yesterdayGroups}
+          totalTodayMatches={totalMatches}
+          totalYesterdayMatches={totalYesterday}
+        />
       </main>
 
       {/* ── 4. Trust / Statistics Strip ── */}

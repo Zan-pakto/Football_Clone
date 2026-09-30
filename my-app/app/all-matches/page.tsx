@@ -51,6 +51,7 @@ export default function AllMatchesPage() {
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
   const [showTipsExplained, setShowTipsExplained] = useState(false);
   const [freeSectionOpen, setFreeSectionOpen] = useState(true);
+  const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
 
   // Validate initial cache against current stored token
   const getValidInitialCache = () => {
@@ -153,6 +154,7 @@ export default function AllMatchesPage() {
 
 
   const pollLiveMatches = useCallback(async () => {
+    setIsLiveRefreshing(true);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -188,6 +190,8 @@ export default function AllMatchesPage() {
       }
     } catch (err) {
       console.error("Live poll error:", err);
+    } finally {
+      setIsLiveRefreshing(false);
     }
   }, [d]);
 
@@ -207,10 +211,14 @@ export default function AllMatchesPage() {
     };
   }, [d, fetchMatches]);
 
+  // Polling: Auto-refresh live matches every 1 minute (60 seconds)
   useEffect(() => {
-    const interval = setInterval(pollLiveMatches, 20000);
+    if (activeFilter === "live") {
+      pollLiveMatches();
+    }
+    const interval = setInterval(pollLiveMatches, 60000);
     return () => clearInterval(interval);
-  }, [pollLiveMatches]);
+  }, [activeFilter, pollLiveMatches]);
 
   /* ── Derived stats ── */
   const statCounts = useMemo(() => {
@@ -576,24 +584,27 @@ export default function AllMatchesPage() {
 
               {/* LIVE */}
               <button
-                onClick={() => setActiveFilter("live")}
+                onClick={() => {
+                  setActiveFilter("live");
+                  pollLiveMatches();
+                }}
                 style={{
                   padding: "16px 20px",
                   borderRadius: 14,
                   background: activeFilter === "live"
-                    ? "linear-gradient(135deg, rgba(255, 93, 120, 0.22) 0%, rgba(30, 20, 45, 0.8) 100%)"
+                    ? "linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(35, 12, 25, 0.9) 100%)"
                     : statCounts.live > 0
-                    ? "rgba(255, 93, 120, 0.06)"
+                    ? "rgba(239, 68, 68, 0.08)"
                     : "var(--surface)",
                   border: activeFilter === "live"
-                    ? "1px solid #ff5d78"
+                    ? "2px solid #ef4444"
                     : statCounts.live > 0
-                    ? "1px solid rgba(255, 93, 120, 0.35)"
+                    ? "1px solid rgba(239, 68, 68, 0.45)"
                     : "1px solid var(--border-color)",
                   boxShadow: activeFilter === "live"
-                    ? "0 0 24px rgba(255, 93, 120, 0.35)"
+                    ? "0 0 25px rgba(239, 68, 68, 0.45)"
                     : statCounts.live > 0
-                    ? "0 0 14px rgba(255, 93, 120, 0.14)"
+                    ? "0 0 14px rgba(239, 68, 68, 0.18)"
                     : "none",
                   textAlign: "left",
                   cursor: "pointer",
@@ -603,16 +614,16 @@ export default function AllMatchesPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
                   <span
                     style={{
-                      width: 7,
-                      height: 7,
+                      width: 8,
+                      height: 8,
                       borderRadius: "50%",
-                      background: "#ff5d78",
-                      boxShadow: "0 0 8px #ff5d78",
+                      background: "#ef4444",
+                      boxShadow: "0 0 10px #ef4444",
                       display: "inline-block",
-                      animation: statCounts.live > 0 ? "pulseDot 1.4s ease-in-out infinite" : "none",
+                      animation: "pulseDot 1.2s ease-in-out infinite",
                     }}
                   />
-                  <div style={{ fontSize: 11, fontWeight: 800, color: activeFilter === "live" ? "#ff8299" : "#ff5d78", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <div style={{ fontSize: 11, fontWeight: 900, color: activeFilter === "live" ? "#fca5a5" : "#ef4444", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     LIVE
                   </div>
                 </div>
@@ -681,39 +692,127 @@ export default function AllMatchesPage() {
                 )}
               </div>
 
-              {/* Betting Tips Explained Trigger */}
+              {/* Betting Tips Explained Trigger with Info Icon */}
               <button
                 type="button"
                 onClick={() => setShowTipsExplained(true)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
+                  gap: 7,
+                  padding: "7px 15px",
                   borderRadius: 999,
-                  background: "rgba(124, 108, 245, 0.12)",
-                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                  background: "rgba(124, 108, 245, 0.14)",
+                  border: "1px solid rgba(124, 108, 245, 0.4)",
                   color: "#d4cde3",
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   cursor: "pointer",
                   transition: "all 0.18s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.24)";
+                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.28)";
                   e.currentTarget.style.color = "#FFFFFF";
-                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.6)";
+                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.7)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.12)";
+                  e.currentTarget.style.background = "rgba(124, 108, 245, 0.14)";
                   e.currentTarget.style.color = "#d4cde3";
-                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.35)";
+                  e.currentTarget.style.borderColor = "rgba(124, 108, 245, 0.4)";
                 }}
               >
-                <HelpCircle size={14} color="#8b7ff5" />
+                <div
+                  style={{
+                    width: 17,
+                    height: 17,
+                    borderRadius: "50%",
+                    background: "rgba(124, 108, 245, 0.35)",
+                    border: "1px solid rgba(124, 108, 245, 0.6)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 900,
+                    color: "#c7d2fe",
+                    fontFamily: "serif",
+                    fontStyle: "italic",
+                  }}
+                >
+                  i
+                </div>
                 <span>Betting Tips Explained</span>
               </button>
             </div>
+
+            {/* Red Live Bar when Live filter is active */}
+            {activeFilter === "live" && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 18px",
+                  borderRadius: 12,
+                  background: "linear-gradient(90deg, rgba(239, 68, 68, 0.22) 0%, rgba(30, 12, 28, 0.85) 100%)",
+                  border: "1px solid rgba(239, 68, 68, 0.55)",
+                  boxShadow: "0 0 20px rgba(239, 68, 68, 0.25)",
+                  marginBottom: 16,
+                  flexWrap: "wrap",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: "#ef4444",
+                      boxShadow: "0 0 10px #ef4444",
+                      display: "inline-block",
+                      animation: "pulseDot 1.2s ease-in-out infinite",
+                    }}
+                  />
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: "#ffffff", letterSpacing: "0.02em" }}>
+                      LIVE MATCHES IN PROGRESS ({statCounts.live})
+                    </span>
+                    <span style={{ fontSize: 11.5, color: "#fca5a5", marginLeft: 8 }}>
+                      • Public match telemetry requests every 1 min
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => pollLiveMatches()}
+                  disabled={isLiveRefreshing}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 16px",
+                    borderRadius: 8,
+                    background: "#ef4444",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    boxShadow: "0 0 14px rgba(239, 68, 68, 0.5)",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#dc2626";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#ef4444";
+                  }}
+                >
+                  <RefreshCw size={13} className={isLiveRefreshing ? "animate-spin" : ""} />
+                  <span>{isLiveRefreshing ? "Refreshing..." : "Refresh Live"}</span>
+                </button>
+              </div>
+            )}
 
             <MatchFilterModal
               filters={modalFilters}

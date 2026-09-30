@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { getCountryFlagUrl, normalizeCountryName } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
+import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 
 export interface BotdMatch {
   id: string;
@@ -1280,64 +1281,10 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
       {/* ══════════════════════════════════════════════════════════════
           9. TIPS EXPLANATION MODAL (INFO "i" BUTTON DIALOG)
           ══════════════════════════════════════════════════════════════ */}
-      {showInfoModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(10, 8, 29, 0.8)",
-            backdropFilter: "blur(6px)",
-            padding: 16,
-          }}
-          onClick={() => setShowInfoModal(false)}
-        >
-          <div
-            style={{
-              maxWidth: 480,
-              width: "100%",
-              background: "#141132",
-              border: "1px solid rgba(167, 159, 255, 0.2)",
-              borderRadius: 16,
-              padding: 24,
-              color: "#f1eff8",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0 }}>Betting Tips Explained</h3>
-              <button
-                onClick={() => setShowInfoModal(false)}
-                style={{ background: "transparent", border: "none", color: "#7874a4", cursor: "pointer" }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ fontSize: 13, color: "#d4cde3", lineHeight: 1.6, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <b style={{ color: "#a79fff" }}>1. Bankers:</b> The single highest-probability prediction identified by our AI algorithms (confidence $\ge 9.0/10$).
-              </div>
-              <div>
-                <b style={{ color: "#a79fff" }}>2. Slip of the Day:</b> A ready-to-play accumulator combining our best daily picks into an optimal risk-to-reward ticket.
-              </div>
-              <div>
-                <b style={{ color: "#a79fff" }}>3. Trust Rating:</b> Algorithmic rating on a scale from 1 to 10 based on machine learning probability models and market line inefficiencies.
-              </div>
-            </div>
-            <button
-              onClick={() => setShowInfoModal(false)}
-              className="btn-primary"
-              style={{ width: "100%", marginTop: 20, height: 42, fontSize: 13 }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
+      <BettingTipsExplainedModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+      />
 
       {/* Responsive Row Switching CSS */}
       <style jsx>{`

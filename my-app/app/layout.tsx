@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import NavigationLoader from "@/components/NavigationLoader";
+import InitialSiteLoader from "@/components/InitialSiteLoader";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -58,6 +59,7 @@ export default function RootLayout({
       </head>
       <body className={`antialiased min-h-screen flex flex-col ${plusJakartaSans.variable}`}>
         <ThemeProvider>
+          <InitialSiteLoader />
           <NavigationLoader />
           <div className="flex-1 flex flex-col">{children}</div>
           <Footer />

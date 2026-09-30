@@ -1,12 +1,69 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, HelpCircle, ShieldCheck, Sparkles, BookOpen } from "lucide-react";
+import { X } from "lucide-react";
 
 interface BettingTipsExplainedModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+interface TipItem {
+  code: string;
+  label: string;
+}
+
+interface TipSection {
+  title: string;
+  items: TipItem[];
+}
+
+const TIP_SECTIONS: TipSection[] = [
+  {
+    title: "MATCH RESULT (1X2)",
+    items: [
+      { code: "1", label: "Home Team Wins" },
+      { code: "X", label: "Draw" },
+      { code: "2", label: "Away Team Wins" },
+      { code: "H1", label: "Home wins by at least 2 goals" },
+      { code: "H2", label: "Away wins by at least 2 goals" },
+    ],
+  },
+  {
+    title: "DOUBLE CHANCE",
+    items: [
+      { code: "1X", label: "Home Team Wins or Draw" },
+      { code: "X2", label: "Away Team Wins or Draw" },
+    ],
+  },
+  {
+    title: "BOTH TEAMS TO SCORE",
+    items: [
+      { code: "BTTS", label: "Both Teams Will Score" },
+      { code: "No BTTS", label: "At least one team won't score" },
+    ],
+  },
+  {
+    title: "TOTAL GOALS",
+    items: [
+      { code: "O1.5", label: "At least 2 goals scored" },
+      { code: "O2.5", label: "At least 3 goals scored" },
+      { code: "O3.5", label: "At least 4 goals scored" },
+      { code: "U1.5", label: "Maximum 1 total goals" },
+      { code: "U2.5", label: "Maximum 2 total goals" },
+      { code: "U3.5", label: "Maximum 3 total goals" },
+    ],
+  },
+  {
+    title: "TEAM GOALS",
+    items: [
+      { code: "HS", label: "Home team scores" },
+      { code: "AS", label: "Away team scores" },
+      { code: "HS2+", label: "Home team will score ≥2 goals" },
+      { code: "AS2+", label: "Away team will score ≥2 goals" },
+    ],
+  },
+];
 
 export default function BettingTipsExplainedModal({ isOpen, onClose }: BettingTipsExplainedModalProps) {
   useEffect(() => {
@@ -25,7 +82,7 @@ export default function BettingTipsExplainedModal({ isOpen, onClose }: BettingTi
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -38,32 +95,32 @@ export default function BettingTipsExplainedModal({ isOpen, onClose }: BettingTi
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(6, 4, 18, 0.78)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          animation: "bteFadeIn 0.2s ease-out",
+          background: "rgba(5, 3, 15, 0.78)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          animation: "bteFadeIn 0.18s ease-out",
         }}
       />
 
-      {/* Modal Card */}
+      {/* Modal Dialog Box matching provided design */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="bte-title"
+        aria-labelledby="bte-dialog-title"
         style={{
           position: "relative",
           width: "100%",
-          maxWidth: 680,
+          maxWidth: 460,
           maxHeight: "88vh",
-          background: "var(--surface, #120f2d)",
-          border: "1px solid rgba(124, 108, 245, 0.35)",
-          borderRadius: 20,
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 35px rgba(124, 108, 245, 0.2)",
+          background: "#0c0a24",
+          border: "1px solid rgba(124, 108, 245, 0.28)",
+          borderRadius: 18,
+          boxShadow: "0 25px 65px rgba(0, 0, 0, 0.65), 0 0 30px rgba(124, 108, 245, 0.15)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          animation: "bteScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
-          zIndex: 100000,
+          animation: "bteScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+          zIndex: 1000000,
         }}
       >
         {/* Header */}
@@ -72,225 +129,147 @@ export default function BettingTipsExplainedModal({ isOpen, onClose }: BettingTi
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "18px 24px",
-            borderBottom: "1px solid rgba(167, 159, 255, 0.12)",
-            background: "linear-gradient(180deg, rgba(124, 108, 245, 0.08) 0%, transparent 100%)",
+            padding: "20px 22px 16px",
+            background: "#0c0a24",
+            borderBottom: "1px solid rgba(124, 108, 245, 0.12)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 10,
-                background: "rgba(124, 108, 245, 0.18)",
-                border: "1px solid rgba(124, 108, 245, 0.4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#a79fff",
-              }}
-            >
-              <BookOpen size={18} />
-            </div>
-            <div>
-              <h2 id="bte-title" style={{ fontSize: 17, fontWeight: 800, color: "#FFFFFF", margin: 0, letterSpacing: "-0.01em" }}>
-                Betting Tips Explained
-              </h2>
-              <p style={{ fontSize: 12, color: "var(--text-secondary, #9d98ca)", margin: 0, marginTop: 2 }}>
-                Complete reference glossary for AI mathematical tips and betting markets
-              </p>
-            </div>
-          </div>
+          <h2
+            id="bte-dialog-title"
+            style={{
+              fontSize: 19,
+              fontWeight: 800,
+              color: "#ffffff",
+              margin: 0,
+              letterSpacing: "-0.01em",
+              fontFamily: "var(--font-sans, system-ui, sans-serif)",
+            }}
+          >
+            Betting Tips Explained
+          </h2>
 
           <button
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label="Close"
             style={{
               width: 32,
               height: 32,
               borderRadius: 8,
               background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: "#a79fff",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              color: "#9d98ca",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               transition: "all 0.15s ease",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#ffffff";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#9d98ca";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+            }}
           >
-            <X size={16} />
+            <X size={17} />
           </button>
         </div>
 
-        {/* Scrollable Content */}
+        {/* Scrollable Glossary Content */}
         <div
+          className="bte-scroll"
           style={{
-            padding: "20px 24px",
+            padding: "18px 22px 26px",
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
-            gap: 22,
+            gap: 24,
           }}
         >
-          {/* Section 1: 1X2 Match Result */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Match Result (1X2)
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-              {[
-                { sym: "1", title: "Home Team Wins", desc: "Home team secures victory in 90 minutes." },
-                { sym: "X", title: "Draw (Tie)", desc: "Match ends with equal score in regular time." },
-                { sym: "2", title: "Away Team Wins", desc: "Away team secures victory in 90 minutes." },
-                { sym: "H1", title: "Home Handicap (-1)", desc: "Home team wins by at least 2 clear goals." },
-                { sym: "H2", title: "Away Handicap (-1)", desc: "Away team wins by at least 2 clear goals." },
-              ].map((item) => (
-                <div key={item.sym} style={cardStyle}>
-                  <span style={badgeStyle}>{item.sym}</span>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FFFFFF" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a85b9", marginTop: 2 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {TIP_SECTIONS.map((section) => (
+            <div key={section.title}>
+              {/* Section Header with Line */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "#8b85be",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {section.title}
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "rgba(124, 108, 245, 0.18)",
+                  }}
+                />
+              </div>
 
-          {/* Section 2: Double Chance */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Double Chance
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-              {[
-                { sym: "1X", title: "Home Win or Draw", desc: "Home team wins OR match ends in a draw." },
-                { sym: "X2", title: "Draw or Away Win", desc: "Away team wins OR match ends in a draw." },
-                { sym: "12", title: "Home or Away Win", desc: "Either team wins. Bet loses only if a draw occurs." },
-              ].map((item) => (
-                <div key={item.sym} style={cardStyle}>
-                  <span style={{ ...badgeStyle, color: "#2fd08a", borderColor: "rgba(47, 208, 138, 0.35)", background: "rgba(47, 208, 138, 0.12)" }}>
-                    {item.sym}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FFFFFF" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a85b9", marginTop: 2 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+              {/* Items in Section */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {section.items.map((item) => (
+                  <div
+                    key={item.code}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
+                    {/* Badge Pill */}
+                    <div
+                      style={{
+                        width: 72,
+                        minWidth: 72,
+                        height: 32,
+                        borderRadius: 8,
+                        background: "#1c183d",
+                        border: "1px solid rgba(124, 108, 245, 0.28)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#a5b4fc",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        letterSpacing: "0.02em",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.code}
+                    </div>
 
-          {/* Section 3: Both Teams To Score (BTTS) */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Both Teams To Score (BTTS)
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-              {[
-                { sym: "Yes", title: "BTTS Yes (GG)", desc: "Both teams score at least 1 goal (e.g. 1-1, 2-1, 1-2)." },
-                { sym: "No", title: "BTTS No (NG)", desc: "At least one team fails to score (e.g. 1-0, 0-0, 0-2)." },
-              ].map((item) => (
-                <div key={item.sym} style={cardStyle}>
-                  <span style={{ ...badgeStyle, color: "#ffb020", borderColor: "rgba(255, 176, 32, 0.35)", background: "rgba(255, 176, 32, 0.12)" }}>
-                    {item.sym}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FFFFFF" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a85b9", marginTop: 2 }}>{item.desc}</div>
+                    {/* Description Text */}
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: "#d8d4ee",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {item.label}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Section 4: Total Goals (Over / Under) */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Total Goals (Over / Under)
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-              {[
-                { sym: "O1.5", title: "Over 1.5 Goals", desc: "2 or more total goals scored in regular time." },
-                { sym: "O2.5", title: "Over 2.5 Goals", desc: "3 or more total goals scored in regular time." },
-                { sym: "O3.5", title: "Over 3.5 Goals", desc: "4 or more total goals scored in regular time." },
-                { sym: "U1.5", title: "Under 1.5 Goals", desc: "Maximum 1 total goal scored (0-0 or 1-0)." },
-                { sym: "U2.5", title: "Under 2.5 Goals", desc: "Maximum 2 total goals scored (e.g. 0-0, 1-0, 1-1, 2-0)." },
-                { sym: "U3.5", title: "Under 3.5 Goals", desc: "Maximum 3 total goals scored in regular time." },
-              ].map((item) => (
-                <div key={item.sym} style={cardStyle}>
-                  <span style={{ ...badgeStyle, color: item.sym.startsWith("O") ? "#00d2ff" : "#ff5d78", borderColor: item.sym.startsWith("O") ? "rgba(0, 210, 255, 0.35)" : "rgba(255, 93, 120, 0.35)", background: item.sym.startsWith("O") ? "rgba(0, 210, 255, 0.12)" : "rgba(255, 93, 120, 0.12)" }}>
-                    {item.sym}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FFFFFF" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a85b9", marginTop: 2 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Section 5: Team Goals */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Team Goals
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 8 }}>
-              {[
-                { sym: "HS", title: "Home Team Scores", desc: "Home team scores at least 1 goal in the match." },
-                { sym: "AS", title: "Away Team Scores", desc: "Away team scores at least 1 goal in the match." },
-                { sym: "HS2+", title: "Home Scores 2+ Goals", desc: "Home team scores 2 or more goals." },
-                { sym: "AS2+", title: "Away Scores 2+ Goals", desc: "Away team scores 2 or more goals." },
-              ].map((item) => (
-                <div key={item.sym} style={cardStyle}>
-                  <span style={{ ...badgeStyle, color: "#9c88ff", borderColor: "rgba(156, 136, 255, 0.35)", background: "rgba(156, 136, 255, 0.12)" }}>
-                    {item.sym}
-                  </span>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "#FFFFFF" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#8a85b9", marginTop: 2 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Section 6: AI Trust Rating & Confidence */}
-          <div
-            style={{
-              padding: "16px 18px",
-              borderRadius: 14,
-              background: "linear-gradient(135deg, rgba(124, 108, 245, 0.15) 0%, rgba(20, 16, 55, 0.7) 100%)",
-              border: "1px solid rgba(124, 108, 245, 0.35)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Sparkles size={16} color="#ffb020" />
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#FFFFFF" }}>
-                AI Trust Rating & Confidence Scale
-              </span>
-            </div>
-            <p style={{ fontSize: 12, color: "#b3ade2", lineHeight: 1.6, margin: 0 }}>
-              Predictions are generated by our quantitative model evaluating over 700 leagues worldwide.
-              A rating of <strong>8.0 to 10.0</strong> represents highest statistical trust and positive expected value (+EV).
-              The <strong>★ BEST TIP</strong> badge designates the highest confidence market choice for each fixture.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -303,31 +282,20 @@ export default function BettingTipsExplainedModal({ isOpen, onClose }: BettingTi
           from { opacity: 0; transform: scale(0.96) translateY(6px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        .bte-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .bte-scroll::-webkit-scrollbar-track {
+          background: rgba(12, 10, 36, 0.5);
+        }
+        .bte-scroll::-webkit-scrollbar-thumb {
+          background: rgba(124, 108, 245, 0.35);
+          border-radius: 999px;
+        }
+        .bte-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(124, 108, 245, 0.55);
+        }
       `}</style>
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 10,
-  padding: "10px 12px",
-  borderRadius: 10,
-  background: "rgba(25, 21, 60, 0.65)",
-  border: "1px solid rgba(167, 159, 255, 0.1)",
-};
-
-const badgeStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono, monospace)",
-  fontSize: 12,
-  fontWeight: 800,
-  color: "#a79fff",
-  background: "rgba(124, 108, 245, 0.15)",
-  border: "1px solid rgba(124, 108, 245, 0.35)",
-  padding: "3px 8px",
-  borderRadius: 6,
-  flexShrink: 0,
-  minWidth: 34,
-  textAlign: "center",
-};
