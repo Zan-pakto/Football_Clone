@@ -113,6 +113,17 @@ export class PaymentService {
             });
           }
 
+          // Auto-create user if not yet registered in DB (e.g. direct guest checkout with email)
+          if (!user && event.userEmail) {
+            user = await tx.user.create({
+              data: {
+                email: event.userEmail.trim().toLowerCase(),
+                name: "VIP Member",
+                passwordHash: "payment_auto_created_" + Date.now(),
+              },
+            });
+          }
+
           const plan = getPlanOrThrow(event.planId || "VIP_MONTHLY");
           const expiresAt = event.currentPeriodEnd || new Date(Date.now() + (plan.interval === "year" ? 365 : 30) * 86400000);
           const amountFormatted = event.amountPaid || `$${(plan.amountCents / 100).toFixed(2)}`;
@@ -146,6 +157,42 @@ export class PaymentService {
             });
 
             console.log(`🎉 [PaymentService:Webhook] VIP subscription activated for user: ${user.email} (${user.id})`);
+
+            // If a Telegram ID is present in metadata or linked to this user's sessions, update & notify Telegram
+            let targetTelegramId = event.telegramId;
+            if (!targetTelegramId) {
+              const tgSession = await tx.session.findFirst({
+                where: {
+                  userId: user.id,
+                  token: { startsWith: "telegram_link_" },
+                },
+              });
+              if (tgSession) {
+                targetTelegramId = tgSession.token.replace("telegram_link_", "");
+              }
+            }
+
+            if (targetTelegramId) {
+              // Asynchronously alert Telegram user
+              import("../telegram/bot.service")
+                .then(async ({ telegramBotService }) => {
+                  telegramBotService.saveLinkedUser(targetTelegramId!, user!.email, true);
+                  await telegramBotService.sendDirectMessage(
+                    targetTelegramId!,
+                    `🎉 *PAYMENT VERIFIED! VIP PRO ACTIVATED!*\n\n` +
+                    `Welcome to JollofTips VIP Pro, *${user!.name || "Member"}*!\n` +
+                    `Your payment has been confirmed and all VIP features are now unlocked:\n\n` +
+                    `✅ All 50+ daily fixtures unlocked\n` +
+                    `✅ Bankers of the Day #2 & #3 + 5-Fold ACCA Slip\n` +
+                    `✅ Real-time algorithmic edge (+EV) alerts\n\n` +
+                    `Type /vip_picks to see today's locked VIP locks!`
+                  );
+                  console.log(`🤖 [PaymentService] Real-time Telegram VIP unlock notification delivered to ${targetTelegramId}`);
+                })
+                .catch((tgErr: any) => console.warn(`[PaymentService] Notice dispatching Telegram VIP alert: ${tgErr.message}`));
+            }
+
+            // Dispatch VIP Confirmation Email to the user's account email
 
             // Dispatch VIP Confirmation Email to the user's account email
             const confirmationEmail = emailService.getSubscriptionConfirmationEmail({

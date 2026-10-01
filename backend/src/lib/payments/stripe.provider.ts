@@ -115,6 +115,7 @@ export class StripePaymentProvider implements IPaymentProvider {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.client_reference_id || session.metadata?.userId;
+        const telegramId = session.metadata?.telegramId || session.metadata?.telegram_id || undefined;
         const planId = session.metadata?.planId || "VIP_MONTHLY";
         const providerSubId = typeof session.subscription === "string" ? session.subscription : (session.subscription as any)?.id;
         const providerCustId = typeof session.customer === "string" ? session.customer : (session.customer as any)?.id;
@@ -126,6 +127,7 @@ export class StripePaymentProvider implements IPaymentProvider {
           provider: this.name,
           userId: userId || undefined,
           userEmail: userEmail || undefined,
+          telegramId,
           planId,
           providerSubId: providerSubId || undefined,
           providerCustId: providerCustId || undefined,

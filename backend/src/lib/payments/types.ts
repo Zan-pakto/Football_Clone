@@ -29,6 +29,7 @@ export interface StandardWebhookEvent {
   provider: string;
   userId?: string;
   userEmail?: string;
+  telegramId?: string | number;
   planId?: string;
   providerSubId?: string;
   providerCustId?: string;

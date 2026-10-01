@@ -179,6 +179,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
     const metadata = data.metadata || {};
     const userId = metadata.userId || metadata.user_id || data.user_id || undefined;
     const userEmail = data.email || data.customer?.email || data.user?.email || metadata.userEmail || undefined;
+    const telegramId = metadata.telegramId || metadata.telegram_id || data.custom_fields?.telegram_id || undefined;
 
     // Resolve internal plan ID
     let planId: PlanId = "VIP_MONTHLY";
@@ -239,6 +240,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
           provider: this.name,
           userId,
           userEmail,
+          telegramId,
           planId,
           providerSubId,
           providerCustId,
@@ -257,6 +259,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
           provider: this.name,
           userId,
           userEmail,
+          telegramId,
           planId,
           providerSubId,
           providerCustId,

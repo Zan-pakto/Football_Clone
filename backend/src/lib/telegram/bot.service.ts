@@ -22,6 +22,7 @@ export class TelegramBotService {
   private isInitialized = false;
   private dataDir: string;
   private storageFilePath: string;
+  private awaitingEmailUsers = new Set<string>();
 
   constructor() {
     this.dataDir = path.join(process.cwd(), "data");
@@ -34,6 +35,27 @@ export class TelegramBotService {
       } catch (err: any) {
         console.warn(`[TelegramBotService] Failed to construct Bot: ${err.message}`);
       }
+    }
+  }
+
+  /**
+   * Build personalized Whop checkout URL attaching user identity
+   */
+  public buildPersonalizedCheckoutUrl(telegramId: number | string, email?: string, userId?: string): string {
+    try {
+      const url = new URL(whopCheckoutUrl);
+      if (email) {
+        url.searchParams.set("email", email.trim().toLowerCase());
+        url.searchParams.set("metadata[userEmail]", email.trim().toLowerCase());
+      }
+      url.searchParams.set("metadata[telegramId]", String(telegramId));
+      if (userId) {
+        url.searchParams.set("metadata[userId]", userId);
+      }
+      return url.toString();
+    } catch {
+      const emailParam = email ? `&email=${encodeURIComponent(email)}&metadata[userEmail]=${encodeURIComponent(email)}` : "";
+      return `${whopCheckoutUrl}?metadata[telegramId]=${telegramId}${emailParam}`;
     }
   }
 
@@ -50,7 +72,7 @@ export class TelegramBotService {
     }
   }
 
-  private saveLinkedUser(telegramId: number | string, email: string, isVipOverride: boolean = false): void {
+  public saveLinkedUser(telegramId: number | string, email: string, isVipOverride: boolean = false): void {
     try {
       if (!fs.existsSync(this.dataDir)) {
         fs.mkdirSync(this.dataDir, { recursive: true });
@@ -177,8 +199,8 @@ export class TelegramBotService {
       .text("⚽ Today's 10 Free Picks", "free_picks")
       .text("🎯 Banker of the Day", "banker_picks")
       .row()
-      .text("👑 VIP Pro Access", "vip_info")
-      .url("⭐ Upgrade on Whop ($19.99)", whopCheckoutUrl)
+      .text("👑 VIP Pro Access", "vip_upgrade")
+      .text("⭐ Upgrade to VIP ($19.99)", "vip_upgrade")
       .row()
       .text("🔗 Link VIP Account", "link_info")
       .url("🌐 Open JollofTips WebApp", clientAppUrl);
@@ -220,9 +242,9 @@ export class TelegramBotService {
       await this.sendVipPicks(ctx, 1);
     });
 
-    // /vip Command - VIP Membership Overview & Whop Checkout
-    this.bot.command("vip", async (ctx) => {
-      await this.sendVipInfo(ctx);
+    // /vip & /upgrade Commands - Interactive VIP registration & personalized checkout
+    this.bot.command(["vip", "upgrade"], async (ctx) => {
+      await this.handleVipUpgradeFlow(ctx);
     });
 
     // /status Command - Current subscription state
@@ -412,9 +434,57 @@ export class TelegramBotService {
       await ctx.answerCallbackQuery({ text: "Use ⬅️ Prev or Next ➡️ to change pages" });
     });
 
-    this.bot.callbackQuery("vip_info", async (ctx) => {
+    this.bot.callbackQuery(["vip_upgrade", "start_vip_upgrade", "vip_info"], async (ctx) => {
       await ctx.answerCallbackQuery();
-      await this.sendVipInfo(ctx);
+      await this.handleVipUpgradeFlow(ctx);
+    });
+
+    this.bot.callbackQuery("change_email", async (ctx) => {
+      await ctx.answerCallbackQuery();
+      const telegramId = String(ctx.from?.id || 0);
+      this.awaitingEmailUsers.add(telegramId);
+      await ctx.reply(
+        `✏️ *Change Linked Email*\n\n` +
+        `Please type the email address you would like to connect to this Telegram account:`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: new InlineKeyboard().text("❌ Cancel", "cancel_upgrade"),
+        }
+      );
+    });
+
+    this.bot.callbackQuery("cancel_upgrade", async (ctx) => {
+      await ctx.answerCallbackQuery();
+      this.awaitingEmailUsers.delete(String(ctx.from?.id || 0));
+      await ctx.reply("Upgrade paused. You can restart anytime with /vip or /start.", {
+        reply_markup: this.getMainKeyboard(false),
+      });
+    });
+
+    // Listen for incoming text messages (such as when user types their email)
+    this.bot.on("message:text", async (ctx) => {
+      const text = ctx.message.text.trim();
+      if (text.startsWith("/")) return; // Let command handlers process commands
+
+      const telegramId = String(ctx.from?.id || 0);
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (emailRegex.test(text)) {
+        await this.linkUserAndProvidePayment(ctx, text);
+        return;
+      }
+
+      if (this.awaitingEmailUsers.has(telegramId)) {
+        await ctx.reply(
+          `❌ *Invalid email address.*\n\n` +
+          `Please reply with a valid email (e.g. \`name@gmail.com\`) so we can connect your VIP access, or tap Cancel below:`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: new InlineKeyboard().text("❌ Cancel", "cancel_upgrade"),
+          }
+        );
+        return;
+      }
     });
 
     this.bot.callbackQuery("account_status", async (ctx) => {
@@ -530,7 +600,7 @@ export class TelegramBotService {
 
       const keyboard = new InlineKeyboard();
       if (!isVip) {
-        keyboard.url(`⭐ Unlock All ${sortedMatches.length} Matches ($19.99)`, whopCheckoutUrl).row();
+        keyboard.text(`⭐ Unlock All ${sortedMatches.length} Matches ($19.99)`, "vip_upgrade").row();
       } else {
         keyboard.text("👑 View VIP Pro Picks", "vip_picks").row();
       }
@@ -643,7 +713,7 @@ export class TelegramBotService {
         text += `━━━━━━━━━━━━━━━━━━━━━━━`;
 
         const keyboard = new InlineKeyboard()
-          .url("👑 Unlock All Bankers ($19.99)", whopCheckoutUrl)
+          .text("👑 Unlock All Bankers ($19.99)", "vip_upgrade")
           .row()
           .text("🔗 Link Subscribed Account", "link_info")
           .row()
@@ -688,7 +758,7 @@ export class TelegramBotService {
           {
             parse_mode: "HTML",
             reply_markup: new InlineKeyboard()
-              .url("⭐ Upgrade to VIP Pro ($19.99/mo)", whopCheckoutUrl)
+              .text("⭐ Upgrade to VIP Pro ($19.99/mo)", "vip_upgrade")
               .row()
               .text("🔗 Link Subscribed Account", "link_info"),
           }
@@ -860,7 +930,7 @@ export class TelegramBotService {
       await ctx.reply(msg, {
         parse_mode: "Markdown",
         reply_markup: new InlineKeyboard()
-          .url("⭐ Upgrade to VIP Pro ($19.99/mo)", whopCheckoutUrl)
+          .text("⭐ Upgrade to VIP Pro ($19.99/mo)", "vip_upgrade")
           .row()
           .text("🔗 Link Subscribed Account", "link_info"),
       });
@@ -901,13 +971,205 @@ export class TelegramBotService {
       `_Already subscribed? Type \`/link your-email@example.com\` to activate instantly!_`;
 
     const keyboard = new InlineKeyboard()
-      .url("🚀 Upgrade Instantly via Whop", whopCheckoutUrl)
+      .text("🚀 Upgrade Instantly to VIP Pro ($19.99)", "vip_upgrade")
       .row()
       .text("🔗 Link Subscribed Account", "link_info")
       .row()
       .url("🌐 Learn More on Website", `${clientAppUrl}/pricing`);
 
     await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
+  }
+
+  /**
+   * Interactive VIP Upgrade Flow:
+   * 1. If already VIP -> Inform user.
+   * 2. If already linked to email -> Offer direct personalized checkout link.
+   * 3. If NOT linked -> Prompt user for email directly in chat, link account, and then generate personalized checkout link.
+   */
+  private async handleVipUpgradeFlow(ctx: any) {
+    const telegramId = ctx.from?.id || 0;
+    const { isVip, email } = await this.checkUserVipStatus(telegramId);
+
+    if (isVip) {
+      await ctx.reply(
+        `👑 *YOU ALREADY HAVE VIP PRO ACTIVE!*\n\n` +
+        `Your account (${email || "Verified Member"}) has full VIP access unlocked.\n\n` +
+        `✅ All 50+ fixtures unlocked across Premier League, La Liga, etc.\n` +
+        `✅ All 3 Bankers of the Day & 5-Fold ACCA unlocked\n` +
+        `✅ Real-time algorithmic edge (+EV) alerts active\n\n` +
+        `Tap below to explore today's picks:`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: new InlineKeyboard()
+            .text("👑 View VIP Picks", "vip_picks")
+            .row()
+            .text("🎯 View All Bankers", "banker_picks"),
+        }
+      );
+      return;
+    }
+
+    if (email) {
+      let dbUser = null;
+      try {
+        dbUser = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        });
+      } catch {
+        // ignore
+      }
+
+      const checkoutUrl = this.buildPersonalizedCheckoutUrl(telegramId, email, dbUser?.id);
+      const keyboard = new InlineKeyboard()
+        .url("💳 Complete Payment on Whop ($19.99)", checkoutUrl)
+        .row()
+        .text("🔄 Check Payment Status", "check_status")
+        .row()
+        .text("✏️ Change Linked Email", "change_email");
+
+      await ctx.reply(
+        `👑 *UPGRADE TO JOLLOFTIPS VIP PRO*\n\n` +
+        `👤 *Linked Email:* \`${email}\`\n` +
+        `🆔 *Telegram ID:* \`${telegramId}\`\n\n` +
+        `Your Telegram account is identified and connected! Tap the button below to complete your payment on Whop ($19.99/mo).\n\n` +
+        `⚡ *Instant Unlock:* Because your Telegram ID is attached to the checkout, your bot will unlock automatically in real-time the moment payment clears!`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        }
+      );
+      return;
+    }
+
+    // User is NOT linked yet: prompt for email
+    this.awaitingEmailUsers.add(String(telegramId));
+    await ctx.reply(
+      `👑 *UNLOCK JOLLOFTIPS VIP PRO*\n\n` +
+      `To ensure your payment is automatically identified and linked to your Telegram account, please enter your email address:\n\n` +
+      `👇 *Type your email address below (e.g. name@gmail.com):*`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: new InlineKeyboard().text("❌ Cancel", "cancel_upgrade"),
+      }
+    );
+  }
+
+  /**
+   * Process email input from user:
+   * Creates or links User in PostgreSQL, stores Telegram session, and outputs the personalized checkout link.
+   */
+  private async linkUserAndProvidePayment(ctx: any, emailInput: string) {
+    const telegramId = ctx.from?.id || 0;
+    this.awaitingEmailUsers.delete(String(telegramId));
+
+    const cleanEmail = emailInput.trim().toLowerCase();
+    await ctx.reply(`🔍 Setting up account for *${cleanEmail}*...`, { parse_mode: "Markdown" });
+
+    try {
+      let dbUser = await prisma.user.findFirst({
+        where: { email: { equals: cleanEmail, mode: "insensitive" } },
+      });
+
+      if (!dbUser) {
+        dbUser = await prisma.user.create({
+          data: {
+            email: cleanEmail,
+            passwordHash: "telegram_user_" + Date.now(),
+            name: ctx.from?.first_name ? `${ctx.from.first_name} ${ctx.from.last_name || ""}`.trim() : "Telegram Member",
+          },
+        });
+      }
+
+      // Save session link in PostgreSQL
+      try {
+        await prisma.session.upsert({
+          where: { token: `telegram_link_${telegramId}` },
+          update: {
+            userId: dbUser.id,
+            deviceName: "Telegram Bot",
+            expiresAt: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
+          },
+          create: {
+            token: `telegram_link_${telegramId}`,
+            userId: dbUser.id,
+            deviceName: "Telegram Bot",
+            expiresAt: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
+          },
+        });
+      } catch (sessErr: any) {
+        console.warn("[TelegramBotService] Session link notice:", sessErr.message);
+      }
+
+      // Check if user ALREADY has an active subscription in DB
+      const sub = await prisma.subscription.findFirst({
+        where: {
+          userId: dbUser.id,
+          status: "ACTIVE",
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      let isAlreadyVip = Boolean(sub && (!sub.expiresAt || new Date(sub.expiresAt) > new Date()));
+
+      // Check Whop API directly if key is configured
+      if (!isAlreadyVip && process.env.WHOP_API_KEY && !process.env.WHOP_API_KEY.includes("placeholder")) {
+        try {
+          const res = await fetch(`https://api.whop.com/api/v5/app/memberships?email=${encodeURIComponent(cleanEmail)}`, {
+            headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
+          });
+          if (res.ok) {
+            const data: any = await res.json();
+            isAlreadyVip = (data.data || []).some((m: any) => m.valid === true || m.status === "active");
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (isAlreadyVip) {
+        this.saveLinkedUser(telegramId, cleanEmail, true);
+        await ctx.reply(
+          `🎉 *VIP PRO ACTIVATED!*\n\n` +
+          `Welcome back, *${ctx.from?.first_name || "Member"}*!\n` +
+          `An active VIP Pro subscription was found for *${cleanEmail}*.\n\n` +
+          `✅ All 50+ daily fixtures unlocked\n` +
+          `✅ All 3 Bankers of the Day & 5-Fold ACCA unlocked\n` +
+          `✅ Algorithmic value edge (+EV) alerts active\n\n` +
+          `Tap below to view today's predictions:`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: this.getMainKeyboard(true),
+          }
+        );
+        return;
+      }
+
+      // Save as linked with regular status
+      this.saveLinkedUser(telegramId, cleanEmail, false);
+
+      const checkoutUrl = this.buildPersonalizedCheckoutUrl(telegramId, cleanEmail, dbUser.id);
+      const keyboard = new InlineKeyboard()
+        .url("💳 Complete Payment on Whop ($19.99)", checkoutUrl)
+        .row()
+        .text("🔄 I've Paid - Check Status", "check_status")
+        .row()
+        .text("✏️ Change Email", "change_email");
+
+      await ctx.reply(
+        `✅ *Account Connected Successfully!*\n\n` +
+        `👤 *Email:* \`${cleanEmail}\`\n` +
+        `🆔 *Telegram ID:* \`${telegramId}\`\n\n` +
+        `Click the secure Whop checkout button below to activate VIP Pro ($19.99/mo).\n\n` +
+        `⚡ *Automatic Real-Time Unlock:* Your payment includes your Telegram ID, so your bot will unlock automatically the second payment clears!`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        }
+      );
+    } catch (err: any) {
+      console.error("[TelegramBotService] Error in linkUserAndProvidePayment:", err.message);
+      await ctx.reply(`❌ An error occurred setting up your account. Please try again or type /link ${cleanEmail}`);
+    }
   }
 
   /**
