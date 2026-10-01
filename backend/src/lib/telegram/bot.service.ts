@@ -90,7 +90,24 @@ export class TelegramBotService {
   async checkUserVipStatus(telegramId: number | string): Promise<{ isVip: boolean; email?: string; expiresAt?: string }> {
     try {
       const users = this.getLinkedUsers();
-      const user = users[String(telegramId)];
+      let user = users[String(telegramId)];
+
+      // Fallback: If local file was wiped by Render restart, recover from PostgreSQL Session
+      if (!user) {
+        try {
+          const dbLink = await prisma.session.findUnique({
+            where: { token: `telegram_link_${telegramId}` },
+            include: { user: true },
+          });
+          if (dbLink?.user?.email) {
+            user = { email: dbLink.user.email, linkedAt: new Date().toISOString() };
+            this.saveLinkedUser(telegramId, user.email, false);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       if (!user) {
         return { isVip: false };
       }
@@ -262,6 +279,39 @@ export class TelegramBotService {
 
       if (isValid) {
         this.saveLinkedUser(ctx.from?.id || 0, email, true);
+
+        // Also persist link to database so Render restarts never lose it
+        try {
+          let dbUser = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+          });
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email,
+                passwordHash: "telegram_linked_user",
+                name: ctx.from?.first_name || "Telegram User",
+              },
+            });
+          }
+          await prisma.session.upsert({
+            where: { token: `telegram_link_${ctx.from?.id || 0}` },
+            update: {
+              userId: dbUser.id,
+              deviceName: "Telegram Bot",
+              expiresAt: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
+            },
+            create: {
+              token: `telegram_link_${ctx.from?.id || 0}`,
+              userId: dbUser.id,
+              deviceName: "Telegram Bot",
+              expiresAt: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
+            },
+          });
+        } catch (dbErr: any) {
+          console.warn("[TelegramBotService] Database link notice:", dbErr.message);
+        }
+
         await ctx.reply(
           `🎉 *VIP PRO ACTIVATED!*\n\n` +
           `Welcome to JollofTips VIP Pro, *${ctx.from?.first_name || "Member"}*!\n` +
@@ -294,6 +344,13 @@ export class TelegramBotService {
     // /unlink Command
     this.bot.command("unlink", async (ctx) => {
       const removed = this.removeLinkedUser(ctx.from?.id || 0);
+      try {
+        await prisma.session.deleteMany({
+          where: { token: `telegram_link_${ctx.from?.id || 0}` },
+        });
+      } catch {
+        // ignore
+      }
       if (removed) {
         await ctx.reply("✅ Your Telegram account has been unlinked. You are now on the Free Tier (10 picks/day).", {
           reply_markup: this.getMainKeyboard(false),
@@ -591,6 +648,14 @@ export class TelegramBotService {
     }
   }
 
+  private escapeHtml(str: string | null | undefined): string {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   /**
    * Send VIP exclusive fixtures to VIP members
    */
@@ -600,17 +665,17 @@ export class TelegramBotService {
 
       if (!isVip) {
         await ctx.reply(
-          `🔒 *VIP PRO PICKS (LOCKED)*\n\n` +
+          `🔒 <b>VIP PRO PICKS (LOCKED)</b>\n\n` +
           `This feature is reserved for JollofTips VIP Pro members.\n\n` +
           `VIP Pro unlocks:\n` +
           `• All 50+ fixtures daily across Premier League, La Liga, Serie A, etc.\n` +
           `• High-odds multi-market tips (1X2, Over/Under Goals, BTTS)\n` +
           `• All 3 Bankers of the Day + 5-Fold Acca Slips\n` +
           `• Exclusive Telegram in-play alerts\n\n` +
-          `Already subscribed? Use \`/link your-email@example.com\`\n` +
+          `Already subscribed? Use <code>/link your-email@example.com</code>\n` +
           `Otherwise, upgrade via Whop below:`,
           {
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: new InlineKeyboard()
               .url("⭐ Upgrade to VIP Pro ($19.99/mo)", whopCheckoutUrl)
               .row()
@@ -620,26 +685,69 @@ export class TelegramBotService {
         return;
       }
 
-      const matches = await this.getTodayMatchesFromStore();
-      const vipPicks = matches
-        .filter((m) => {
-          const conf = parseFloat(m.confidence?.replace("%", "") || "0") || (m.rating ? m.rating * 10 : 70);
-          return conf >= 80;
-        })
-        .slice(0, 12);
+      // 1. Fetch live synchronized matches from Store
+      let matches = await this.getTodayMatchesFromStore();
 
-      if (vipPicks.length === 0) {
+      // 2. Fallback to bet of the day scraper if store is empty
+      if (matches.length === 0) {
+        try {
+          const botd = await nerdyTipsScraper.scrapeBetOfTheDay("0");
+          const fallback = [...(botd.bankers || []), ...(botd.slip || [])];
+          if (fallback.length > 0) {
+            matches = fallback.map(normalizeScrapedMatchToMatchData);
+          }
+        } catch (e: any) {
+          console.warn("[TelegramBotService] BOTD fallback notice:", e.message);
+        }
+      }
+
+      // 3. Fallback to daily scraper if still empty
+      if (matches.length === 0) {
+        try {
+          const scraped = await nerdyTipsScraper.scrapeDay("0");
+          if (scraped && scraped.length > 0) {
+            matches = scraped.map(normalizeScrapedMatchToMatchData);
+            await store.saveMatches(matches, "0");
+          }
+        } catch (e: any) {
+          console.warn("[TelegramBotService] ScrapeDay fallback notice:", e.message);
+        }
+      }
+
+      if (matches.length === 0) {
         await ctx.reply(
-          `👑 *VIP Pro Picks:*\nToday's VIP matches are currently finalizing algorithmic variance. Check the web app:`,
+          `👑 <b>VIP Pro Picks:</b>\nToday's VIP matches are currently synchronizing. Please tap below to view live fixtures on the web app:`,
           {
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
             reply_markup: new InlineKeyboard().url("🌐 Open VIP Dashboard", `${clientAppUrl}/all-matches`),
           }
         );
         return;
       }
 
-      let text = `👑 *VIP PRO EXCLUSIVE PICKS (ACTIVE: ${email || "MEMBER"})*\n\n`;
+      // Sort by highest confidence / rating
+      const sortedMatches = [...matches].sort((a, b) => {
+        const confA = parseFloat(a.confidence?.replace("%", "") || "0") || (a.rating ? a.rating * 10 : 75);
+        const confB = parseFloat(b.confidence?.replace("%", "") || "0") || (b.rating ? b.rating * 10 : 75);
+        return confB - confA;
+      });
+
+      // Filter high confidence (>= 75%), or fall back to top matches if not tagged
+      let vipPicks = sortedMatches.filter((m) => {
+        const conf = parseFloat(m.confidence?.replace("%", "") || "0") || (m.rating ? m.rating * 10 : 70);
+        return conf >= 75;
+      });
+
+      if (vipPicks.length === 0) {
+        vipPicks = sortedMatches.slice(0, 15);
+      } else {
+        vipPicks = vipPicks.slice(0, 15);
+      }
+
+      const displayEmail = this.escapeHtml(email || "Verified Member");
+      let text = `👑 <b>VIP PRO EXCLUSIVE PICKS</b>\n`;
+      text += `👤 <i>Active VIP: ${displayEmail}</i>\n\n`;
+
       vipPicks.forEach((m, idx) => {
         const best = m.predictions?.bestTip;
         const p1x2 = m.predictions?.pickScore?.pick;
@@ -647,23 +755,40 @@ export class TelegramBotService {
         const btts = m.predictions?.btts?.pick;
         const pick = best?.pick || p1x2 || "1";
         const odd = best?.odd ? ` @ ${best.odd}` : "";
-        const conf = m.confidence || "85%";
+        const conf = m.confidence || (m.rating ? `${Math.round(m.rating * 10)}%` : "85%");
+        const home = this.escapeHtml(m.homeTeam);
+        const away = this.escapeHtml(m.awayTeam);
+        const league = this.escapeHtml(`${m.country ? m.country + ": " : ""}${m.leagueName}`);
+        const time = m.kickTime ? ` | ⏰ ${m.kickTime}` : "";
 
-        text += `*${idx + 1}. ${m.homeTeam} vs ${m.awayTeam}*\n`;
-        text += `   🏆 ${m.country}: ${m.leagueName} ${m.kickTime ? `(${m.kickTime})` : ""}\n`;
-        text += `   ⭐ Primary Pick: *${pick}*${odd} (Conf: *${conf}*)\n`;
+        text += `<b>${idx + 1}. ${home} vs ${away}</b>\n`;
+        text += `   🏆 ${league}${time}\n`;
+        text += `   ⭐ Pick: <b>${this.escapeHtml(pick)}</b>${odd} | Conf: <b>${conf}</b>\n`;
         if (goals || btts) {
-          text += `   📊 Alt Markets: ${goals ? `Goals: *${goals}* ` : ""}${btts ? `| BTTS: *${btts}*` : ""}\n`;
+          text += `   📊 Alt: ${goals ? `Goals: <b>${this.escapeHtml(goals)}</b> ` : ""}${btts ? `| BTTS: <b>${this.escapeHtml(btts)}</b>` : ""}\n`;
         }
         text += `\n`;
       });
 
+      const remaining = Math.max(0, sortedMatches.length - vipPicks.length);
+      if (remaining > 0) {
+        text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        text += `⚡ <b>+${remaining} more VIP fixtures</b> available today on your dashboard.\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━━━━`;
+      }
+
       const keyboard = new InlineKeyboard()
-        .url("🌐 Open Full JollofTips Platform", clientAppUrl)
+        .url("🌐 Open Full VIP WebApp", `${clientAppUrl}/all-matches`)
         .row()
         .text("🎯 Today's Bankers", "banker_picks");
 
-      await ctx.reply(text, { parse_mode: "Markdown", reply_markup: keyboard });
+      try {
+        await ctx.reply(text, { parse_mode: "HTML", reply_markup: keyboard });
+      } catch (sendErr: any) {
+        console.warn("[TelegramBotService] HTML send failed, trying plain text fallback:", sendErr.message);
+        const plainText = text.replace(/<[^>]*>/g, "");
+        await ctx.reply(plainText, { reply_markup: keyboard });
+      }
     } catch (err: any) {
       console.error("[TelegramBotService] Error in sendVipPicks:", err.message);
       await ctx.reply("👑 View your VIP dashboard on the web platform:", {
