@@ -215,9 +215,9 @@ export class TelegramBotService {
       await this.sendBankerPicks(ctx);
     });
 
-    // /vip_picks Command - Unlocked VIP fixtures
+    // /vip_picks Command - Unlocked VIP fixtures with pagination
     this.bot.command("vip_picks", async (ctx) => {
-      await this.sendVipPicks(ctx);
+      await this.sendVipPicks(ctx, 1);
     });
 
     // /vip Command - VIP Membership Overview & Whop Checkout
@@ -398,7 +398,18 @@ export class TelegramBotService {
 
     this.bot.callbackQuery("vip_picks", async (ctx) => {
       await ctx.answerCallbackQuery();
-      await this.sendVipPicks(ctx);
+      await this.sendVipPicks(ctx, 1);
+    });
+
+    // Pagination callbacks: vip_page_1, vip_page_2, etc.
+    this.bot.callbackQuery(/^vip_page_(\d+)$/, async (ctx) => {
+      await ctx.answerCallbackQuery();
+      const page = parseInt(ctx.match[1], 10) || 1;
+      await this.sendVipPicks(ctx, page, true);
+    });
+
+    this.bot.callbackQuery("vip_noop", async (ctx) => {
+      await ctx.answerCallbackQuery({ text: "Use ⬅️ Prev or Next ➡️ to change pages" });
     });
 
     this.bot.callbackQuery("vip_info", async (ctx) => {
@@ -657,9 +668,9 @@ export class TelegramBotService {
   }
 
   /**
-   * Send VIP exclusive fixtures to VIP members
+   * Send VIP exclusive fixtures to VIP members with interactive pagination
    */
-  private async sendVipPicks(ctx: any) {
+  private async sendVipPicks(ctx: any, page: number = 1, isEdit: boolean = false) {
     try {
       const { isVip, email } = await this.checkUserVipStatus(ctx.from?.id || 0);
 
@@ -732,23 +743,21 @@ export class TelegramBotService {
         return confB - confA;
       });
 
-      // Filter high confidence (>= 75%), or fall back to top matches if not tagged
-      let vipPicks = sortedMatches.filter((m) => {
-        const conf = parseFloat(m.confidence?.replace("%", "") || "0") || (m.rating ? m.rating * 10 : 70);
-        return conf >= 75;
-      });
-
-      if (vipPicks.length === 0) {
-        vipPicks = sortedMatches.slice(0, 15);
-      } else {
-        vipPicks = vipPicks.slice(0, 15);
-      }
+      // Pagination calculation: 10 matches per page to fit Telegram message limits
+      const PAGE_SIZE = 10;
+      const totalPages = Math.max(1, Math.ceil(sortedMatches.length / PAGE_SIZE));
+      const currentPage = Math.min(Math.max(1, page), totalPages);
+      const startIdx = (currentPage - 1) * PAGE_SIZE;
+      const endIdx = Math.min(startIdx + PAGE_SIZE, sortedMatches.length);
+      const pageMatches = sortedMatches.slice(startIdx, endIdx);
 
       const displayEmail = this.escapeHtml(email || "Verified Member");
-      let text = `👑 <b>VIP PRO EXCLUSIVE PICKS</b>\n`;
-      text += `👤 <i>Active VIP: ${displayEmail}</i>\n\n`;
+      let text = `👑 <b>VIP PRO ALL FIXTURES</b> (Page ${currentPage}/${totalPages})\n`;
+      text += `👤 <i>Active VIP: ${displayEmail}</i>\n`;
+      text += `📊 <i>Showing ${startIdx + 1}–${endIdx} of ${sortedMatches.length} Analyzed Matches</i>\n\n`;
 
-      vipPicks.forEach((m, idx) => {
+      pageMatches.forEach((m, idx) => {
+        const matchNum = startIdx + idx + 1;
         const best = m.predictions?.bestTip;
         const p1x2 = m.predictions?.pickScore?.pick;
         const goals = m.predictions?.goals?.pick;
@@ -761,7 +770,7 @@ export class TelegramBotService {
         const league = this.escapeHtml(`${m.country ? m.country + ": " : ""}${m.leagueName}`);
         const time = m.kickTime ? ` | ⏰ ${m.kickTime}` : "";
 
-        text += `<b>${idx + 1}. ${home} vs ${away}</b>\n`;
+        text += `<b>${matchNum}. ${home} vs ${away}</b>\n`;
         text += `   🏆 ${league}${time}\n`;
         text += `   ⭐ Pick: <b>${this.escapeHtml(pick)}</b>${odd} | Conf: <b>${conf}</b>\n`;
         if (goals || btts) {
@@ -770,17 +779,37 @@ export class TelegramBotService {
         text += `\n`;
       });
 
-      const remaining = Math.max(0, sortedMatches.length - vipPicks.length);
-      if (remaining > 0) {
-        text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-        text += `⚡ <b>+${remaining} more VIP fixtures</b> available today on your dashboard.\n`;
-        text += `━━━━━━━━━━━━━━━━━━━━━━━`;
+      // Build interactive keyboard
+      const keyboard = new InlineKeyboard();
+
+      // Navigation Row (Previous, Current, Next)
+      if (totalPages > 1) {
+        if (currentPage > 1) {
+          keyboard.text("⬅️ Prev", `vip_page_${currentPage - 1}`);
+        }
+        keyboard.text(`📄 ${currentPage} / ${totalPages}`, "vip_noop");
+        if (currentPage < totalPages) {
+          keyboard.text("Next ➡️", `vip_page_${currentPage + 1}`);
+        }
+        keyboard.row();
       }
 
-      const keyboard = new InlineKeyboard()
+      keyboard
         .url("🌐 Open Full VIP WebApp", `${clientAppUrl}/all-matches`)
         .row()
         .text("🎯 Today's Bankers", "banker_picks");
+
+      if (isEdit && (ctx.callbackQuery || ctx.update?.callback_query)) {
+        try {
+          await ctx.editMessageText(text, { parse_mode: "HTML", reply_markup: keyboard });
+          return;
+        } catch (editErr: any) {
+          if (!editErr.message?.includes("message is not modified")) {
+            await ctx.reply(text, { parse_mode: "HTML", reply_markup: keyboard });
+          }
+          return;
+        }
+      }
 
       try {
         await ctx.reply(text, { parse_mode: "HTML", reply_markup: keyboard });
