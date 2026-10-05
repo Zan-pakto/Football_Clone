@@ -182,8 +182,8 @@ export class WhopPaymentProvider implements IPaymentProvider {
     const telegramId = metadata.telegramId || metadata.telegram_id || data.custom_fields?.telegram_id || undefined;
 
     // Resolve internal plan ID
-    let planId: PlanId = "VIP_MONTHLY";
-    if (metadata.planId === "VIP_ANNUAL" || metadata.planId === "VIP_MONTHLY") {
+    let planId: PlanId = "PREMIUM_MONTHLY";
+    if (metadata.planId === "VIP_ANNUAL" || metadata.planId === "VIP_MONTHLY" || metadata.planId === "PREMIUM_MONTHLY") {
       planId = metadata.planId;
     } else if (data.plan_id) {
       if (
@@ -192,6 +192,14 @@ export class WhopPaymentProvider implements IPaymentProvider {
         data.plan_id.toLowerCase().includes("year")
       ) {
         planId = "VIP_ANNUAL";
+      } else if (
+        data.plan_id === process.env.WHOP_PLAN_VIP_MONTHLY ||
+        data.plan_id === "plan_DfSUCcAweadIa" ||
+        data.plan_id.toLowerCase().includes("vip")
+      ) {
+        planId = "VIP_MONTHLY";
+      } else {
+        planId = "PREMIUM_MONTHLY";
       }
     }
 

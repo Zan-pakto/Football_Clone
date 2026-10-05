@@ -15,23 +15,43 @@ export interface PlanDefinition {
 }
 
 export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
-  VIP_MONTHLY: {
-    id: "VIP_MONTHLY",
-    name: "VIP Pro Access (Monthly)",
+  PREMIUM_MONTHLY: {
+    id: "PREMIUM_MONTHLY",
+    name: "Premium Pro (Monthly)",
     badge: "Most Popular",
-    description: "Full algorithmic access, unlocked high-confidence bankers, and real-time value odds edges.",
-    amountCents: 1999, // $19.99
+    description: "Full algorithmic predictions, unlocked high-confidence bankers, and bet builder access.",
+    amountCents: 999, // $9.99
     currency: "usd",
     interval: "month",
-    whopPlanId: process.env.WHOP_PLAN_VIP_MONTHLY || undefined,
-    whopCheckoutUrl: process.env.WHOP_CHECKOUT_URL_VIP_MONTHLY || undefined,
-    stripePriceId: process.env.STRIPE_PRICE_VIP_MONTHLY || undefined,
+    whopPlanId: process.env.WHOP_PLAN_PREMIUM_MONTHLY || "plan_8iNJRtiKtVzMH",
+    whopCheckoutUrl: process.env.WHOP_CHECKOUT_URL_PREMIUM_MONTHLY || "https://whop.com/checkout/plan_8iNJRtiKtVzMH",
+    stripePriceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY || undefined,
     features: [
       "Unlimited Banker of the Day Access",
       "100k Monte Carlo Simulated Probabilities",
       "Mathematical Value Edge (+EV) Alerts",
       "Custom Acca Bet Builder Unlocked",
-      "VIP Telegram / Push Notification Alerts",
+      "Verified AI Track Record Access",
+      "Instant Whop Activation",
+    ],
+  },
+  VIP_MONTHLY: {
+    id: "VIP_MONTHLY",
+    name: "VIP Pro Access (Monthly)",
+    badge: "VIP Elite",
+    description: "The complete betting intelligence suite with exclusive VIP Telegram alerts and priority insights.",
+    amountCents: 1999, // $19.99
+    currency: "usd",
+    interval: "month",
+    whopPlanId: process.env.WHOP_PLAN_VIP_MONTHLY || "plan_DfSUCcAweadIa",
+    whopCheckoutUrl: process.env.WHOP_CHECKOUT_URL_VIP_MONTHLY || "https://whop.com/checkout/plan_DfSUCcAweadIa",
+    stripePriceId: process.env.STRIPE_PRICE_VIP_MONTHLY || undefined,
+    features: [
+      "Everything in Premium Pro Included",
+      "Exclusive VIP Telegram Channel & Instant Alerts",
+      "Priority High-Roller Edge Banker Tips",
+      "Dedicated 1-on-1 VIP Customer Support",
+      "Early Access to High-Confidence Models",
     ],
   },
   VIP_ANNUAL: {

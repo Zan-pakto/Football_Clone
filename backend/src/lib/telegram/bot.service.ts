@@ -9,7 +9,7 @@ import * as path from "path";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const clientAppUrl = process.env.CLIENT_APP_URL || process.env.FRONTEND_URL || "https://jolloftips.com";
-const whopCheckoutUrl = process.env.WHOP_CHECKOUT_URL_VIP_MONTHLY || "https://whop.com/checkout/plan_3LE4tmGm31ISJ";
+const whopCheckoutUrl = process.env.WHOP_CHECKOUT_URL_VIP_MONTHLY || "https://whop.com/checkout/plan_DfSUCcAweadIa";
 
 interface LinkedUserRecord {
   email: string;
