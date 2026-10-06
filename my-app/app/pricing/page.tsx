@@ -328,8 +328,8 @@ export default function PricingPage() {
             boxSizing: "border-box",
             borderRadius: 14,
           }}>
-            <div style={{ position: "absolute", top: -12, right: 20 }}>
-              <span className="gold-badge" style={{ background: "var(--gold)", color: "var(--gold-btn-text)", borderColor: "var(--gold)", fontWeight: 800 }}>
+            <div style={{ position: "absolute", top: -12, right: 20, zIndex: 2 }}>
+              <span className="gold-badge" style={{ background: "var(--gold)", color: "var(--gold-btn-text)", borderColor: "var(--gold)", fontWeight: 800, boxShadow: "0 2px 10px rgba(0, 0, 0, 0.4)" }}>
                 <Sparkles size={11} /> MOST POPULAR
               </span>
             </div>
@@ -339,7 +339,6 @@ export default function PricingPage() {
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--gold)" }}>
                   Premium Pro
                 </h3>
-                <span className="gold-badge">Popular Deal</span>
               </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 20 }}>
                 Full algorithmic access, unlocked banker tips, and real-time value odds edges.
@@ -454,9 +453,9 @@ export default function PricingPage() {
             boxSizing: "border-box",
             borderRadius: 14,
           }}>
-            <div style={{ position: "absolute", top: -12, right: 20 }}>
-              <span className="gold-badge" style={{ background: "rgba(245, 158, 11, 0.18)", color: "#f59e0b", borderColor: "rgba(245, 158, 11, 0.5)", fontWeight: 800 }}>
-                <Crown size={11} /> VIP ELITE
+            <div style={{ position: "absolute", top: -12, right: 20, zIndex: 2 }}>
+              <span className="gold-badge" style={{ background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)", color: "#08071e", borderColor: "#fbbf24", fontWeight: 800, boxShadow: "0 2px 10px rgba(0, 0, 0, 0.5)" }}>
+                <Crown size={11} strokeWidth={2.5} /> VIP ELITE
               </span>
             </div>
 
@@ -465,9 +464,6 @@ export default function PricingPage() {
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#f59e0b" }}>
                   VIP Pro
                 </h3>
-                <span className="gold-badge" style={{ background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", borderColor: "rgba(245, 158, 11, 0.3)" }}>
-                  All Access
-                </span>
               </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 20 }}>
                 Ultimate betting intelligence suite with exclusive VIP Telegram broadcast alerts and priority bankers.
