@@ -1,6 +1,6 @@
 import { nerdyTipsAuth } from "./nerdytips-auth";
 import { cacheService, CACHE_TTL } from "../cache/cache-service";
-import { adjustOddStr, adjustConfidence } from "../ai/ai-variance";
+import { adjustOdd, adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 import { toCachedLogoUrl } from "../logo-utils";
 import { normalizeScrapedMatchToMatchData } from "./nerdytips-normalizer";
 
@@ -657,10 +657,12 @@ export class NerdyTipsScraper {
 
     const url = `${this.baseUrl}/match-details/${matchId}`;
     try {
+      const activeTz = process.env.TIMEZONE_OFFSET || "330";
       const res = await fetch(url, {
         headers: {
           "User-Agent": this.userAgent,
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          Cookie: `odds_format=EU; odds_format_v2=EU; tz_offset_v2=${activeTz}; timezone_manual=1;`,
         },
         redirect: "follow",
       });
@@ -795,6 +797,38 @@ export class NerdyTipsScraper {
     if (scoreAMatch) details.hero.awayScore = clean(scoreAMatch[1]);
     if (statusMatch) details.hero.status = clean(statusMatch[1]);
 
+    const normalizeOddValue = (rawOdd: string | null | undefined, seedKey: string): string | null => {
+      if (!rawOdd) return null;
+      let num = parseFloat(rawOdd);
+      if (isNaN(num) || num <= 0) return null;
+      if (num >= 50) {
+        num = Math.round((1 + num / 100) * 100) / 100;
+      }
+      const adjusted = adjustOdd(num, seedKey);
+      return adjusted !== null ? adjusted.toFixed(2) : num.toFixed(2);
+    };
+
+    const normalizeConfidenceValue = (rawConfStr: string | null | undefined, seedKey: string): string | null => {
+      if (!rawConfStr) return null;
+      const cleaned = clean(rawConfStr);
+      const tenMatch = cleaned.match(/^([\d\.]+)(?:\s*\/\s*10)?$/);
+      if (tenMatch && parseFloat(tenMatch[1]) <= 10) {
+        const val = parseFloat(tenMatch[1]);
+        const adjusted = adjustRating(val, seedKey) || val;
+        return `${adjusted.toFixed(1)}/10`;
+      }
+      const pctVal = parseFloat(cleaned.replace("%", "").trim());
+      if (!isNaN(pctVal)) {
+        if (pctVal <= 10) {
+          const adjusted = adjustRating(pctVal, seedKey) || pctVal;
+          return `${adjusted.toFixed(1)}/10`;
+        }
+        const adjusted = adjustConfidence(Math.round(pctVal), seedKey) || Math.round(pctVal);
+        return `${adjusted}%`;
+      }
+      return cleaned;
+    };
+
     // 4. 1X2 Odds Row
     const odds1x2Matches = [...html.matchAll(/<span class="md-1x2([^"]*)"><span class="md-1x2__l">([^<]+)<\/span><span class="md-1x2__o">([\s\S]*?)<\/span><\/span>/gi)];
     details.hero.odds1x2 = odds1x2Matches.map((m) => {
@@ -806,7 +840,7 @@ export class NerdyTipsScraper {
       return {
         label,
         isTip: m[1].includes("md-1x2--tip"),
-        odd: adjustOddStr(parsedOdd, seedKey) || parsedOdd,
+        odd: normalizeOddValue(parsedOdd, seedKey) || parsedOdd,
       };
     });
 
@@ -843,16 +877,14 @@ export class NerdyTipsScraper {
     if (bestPick) {
       const rawOdd = bestOdd ? bestOdd[1] : "";
       const rawConfStr = bestConf ? clean(bestConf[1]) : "";
-      const rawConfVal = parseInt(rawConfStr.replace("%", "").trim(), 10);
-      const adjustedConf = !isNaN(rawConfVal)
-        ? `${adjustConfidence(rawConfVal, `${matchId}_conf`)}%`
-        : rawConfStr;
+      const normalizedOdd = normalizeOddValue(rawOdd, `${matchId}_best_odd`) || rawOdd;
+      const normalizedConf = normalizeConfidenceValue(rawConfStr, `${matchId}_conf`) || rawConfStr;
 
       details.tips.bestTip = {
         pick: clean(bestPick[1]),
-        odd: adjustOddStr(rawOdd, `${matchId}_best_odd`) || rawOdd,
+        odd: normalizedOdd,
         explanation: bestExpl ? clean(bestExpl[1]) : "",
-        confidence: adjustedConf,
+        confidence: normalizedConf,
       };
     }
 
@@ -868,35 +900,108 @@ export class NerdyTipsScraper {
       const title = lbl ? clean(lbl[1]) : "";
       const rawOdd = odd ? odd[1] : null;
       const rawConfStr = conf ? clean(conf[1]) : null;
-      let adjustedConf = rawConfStr;
-      if (rawConfStr) {
-        const cVal = parseInt(rawConfStr.replace("%", "").trim(), 10);
-        if (!isNaN(cVal)) {
-          adjustedConf = `${adjustConfidence(cVal, `${matchId}_card_${title}_conf`)}%`;
-        }
-      }
 
       details.tips.cards.push({
         title,
         pick: tip ? clean(tip[1]) : null,
-        odd: rawOdd ? (adjustOddStr(rawOdd, `${matchId}_card_${title}_odd`) || rawOdd) : null,
-        confidence: adjustedConf,
+        odd: rawOdd ? (normalizeOddValue(rawOdd, `${matchId}_card_${title}_odd`) || rawOdd) : null,
+        confidence: normalizeConfidenceValue(rawConfStr, `${matchId}_card_${title}_conf`),
         score: score ? { home: score[1], away: score[2] } : null,
       });
     }
 
-    // 7. Section #statistics
+    // 7. Section #statistics (Predicted vs Actual / Comparison / Average)
+    const parseStatRows = (containerHtml?: string | null): StatItem[] => {
+      if (!containerHtml) return [];
+      const rows = [...containerHtml.matchAll(/<div class="md-ps__row">([\s\S]*?)<\/div>/gi)];
+      return rows.map((r) => {
+        const rowHtml = r[1];
+        const lbl = rowHtml.match(/class="md-ps__lbl"[^>]*><span>([^<]+)<\/span>/i);
+
+        const hBlock = rowHtml.match(/class="md-ps__v md-ps__v--h([^"]*)"[^>]*>([\s\S]*?)<\/span>\s*<span class="md-ps__v md-ps__v--a/i);
+        const aBlock = rowHtml.match(/class="md-ps__v md-ps__v--a([^"]*)"[^>]*>([\s\S]*?)<\/span>\s*<span class="md-ps__bar/i);
+
+        const hLead = hBlock ? hBlock[1].includes("is-lead") : false;
+        const aLead = aBlock ? aBlock[1].includes("is-lead") : false;
+
+        let hActual = "";
+        let hPredicted = "";
+        if (hBlock) {
+          const hText = hBlock[2].replace(/<span class="sr-only">[\s\S]*?<\/span>/gi, "").trim();
+          const predM = hText.match(/<small class="md-ps__pred"[^>]*>[\s\S]*?([\d\.]+%?)<\/small>/i);
+          if (predM) {
+            hPredicted = predM[1];
+            hActual = clean(hText.replace(/<small[\s\S]*?<\/small>/gi, ""));
+          } else {
+            hActual = clean(hText);
+          }
+        }
+
+        let aActual = "";
+        let aPredicted = "";
+        if (aBlock) {
+          const aText = aBlock[2].replace(/<span class="sr-only">[\s\S]*?<\/span>/gi, "").trim();
+          const predM = aText.match(/<small class="md-ps__pred"[^>]*>[\s\S]*?([\d\.]+%?)<\/small>/i);
+          if (predM) {
+            aPredicted = predM[1];
+            aActual = clean(aText.replace(/<small[\s\S]*?<\/small>/gi, ""));
+          } else {
+            aActual = clean(aText);
+          }
+        }
+
+        const barParts = rowHtml.match(/class="md-ps__bar[^"]*"[^>]*><span>([\s\S]*?)<\/span><span>([\s\S]*?)<\/span>/i);
+        const hWidth = barParts ? (barParts[1].match(/width:\s*([\d\.]+%?)/i)?.[1] || "50%") : "50%";
+        const aWidth = barParts ? (barParts[2].match(/width:\s*([\d\.]+%?)/i)?.[1] || "50%") : "50%";
+
+        const hMiss = barParts ? barParts[1].match(/--from:\s*([\d\.]+%?);\s*--to:\s*([\d\.]+%?)/i) : null;
+        const aMiss = barParts ? barParts[2].match(/--from:\s*([\d\.]+%?);\s*--to:\s*([\d\.]+%?)/i) : null;
+
+        const hTick = barParts ? barParts[1].match(/--p:\s*([\d\.]+%?)/i)?.[1] || null : null;
+        const aTick = barParts ? barParts[2].match(/--p:\s*([\d\.]+%?)/i)?.[1] || null : null;
+
+        return {
+          label: lbl ? clean(lbl[1]) : "",
+          home: hActual,
+          away: aActual,
+          homeActual: hActual,
+          homePredicted: hPredicted,
+          homeLead: hLead,
+          homeWidth: hWidth,
+          homeTick: hTick,
+          homeMiss: hMiss ? { from: hMiss[1], to: hMiss[2] } : null,
+          awayActual: aActual,
+          awayPredicted: aPredicted,
+          awayLead: aLead,
+          awayWidth: aWidth,
+          awayTick: aTick,
+          awayMiss: aMiss ? { from: aMiss[1], to: aMiss[2] } : null,
+        };
+      });
+    };
+
+    const predPanel = html.match(/data-ps-panel="pred"[\s\S]*?<div class="md-ps__rows">([\s\S]*?)<\/div>\s*<\/div>/i);
+    const realPanel = html.match(/data-ps-panel="real"[\s\S]*?<div class="md-ps__rows">([\s\S]*?)<\/div>\s*<\/div>/i);
+    const cmpPanel = html.match(/data-ps-panel="cmp"[\s\S]*?<div class="md-ps__rows">([\s\S]*?)<\/div>\s*<\/div>/i);
+
+    const hasStatsTabs = Boolean(predPanel || realPanel || cmpPanel);
+    const predRows = parseStatRows(predPanel ? predPanel[1] : null);
+    const realRows = parseStatRows(realPanel ? realPanel[1] : null);
+    const cmpRows = parseStatRows(cmpPanel ? cmpPanel[1] : null);
+
     const statsSec = html.match(/<section id="statistics"[\s\S]*?<\/section>/i);
-    if (statsSec) {
-      const rows = [...statsSec[0].matchAll(/<div class="md-ps__row"><span class="md-ps__lbl"><span>([^<]+)<\/span><\/span><span class="md-ps__v md-ps__v--h([^"]*)">[\s\S]*?<\/span>([^<]+)<\/span><span class="md-ps__v md-ps__v--a([^"]*)">[\s\S]*?<\/span>([^<]+)<\/span>/gi)];
-      details.statistics = rows.map((r) => ({
-        label: clean(r[1]),
-        home: clean(r[3]),
-        away: clean(r[5]),
-        homeLead: r[2].includes("is-lead"),
-        awayLead: r[4].includes("is-lead"),
-      }));
+    let fallbackRows: StatItem[] = [];
+    if (statsSec && (!cmpRows.length && !predRows.length && !realRows.length)) {
+      fallbackRows = parseStatRows(statsSec[0]);
     }
+
+    details.statistics = cmpRows.length ? cmpRows : predRows.length ? predRows : fallbackRows;
+    details.statsDetails = {
+      hasTabs: hasStatsTabs,
+      predicted: predRows,
+      actual: realRows,
+      comparison: cmpRows,
+    };
 
     // 8. Section #form
     const formSec = html.match(/<section id="form"[\s\S]*?<\/section>/i);
@@ -1582,6 +1687,31 @@ export interface AiProgressScrapedData {
   scrapedAt: string;
 }
 
+export interface StatItem {
+  label: string;
+  home: string;
+  away: string;
+  homeActual?: string;
+  homePredicted?: string;
+  homeLead?: boolean;
+  homeWidth?: string;
+  homeTick?: string | null;
+  homeMiss?: { from: string; to: string } | null;
+  awayActual?: string;
+  awayPredicted?: string;
+  awayLead?: boolean;
+  awayWidth?: string;
+  awayTick?: string | null;
+  awayMiss?: { from: string; to: string } | null;
+}
+
+export interface StatsPanels {
+  hasTabs: boolean;
+  predicted: StatItem[];
+  actual: StatItem[];
+  comparison: StatItem[];
+}
+
 export interface FullMatchDetails {
   matchId: string;
   hero: {
@@ -1622,13 +1752,8 @@ export interface FullMatchDetails {
       score: { home: string; away: string } | null;
     }>;
   };
-  statistics: Array<{
-    label: string;
-    home: string;
-    away: string;
-    homeLead: boolean;
-    awayLead: boolean;
-  }>;
+  statistics: StatItem[];
+  statsDetails?: StatsPanels;
   form: Array<{
     label: string;
     home: string;

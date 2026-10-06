@@ -142,7 +142,15 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
   }, [matchDetails, fixture, hero]);
 
   // Statistics section
+  const [statsTab, setStatsTab] = useState<"cmp" | "pred" | "real">("cmp");
+  const statsDetails = matchDetails?.statsDetails;
+
   const statistics = useMemo(() => {
+    if (statsDetails?.hasTabs) {
+      if (statsTab === "pred" && statsDetails.predicted?.length) return statsDetails.predicted;
+      if (statsTab === "real" && statsDetails.actual?.length) return statsDetails.actual;
+      if (statsTab === "cmp" && statsDetails.comparison?.length) return statsDetails.comparison;
+    }
     if (matchDetails?.statistics && matchDetails.statistics.length > 0) {
       return matchDetails.statistics;
     }
@@ -154,7 +162,7 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
       { label: "Ball Possession %", home: "54%", away: "46%", homeLead: true, awayLead: false },
       { label: "Total Shots", home: "13.2", away: "10.5", homeLead: true, awayLead: false },
     ];
-  }, [matchDetails]);
+  }, [matchDetails, statsDetails, statsTab]);
 
   // Form section
   const form = useMemo(() => {
@@ -204,7 +212,11 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
   // Helper for 10-pip confidence track
   const renderConfidencePips = (confText?: string | null) => {
     if (!confText) return null;
-    const num = parseFloat(confText.replace(/\/10/, "").trim()) || 7;
+    let num = parseFloat(confText.replace(/\/10/, "").replace("%", "").trim()) || 7;
+    // Scale percentages (e.g. 75% or 35%) down to 0-10 scale
+    if (num > 10) {
+      num = num / 10;
+    }
     const activeCount = Math.min(10, Math.max(1, Math.round(num)));
 
     return (
@@ -899,9 +911,47 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
         </div>
       </section>
 
-      {/* ── 5. Section #statistics (Statistics) ── */}
+      {/* ── 5. Section #statistics (Stats: predicted vs actual) ── */}
       <section id="statistics" style={{ marginBottom: 40 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", marginBottom: 14 }}>Statistics</h2>
+        {/* Section Title Header with Icon and + AI badge */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: "rgba(99, 102, 241, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#818cf8",
+              }}
+            >
+              <BarChart2 size={16} />
+            </span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+              Stats: predicted vs actual
+            </h2>
+          </div>
+          <span
+            style={{
+              background: "rgba(99, 102, 241, 0.14)",
+              border: "1px solid rgba(129, 140, 248, 0.3)",
+              borderRadius: 999,
+              padding: "3px 10px",
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#a5b4fc",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              letterSpacing: 0.5,
+            }}
+          >
+            + AI
+          </span>
+        </div>
 
         <div
           style={{
@@ -912,19 +962,66 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              textAlign: "center",
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              color: "#a198f7",
-              marginBottom: 16,
-            }}
-          >
-            Average / Match
-          </div>
+          {/* Subheader: Tabs or Average */}
+          {statsDetails?.hasTabs ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 20,
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "rgba(10, 8, 28, 0.7)",
+                  border: "1px solid rgba(161, 152, 247, 0.15)",
+                  borderRadius: 10,
+                  padding: 3,
+                  gap: 4,
+                }}
+              >
+                {[
+                  { id: "pred", label: "Predicted" },
+                  { id: "real", label: "Actual" },
+                  { id: "cmp", label: "Comparison" },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setStatsTab(t.id as any)}
+                    style={{
+                      padding: "6px 16px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: statsTab === t.id ? 700 : 500,
+                      color: statsTab === t.id ? "#ffffff" : "#94a3b8",
+                      background: statsTab === t.id ? "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      boxShadow: statsTab === t.id ? "0 2px 8px rgba(99, 102, 241, 0.35)" : "none",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: "#a198f7",
+                marginBottom: 16,
+              }}
+            >
+              Average / Match
+            </div>
+          )}
 
           {/* Teams Header */}
           <div
@@ -934,79 +1031,284 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
               alignItems: "center",
               paddingBottom: 14,
               borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-              marginBottom: 16,
+              marginBottom: 14,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {hero.homeTeam.logo && (
-                <img src={hero.homeTeam.logo} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                <img src={hero.homeTeam.logo} alt="" width={22} height={22} style={{ objectFit: "contain" }} />
               )}
               <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc" }}>{hero.homeTeam.name}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc" }}>{hero.awayTeam.name}</span>
               {hero.awayTeam.logo && (
-                <img src={hero.awayTeam.logo} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                <img src={hero.awayTeam.logo} alt="" width={22} height={22} style={{ objectFit: "contain" }} />
               )}
             </div>
           </div>
 
+          {/* If Comparison mode: Subheader Actual | Predicted */}
+          {statsDetails?.hasTabs && statsTab === "cmp" && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                paddingBottom: 10,
+                marginBottom: 12,
+                borderBottom: "1px dashed rgba(255, 255, 255, 0.06)",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: "#f8fafc", letterSpacing: "0.06em", textTransform: "uppercase", lineHeight: 1 }}>
+                  ACTUAL
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9.5, fontWeight: 700, color: "#a198f7", letterSpacing: "0.04em", textTransform: "uppercase", lineHeight: 1 }}>
+                  <i style={{ display: "inline-block", width: 2, height: 8, borderRadius: 1, background: "#a78bfa" }} />
+                  PREDICTED
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: "#f8fafc", letterSpacing: "0.06em", textTransform: "uppercase", lineHeight: 1 }}>
+                  ACTUAL
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9.5, fontWeight: 700, color: "#a198f7", letterSpacing: "0.04em", textTransform: "uppercase", lineHeight: 1 }}>
+                  <i style={{ display: "inline-block", width: 2, height: 8, borderRadius: 1, background: "#a78bfa" }} />
+                  PREDICTED
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Metric Comparison Rows */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {statistics.map((row: any, idx: number) => {
-              const hVal = parseFloat(row.home.replace(/%/, "")) || 0;
-              const aVal = parseFloat(row.away.replace(/%/, "")) || 0;
+              const isComparison = statsDetails?.hasTabs && statsTab === "cmp";
+
+              const hVal = parseFloat((row.homeActual || row.home || "0").replace(/%/, "")) || 0;
+              const aVal = parseFloat((row.awayActual || row.away || "0").replace(/%/, "")) || 0;
               const total = hVal + aVal;
-              const hPct = total > 0 ? Math.round((hVal / total) * 100) : 50;
+              const fallbackHPct = total > 0 ? Math.round((hVal / total) * 100) : 50;
+
+              const homeBarWidth = row.homeWidth ? row.homeWidth : `${fallbackHPct}%`;
+              const awayBarWidth = row.awayWidth ? row.awayWidth : `${100 - fallbackHPct}%`;
 
               return (
-                <div key={idx}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-                    <span
-                      style={{
-                        fontWeight: row.homeLead ? 800 : 500,
-                        color: row.homeLead ? "#c4b5fd" : "#cbd5e1",
-                      }}
-                    >
-                      {row.home}
-                    </span>
-                    <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>{row.label}</span>
-                    <span
-                      style={{
-                        fontWeight: row.awayLead ? 800 : 500,
-                        color: row.awayLead ? "#c4b5fd" : "#cbd5e1",
-                      }}
-                    >
-                      {row.away}
-                    </span>
-                  </div>
-
-                  {/* Dual comparison bar */}
+                <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                  {/* Values & Label */}
                   <div
                     style={{
-                      height: 6,
-                      borderRadius: 3,
-                      background: "rgba(255, 255, 255, 0.06)",
-                      display: "flex",
-                      overflow: "hidden",
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto 1fr",
+                      alignItems: "center",
+                      columnGap: 8,
                     }}
                   >
+                    {/* Home Side Value - Stacked in Comparison */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: row.homeLead ? 900 : 700,
+                          color: row.homeLead ? "#ffffff" : "#cbd5e1",
+                          lineHeight: 1.1,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {isComparison ? (row.homeActual || row.home) : row.home}
+                      </span>
+                      {isComparison && row.homePredicted && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: "#94a3b8",
+                            lineHeight: 1,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          <i style={{ display: "inline-block", width: 2, height: 9, borderRadius: 1, background: "#a78bfa" }} />
+                          {row.homePredicted}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Metric Label (Centered) */}
                     <div
                       style={{
-                        width: `${hPct}%`,
-                        background: row.homeLead
-                          ? "linear-gradient(90deg, #7c3aed, #a78bfa)"
-                          : "rgba(167, 139, 250, 0.35)",
+                        fontSize: 11,
+                        color: "#94a3b8",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.8,
+                        textAlign: "center",
+                        padding: "0 8px",
                       }}
-                    />
+                    >
+                      {row.label}
+                    </div>
+
+                    {/* Away Side Value - Stacked in Comparison */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: row.awayLead ? 900 : 700,
+                          color: row.awayLead ? "#ffffff" : "#cbd5e1",
+                          lineHeight: 1.1,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {isComparison ? (row.awayActual || row.away) : row.away}
+                      </span>
+                      {isComparison && row.awayPredicted && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: "#94a3b8",
+                            lineHeight: 1,
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          <i style={{ display: "inline-block", width: 2, height: 9, borderRadius: 1, background: "#a78bfa" }} />
+                          {row.awayPredicted}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dual Comparison Horizontal Bar (Mirrored from center) */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 2,
+                      height: 11,
+                      alignItems: "center",
+                    }}
+                  >
+                    {/* Left (Home) Bar container - fills right-to-left */}
                     <div
                       style={{
-                        width: `${100 - hPct}%`,
-                        background: row.awayLead
-                          ? "linear-gradient(90deg, #a78bfa, #7c3aed)"
-                          : "rgba(148, 163, 184, 0.25)",
+                        flex: 1,
+                        height: 11,
+                        borderRadius: "4px 0 0 4px",
+                        background: "rgba(161, 152, 247, 0.09)",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        position: "relative",
+                        overflow: "hidden",
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          width: homeBarWidth,
+                          height: "100%",
+                          background: row.homeLead
+                            ? "linear-gradient(90deg, #6366f1 0%, #818cf8 100%)"
+                            : "rgba(161, 152, 247, 0.22)",
+                          borderRadius: "4px 0 0 4px",
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                      {/* Miss stripe overlay if in comparison */}
+                      {isComparison && row.homeMiss && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            right: row.homeMiss.from,
+                            width: `calc(${row.homeMiss.to} - ${row.homeMiss.from})`,
+                            top: 0,
+                            bottom: 0,
+                            background:
+                              "repeating-linear-gradient(135deg, rgba(167, 139, 250, 0.32) 0 1.5px, transparent 1.5px 5px)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {/* Tick marker line if in comparison */}
+                      {isComparison && row.homeTick && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: -2,
+                            bottom: -2,
+                            width: 2,
+                            borderRadius: 1,
+                            background: "#c4b5fd",
+                            right: `calc(${row.homeTick} - 1px)`,
+                            boxShadow: "0 0 0 1px rgba(13, 10, 34, 0.55)",
+                            pointerEvents: "none",
+                            zIndex: 2,
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Right (Away) Bar container - fills left-to-right */}
+                    <div
+                      style={{
+                        flex: 1,
+                        height: 11,
+                        borderRadius: "0 4px 4px 0",
+                        background: "rgba(161, 152, 247, 0.09)",
+                        display: "flex",
+                        justifyContent: "flex-start",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: awayBarWidth,
+                          height: "100%",
+                          background: row.awayLead
+                            ? "linear-gradient(90deg, #818cf8 0%, #6366f1 100%)"
+                            : "rgba(161, 152, 247, 0.22)",
+                          borderRadius: "0 4px 4px 0",
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                      {/* Miss stripe overlay if in comparison */}
+                      {isComparison && row.awayMiss && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: row.awayMiss.from,
+                            width: `calc(${row.awayMiss.to} - ${row.awayMiss.from})`,
+                            top: 0,
+                            bottom: 0,
+                            background:
+                              "repeating-linear-gradient(135deg, rgba(167, 139, 250, 0.32) 0 1.5px, transparent 1.5px 5px)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {/* Tick marker line if in comparison */}
+                      {isComparison && row.awayTick && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: -2,
+                            bottom: -2,
+                            width: 2,
+                            borderRadius: 1,
+                            background: "#c4b5fd",
+                            left: `calc(${row.awayTick} - 1px)`,
+                            boxShadow: "0 0 0 1px rgba(13, 10, 34, 0.55)",
+                            pointerEvents: "none",
+                            zIndex: 2,
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
