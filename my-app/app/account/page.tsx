@@ -66,7 +66,6 @@ export default function AccountPage() {
       user.role === "ADMIN" ||
       ((user.subscriptionPlan === "VIP_PRO" ||
         user.subscriptionPlan === "VIP_MONTHLY" ||
-        user.subscriptionPlan === "VIP_ANNUAL" ||
         user.subscriptionPlan === "PRO" ||
         user.subscriptionPlan === "PREMIUM" ||
         user.subscriptionPlan === "VIP") &&

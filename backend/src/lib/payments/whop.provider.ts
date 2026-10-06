@@ -183,16 +183,10 @@ export class WhopPaymentProvider implements IPaymentProvider {
 
     // Resolve internal plan ID
     let planId: PlanId = "PREMIUM_MONTHLY";
-    if (metadata.planId === "VIP_ANNUAL" || metadata.planId === "VIP_MONTHLY" || metadata.planId === "PREMIUM_MONTHLY") {
+    if (metadata.planId === "VIP_MONTHLY" || metadata.planId === "PREMIUM_MONTHLY") {
       planId = metadata.planId;
     } else if (data.plan_id) {
       if (
-        data.plan_id === process.env.WHOP_PLAN_VIP_ANNUAL ||
-        data.plan_id.toLowerCase().includes("annual") ||
-        data.plan_id.toLowerCase().includes("year")
-      ) {
-        planId = "VIP_ANNUAL";
-      } else if (
         data.plan_id === process.env.WHOP_PLAN_VIP_MONTHLY ||
         data.plan_id === "plan_DfSUCcAweadIa" ||
         data.plan_id.toLowerCase().includes("vip")
@@ -224,7 +218,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
       }
     }
     if (!currentPeriodEnd) {
-      const daysToAdd = planId === "VIP_ANNUAL" ? 365 : 30;
+      const daysToAdd = 30;
       currentPeriodEnd = new Date(Date.now() + daysToAdd * 86400000);
     }
 

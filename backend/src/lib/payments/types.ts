@@ -1,4 +1,4 @@
-export type PlanId = "PREMIUM_MONTHLY" | "VIP_MONTHLY" | "VIP_ANNUAL";
+export type PlanId = "PREMIUM_MONTHLY" | "VIP_MONTHLY";
 
 export interface CreateCheckoutInput {
   userId: string;

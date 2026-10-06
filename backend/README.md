@@ -115,9 +115,7 @@ npm start
 | `WHOP_API_KEY` | Whop developer API key | Optional (for dynamic checkout config) |
 | `WHOP_WEBHOOK_SECRET` | Whop webhook secret (`ws_...`) | From Whop Developer Dashboard |
 | `WHOP_PLAN_VIP_MONTHLY` | Whop plan ID for VIP Monthly | e.g. `plan_xxxxxxxx` |
-| `WHOP_PLAN_VIP_ANNUAL` | Whop plan ID for VIP Annual | e.g. `plan_yyyyyyyy` |
 | `WHOP_CHECKOUT_URL_VIP_MONTHLY`| Optional direct Whop checkout URL for monthly | e.g. `https://whop.com/checkout/plan_xxx` |
-| `WHOP_CHECKOUT_URL_VIP_ANNUAL` | Optional direct Whop checkout URL for annual | e.g. `https://whop.com/checkout/plan_yyy` |
 | `WHOP_CUSTOMER_PORTAL_URL` | Whop customer billing hub | `https://whop.com/hub` |
 
 

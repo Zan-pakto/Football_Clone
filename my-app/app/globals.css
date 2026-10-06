@@ -186,6 +186,47 @@ body {
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
+.gold-outline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #a79fff;
+  background: rgba(27, 24, 61, 0.7);
+  border: 1px solid rgba(167, 159, 255, 0.25);
+  box-shadow: 0 2px 10px rgba(10, 8, 29, 0.4);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+.gold-outline-btn:hover {
+  background: rgba(124, 108, 245, 0.15);
+  border-color: rgba(167, 159, 255, 0.5);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.vip-gold-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  font-weight: 800;
+  color: #08071e;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  cursor: pointer;
+}
+.vip-gold-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.55);
+  transform: translateY(-1px);
+}
 .gold-badge {
   display: inline-flex;
   align-items: center;

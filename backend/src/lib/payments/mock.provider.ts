@@ -44,8 +44,8 @@ export class MockPaymentProvider implements IPaymentProvider {
 
     console.log(`[MockPaymentProvider] Received mock webhook event: ${eventType} (${eventId})`);
 
-    // Calculate next renewal date (1 month or 1 year)
-    const intervalDays = payload.planId === "VIP_ANNUAL" ? 365 : 30;
+    // Calculate next renewal date (1 month)
+    const intervalDays = 30;
     const currentPeriodEnd = new Date(Date.now() + intervalDays * 86400000);
 
     const derivedUserId = payload.userId || (typeof payload.providerCustId === "string" && payload.providerCustId.startsWith("mock_cus_") ? payload.providerCustId.replace("mock_cus_", "") : undefined);

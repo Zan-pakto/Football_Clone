@@ -289,7 +289,7 @@ model Session {
 model Subscription {
   id                String             @id @default(uuid())
   userId            String             @map("user_id")
-  plan              String             @default("VIP_MONTHLY") // "FREE" | "VIP_MONTHLY" | "VIP_ANNUAL"
+  plan              String             @default("VIP_MONTHLY") // "FREE" | "PREMIUM_MONTHLY" | "VIP_PRO" | "VIP_MONTHLY"
   status            SubscriptionStatus @default(ACTIVE)
 
   // Decoupled Payment Fields

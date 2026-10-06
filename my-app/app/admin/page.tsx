@@ -41,7 +41,7 @@ interface AdminUser {
   email: string;
   role: "USER" | "ADMIN";
   isBlocked: boolean;
-  tier: "FREE" | "PREMIUM_MONTHLY" | "PREMIUM_ANNUAL" | "VIP_PRO";
+  tier: "FREE" | "PREMIUM_MONTHLY" | "VIP_PRO";
   subscriptionStatus: "ACTIVE" | "EXPIRED" | "CANCELLED" | "TRIALING" | "NONE";
   subscriptionExpiresAt: string | null;
   createdAt: string;
@@ -1147,7 +1147,6 @@ export default function AdminDashboardPage() {
                               >
                                 <option value="FREE">FREE</option>
                                 <option value="PREMIUM_MONTHLY">PREMIUM_MONTHLY</option>
-                                <option value="PREMIUM_ANNUAL">PREMIUM_ANNUAL</option>
                                 <option value="VIP_PRO">VIP_PRO</option>
                               </select>
                             </td>

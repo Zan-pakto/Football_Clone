@@ -7,7 +7,7 @@ export interface AdminUserRecord {
   email: string;
   role: "USER" | "ADMIN";
   isBlocked: boolean;
-  tier: "FREE" | "PREMIUM_MONTHLY" | "PREMIUM_ANNUAL" | "VIP_PRO";
+  tier: "FREE" | "PREMIUM_MONTHLY" | "VIP_PRO";
   subscriptionStatus: "ACTIVE" | "EXPIRED" | "CANCELLED" | "TRIALING" | "NONE";
   subscriptionExpiresAt: string | null;
   createdAt: string;
@@ -91,12 +91,10 @@ export class AdminService {
   /**
    * Update User Subscription Tier
    */
-  async updateUserTier(userId: string, tier: "FREE" | "PREMIUM_MONTHLY" | "PREMIUM_ANNUAL" | "VIP_PRO"): Promise<boolean> {
+  async updateUserTier(userId: string, tier: "FREE" | "PREMIUM_MONTHLY" | "VIP_PRO"): Promise<boolean> {
     const isFree = tier === "FREE";
     const expiresAt = isFree
       ? null
-      : tier === "PREMIUM_ANNUAL"
-      ? new Date(Date.now() + 365 * 86400000).toISOString()
       : tier === "VIP_PRO"
       ? new Date(Date.now() + 365 * 2 * 86400000).toISOString()
       : new Date(Date.now() + 30 * 86400000).toISOString();
@@ -275,7 +273,7 @@ export class AdminService {
       } else if (params.tier === "SUBSCRIBED") {
         allUsers = allUsers.filter((u) => u.tier !== "FREE");
       } else if (params.tier === "VIP") {
-        allUsers = allUsers.filter((u) => u.tier === "VIP_PRO" || u.tier === "PREMIUM_ANNUAL");
+        allUsers = allUsers.filter((u) => u.tier === "VIP_PRO");
       }
     }
 

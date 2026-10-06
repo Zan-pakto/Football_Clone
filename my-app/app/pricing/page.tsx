@@ -17,7 +17,6 @@ function getValidToken(): string | null {
 
 export default function PricingPage() {
   const router = useRouter();
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [loading, setLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -63,7 +62,7 @@ export default function PricingPage() {
   const isVipActive = Boolean(subStatus?.hasActiveSubscription && !subStatus?.isExpired);
   const isExpired = Boolean(subStatus?.isExpired);
 
-  const handleCheckout = async (planId: "PREMIUM_MONTHLY" | "VIP_MONTHLY" | "VIP_ANNUAL") => {
+  const handleCheckout = async (planId: "PREMIUM_MONTHLY" | "VIP_MONTHLY") => {
     setErrorMessage(null);
 
     // Frontend guard: do not allow checkout if user is already an active VIP
@@ -184,46 +183,22 @@ export default function PricingPage() {
             Get unlimited access to all algorithmic high-confidence match predictions, Bet of the Day, and value accumulators.
           </p>
 
-          {/* Billing Cycle Toggle */}
-          <div style={{ display: "inline-flex", background: "var(--surface-raised)", padding: 4, borderRadius: 10, border: "1px solid var(--border-color)", marginTop: 28 }}>
-            <button
-              onClick={() => setBillingCycle("monthly")}
-              style={{
-                padding: "8px 18px",
-                borderRadius: 7,
-                border: "none",
-                background: billingCycle === "monthly" ? "var(--gold)" : "transparent",
-                color: billingCycle === "monthly" ? "var(--gold-btn-text)" : "var(--text-secondary)",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              Monthly Billing
-            </button>
-            <button
-              onClick={() => setBillingCycle("annual")}
-              style={{
-                padding: "8px 18px",
-                borderRadius: 7,
-                border: "none",
-                background: billingCycle === "annual" ? "var(--gold)" : "transparent",
-                color: billingCycle === "annual" ? "var(--gold-btn-text)" : "var(--text-secondary)",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "all 0.15s ease",
-              }}
-            >
-              <span>Annual Billing</span>
-              <span style={{ fontSize: 10, background: "rgba(16, 185, 129, 0.2)", color: "var(--accent-green)", padding: "1px 6px", borderRadius: 4, fontWeight: 800 }}>
-                SAVE 25%
-              </span>
-            </button>
+          {/* Simple Monthly Billing Sub-badge */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(124, 108, 245, 0.08)",
+            border: "1px solid rgba(167, 159, 255, 0.2)",
+            padding: "8px 18px",
+            borderRadius: 24,
+            marginTop: 26,
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--text-secondary)",
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent-green)" }} />
+            <span>All Memberships Billed Monthly &bull; Cancel Anytime</span>
           </div>
         </div>
 
@@ -289,8 +264,11 @@ export default function PricingPage() {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
+            height: "100%",
+            boxSizing: "border-box",
+            borderRadius: 14,
           }}>
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--text-primary)" }}>Free Starter</h3>
                 <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "var(--surface-raised)", color: "var(--text-dim)", border: "1px solid var(--border-color)" }}>
@@ -306,7 +284,7 @@ export default function PricingPage() {
                 <span style={{ fontSize: 13, color: "var(--text-dim)" }}>/month</span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
                   "7 Free Daily Match Tips",
                   "Standard 1X2 Match Predictions",
@@ -325,10 +303,12 @@ export default function PricingPage() {
               href="/all-matches"
               className="gold-outline-btn"
               style={{
+                width: "100%",
                 display: "block",
                 textAlign: "center",
-                padding: "12px",
+                padding: "13px",
                 fontSize: 14,
+                boxSizing: "border-box",
               }}
             >
               Get Started Free
@@ -342,8 +322,11 @@ export default function PricingPage() {
             flexDirection: "column",
             justifyContent: "space-between",
             borderColor: "var(--gold)",
-            boxShadow: "var(--shadow-glow)",
+            boxShadow: "0 0 25px rgba(124, 108, 245, 0.25)",
             position: "relative",
+            height: "100%",
+            boxSizing: "border-box",
+            borderRadius: 14,
           }}>
             <div style={{ position: "absolute", top: -12, right: 20 }}>
               <span className="gold-badge" style={{ background: "var(--gold)", color: "var(--gold-btn-text)", borderColor: "var(--gold)", fontWeight: 800 }}>
@@ -351,7 +334,7 @@ export default function PricingPage() {
               </span>
             </div>
 
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--gold)" }}>
                   Premium Pro
@@ -367,7 +350,7 @@ export default function PricingPage() {
                 <span style={{ fontSize: 13, color: "var(--text-dim)" }}>/month</span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
                   "Unlimited Banker of the Day Access",
                   "100k Monte Carlo Simulated Probabilities",
@@ -399,6 +382,7 @@ export default function PricingPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
+                  boxSizing: "border-box",
                 }}
               >
                 <RefreshCw size={14} className="animate-spin" />
@@ -416,6 +400,7 @@ export default function PricingPage() {
                   textAlign: "center",
                   padding: "13px",
                   fontSize: 14,
+                  boxSizing: "border-box",
                 }}
               >
                 <span>Access Premium Predictions</span>
@@ -438,6 +423,7 @@ export default function PricingPage() {
                   justifyContent: "center",
                   gap: 8,
                   opacity: loading ? 0.7 : 1,
+                  boxSizing: "border-box",
                 }}
               >
                 {loading && loadingPlan === "PREMIUM_MONTHLY" ? (
@@ -461,21 +447,27 @@ export default function PricingPage() {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            borderColor: "rgba(234, 179, 8, 0.4)",
+            borderColor: "rgba(245, 158, 11, 0.45)",
+            boxShadow: "0 0 25px rgba(245, 158, 11, 0.15)",
             position: "relative",
+            height: "100%",
+            boxSizing: "border-box",
+            borderRadius: 14,
           }}>
             <div style={{ position: "absolute", top: -12, right: 20 }}>
-              <span className="gold-badge" style={{ background: "rgba(234, 179, 8, 0.15)", color: "var(--gold)", borderColor: "var(--gold)" }}>
+              <span className="gold-badge" style={{ background: "rgba(245, 158, 11, 0.18)", color: "#f59e0b", borderColor: "rgba(245, 158, 11, 0.5)", fontWeight: 800 }}>
                 <Crown size={11} /> VIP ELITE
               </span>
             </div>
 
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--text-primary)" }}>
-                  VIP Pro {billingCycle === "annual" ? "Annual" : "Monthly"}
+                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#f59e0b" }}>
+                  VIP Pro
                 </h3>
-                <span className="gold-badge">All Access</span>
+                <span className="gold-badge" style={{ background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", borderColor: "rgba(245, 158, 11, 0.3)" }}>
+                  All Access
+                </span>
               </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 20 }}>
                 Ultimate betting intelligence suite with exclusive VIP Telegram broadcast alerts and priority bankers.
@@ -483,14 +475,14 @@ export default function PricingPage() {
 
               <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
                 <span style={{ fontSize: 36, fontWeight: 900, color: "var(--text-primary)" }}>
-                  {billingCycle === "annual" ? "$179.99" : "$19.99"}
+                  $19.99
                 </span>
                 <span style={{ fontSize: 13, color: "var(--text-dim)" }}>
-                  {billingCycle === "annual" ? "/year (~$14.99/mo)" : "/month"}
+                  /month
                 </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
                   "Everything in Premium Pro Included",
                   "Exclusive VIP Telegram Channel & Instant Alerts",
@@ -500,7 +492,7 @@ export default function PricingPage() {
                   "Early Access to Machine Learning Models",
                 ].map((feat) => (
                   <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
-                    <Check size={16} color="var(--gold)" />
+                    <Check size={16} color="#f59e0b" />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -522,6 +514,7 @@ export default function PricingPage() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
+                  boxSizing: "border-box",
                 }}
               >
                 <RefreshCw size={14} className="animate-spin" />
@@ -540,7 +533,7 @@ export default function PricingPage() {
 
                 <Link
                   href="/all-matches"
-                  className="gold-btn"
+                  className="vip-gold-btn"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -549,6 +542,7 @@ export default function PricingPage() {
                     textAlign: "center",
                     padding: "13px",
                     fontSize: 14,
+                    boxSizing: "border-box",
                   }}
                 >
                   <span>Access VIP Predictions</span>
@@ -557,9 +551,9 @@ export default function PricingPage() {
               </div>
             ) : (
               <button
-                onClick={() => handleCheckout(billingCycle === "annual" ? "VIP_ANNUAL" : "VIP_MONTHLY")}
+                onClick={() => handleCheckout("VIP_MONTHLY")}
                 disabled={loading}
-                className="gold-outline-btn"
+                className="vip-gold-btn"
                 style={{
                   width: "100%",
                   textAlign: "center",
@@ -572,18 +566,17 @@ export default function PricingPage() {
                   justifyContent: "center",
                   gap: 8,
                   opacity: loading ? 0.7 : 1,
-                  borderColor: "var(--gold)",
-                  color: "var(--gold)",
+                  boxSizing: "border-box",
                 }}
               >
-                {loading && (loadingPlan === "VIP_MONTHLY" || loadingPlan === "VIP_ANNUAL") ? (
+                {loading && loadingPlan === "VIP_MONTHLY" ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
                     <span>Securing Checkout...</span>
                   </>
                 ) : isExpired ? (
                   <>
-                    <span>Renew VIP Pro Now</span>
+                    <span>Renew VIP Pro ($19.99)</span>
                     <ArrowRight size={16} />
                   </>
                 ) : (
