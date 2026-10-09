@@ -4,6 +4,7 @@ import { IPaymentProvider } from "./provider";
 import { WhopPaymentProvider } from "./whop.provider";
 import { StripePaymentProvider } from "./stripe.provider";
 import { MockPaymentProvider } from "./mock.provider";
+import { BachsPaymentProvider } from "./bachs.provider";
 import {
   CreateCheckoutInput,
   CheckoutResult,
@@ -23,6 +24,9 @@ export class PaymentService {
     } else if (providerName === "stripe") {
       this.provider = new StripePaymentProvider();
       console.log("💳 [PaymentService] Initialized with STRIPE connector");
+    } else if (providerName === "bachs") {
+      this.provider = new BachsPaymentProvider();
+      console.log("💳 [PaymentService] Initialized with BACHS.IO connector");
     } else {
       this.provider = new MockPaymentProvider();
       console.log("💳 [PaymentService] Initialized with MOCK connector (Zero-Stripe/Zero-Whop dev mode)");
@@ -135,7 +139,7 @@ export class PaymentService {
                 providerSubId: event.providerSubId || `sub_${user.id}_${plan.id}`,
               },
               update: {
-                status: "ACTIVE",
+                status: (event.status === "TRIALING" ? "TRIALING" : "ACTIVE") as any,
                 plan: plan.id,
                 currentPeriodEnd: expiresAt,
                 expiresAt: expiresAt,
@@ -146,7 +150,7 @@ export class PaymentService {
               create: {
                 userId: user.id,
                 plan: plan.id,
-                status: "ACTIVE",
+                status: (event.status === "TRIALING" ? "TRIALING" : "ACTIVE") as any,
                 provider: event.provider,
                 providerSubId: event.providerSubId || `sub_${user.id}_${plan.id}`,
                 providerCustId: event.providerCustId,

@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ShieldCheck,
 } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 interface NavbarProps {
   liveCount?: number;
@@ -222,11 +223,12 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           top: 0,
           zIndex: 50,
           width: "100%",
-          background: isScrolled ? "rgba(10, 8, 29, 0.95)" : "rgba(10, 8, 29, 0.8)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderBottom: `1px solid ${isScrolled ? "rgba(167, 159, 255, 0.14)" : "rgba(167, 159, 255, 0.08)"}`,
-          transition: "background 0.25s ease, border-color 0.25s ease",
+          background: isScrolled ? "rgba(10, 8, 29, 0.96)" : "transparent",
+          backdropFilter: isScrolled ? "blur(14px)" : "none",
+          WebkitBackdropFilter: isScrolled ? "blur(14px)" : "none",
+          textShadow: "none",
+          borderBottom: isScrolled ? "1px solid rgba(167, 159, 255, 0.14)" : "1px solid transparent",
+          transition: "background-color 0.25s ease, border-color 0.25s ease",
         }}
       >
         <div
@@ -234,7 +236,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             maxWidth: 1360,
             margin: "0 auto",
             padding: "0 16px",
-            height: 60,
+            height: 68,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -252,34 +254,17 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: "linear-gradient(135deg, rgba(124, 108, 245, 0.3) 0%, rgba(106, 92, 240, 0.15) 100%)",
-                border: "1px solid rgba(124, 108, 245, 0.45)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                fontSize: 13,
-                color: "#ffffff",
-                letterSpacing: "-0.02em",
-                boxShadow: "0 0 14px rgba(124, 108, 245, 0.3)",
-              }}
-            >
-              JT
-            </div>
+            <BrandMark width={20} height={20} />
             <span
               style={{
                 fontSize: 17,
                 fontWeight: 900,
                 color: "#ffffff",
                 letterSpacing: "-0.02em",
+                textShadow: "0 0 12px rgba(167, 159, 255, 0.35)",
               }}
             >
-              JOLLOF<span style={{ color: "#8b7ff5" }}>TIPS</span>
+              JOLLOF<span style={{ color: "#ffffff" }}>TIPS</span>
             </span>
           </Link>
 
@@ -306,7 +291,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: isActive ? 800 : 600,
-                    color: isActive ? "#ffffff" : "#a79fff",
+                    color: "#ffffff",
                     background: isActive ? "rgba(124, 108, 245, 0.18)" : "transparent",
                     transition: "all 0.15s ease",
                     display: "inline-flex",
@@ -323,7 +308,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.color = "#a79fff";
+                      e.currentTarget.style.color = "#ffffff";
                       e.currentTarget.style.background = "transparent";
                     }
                   }}
@@ -347,7 +332,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 borderRadius: 8,
                 background: "#141132",
                 border: "1px solid rgba(167, 159, 255, 0.15)",
-                color: "#a79fff",
+                color: "#ffffff",
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -460,7 +445,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   borderRadius: 8,
                   background: "rgba(124, 108, 245, 0.18)",
                   border: "1px solid rgba(124, 108, 245, 0.45)",
-                  color: "#8b7ff5",
+                  color: "#ffffff",
                   fontSize: 12,
                   fontWeight: 800,
                   transition: "all 0.2s ease",
@@ -473,7 +458,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "rgba(124, 108, 245, 0.18)";
-                  e.currentTarget.style.color = "#8b7ff5";
+                  e.currentTarget.style.color = "#ffffff";
                 }}
               >
                 <Crown size={14} />
@@ -836,24 +821,9 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: "rgba(124, 108, 245, 0.25)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 12,
-                    color: "#ffffff",
-                  }}
-                >
-                  JT
-                </div>
+                <BrandMark width={18} height={18} />
                 <span style={{ fontSize: 16, fontWeight: 900, color: "#ffffff" }}>
-                  JOLLOF<span style={{ color: "#8b7ff5" }}>TIPS</span>
+                  JOLLOF<span style={{ color: "#ffffff" }}>TIPS</span>
                 </span>
               </div>
 
@@ -1333,6 +1303,15 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
 
       {/* Global CSS for Navbar Responsive Breakpoints */}
       <style>{`
+        .navbar-desktop-links a,
+        .navbar-search-btn-desktop,
+        .navbar-search-btn-mobile,
+        .navbar-mobile-toggle,
+        .navbar-desktop-only[href="/pricing"],
+        .navbar-desktop-only > div > button {
+          color: #d4cde3 !important;
+        }
+
         .navbar-desktop-links {
           display: none !important;
         }

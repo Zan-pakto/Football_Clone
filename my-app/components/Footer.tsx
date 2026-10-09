@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShieldCheck, ArrowUpRight, ShieldAlert, Sparkles } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 interface FooterLink {
   label: string;
@@ -124,23 +125,7 @@ export default function Footer() {
                 marginBottom: 16,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "var(--gold-bg)",
-                  border: "1px solid var(--gold-border)",
-                  color: "var(--gold)",
-                  fontWeight: 900,
-                  fontSize: 15,
-                }}
-              >
-                JT
-              </div>
+              <BrandMark width={23} height={23} />
               <span
                 style={{
                   fontSize: 19,
@@ -149,7 +134,7 @@ export default function Footer() {
                   letterSpacing: "-0.03em",
                 }}
               >
-                JOLLOF<span style={{ color: "var(--gold)" }}>TIPS</span>
+                JOLLOF<span style={{ color: "#ffffff" }}>TIPS</span>
               </span>
             </Link>
 

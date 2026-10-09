@@ -1,6 +1,7 @@
 "use client";
 
-import { RefreshCw, Zap, ShieldCheck, Database, Clock } from "lucide-react";
+import { RefreshCw, ShieldCheck, Database, Clock } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 interface HeaderProps {
   liveCount: number;
@@ -24,9 +25,7 @@ export default function Header({
   return (
     <header className="sticky top-0 z-50 glass-header px-4 lg:px-8 py-3 flex items-center justify-between border-b border-slate-800/80 shadow-xl">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-          <Zap className="w-6 h-6 text-slate-950 font-black" />
-        </div>
+        <BrandMark width={22} height={22} />
         <div>
           <h1 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
             JollofTips <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 font-bold uppercase tracking-wider">AI ENGINE</span>

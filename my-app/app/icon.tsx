@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import BrandMark from "@/components/BrandMark";
 
 export const size = {
   width: 32,
@@ -16,17 +17,9 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-          borderRadius: "7px",
-          color: "#ffffff",
-          fontSize: "17px",
-          fontWeight: 900,
-          fontStyle: "italic",
-          letterSpacing: "-1px",
-          transform: "skew(-4deg)",
         }}
       >
-        JT
+        <BrandMark width={29} height={27} />
       </div>
     ),
     {

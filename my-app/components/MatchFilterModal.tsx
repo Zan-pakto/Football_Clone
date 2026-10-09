@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
+import styles from "./HomeMatchesFeed.module.css";
 
 export interface FilterState {
   market: "all" | "1x2" | "over15" | "over25" | "under25" | "btts" | "double_chance";
@@ -86,21 +87,10 @@ export default function MatchFilterModal({
     <>
       {/* ── Toolbar Container ── */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 10,
-          padding: "12px 16px",
-          background: "#141132",
-          border: "1px solid rgba(167, 159, 255, 0.12)",
-          borderRadius: 14,
-          marginBottom: 16,
-        }}
+        className={styles.toolbar}
       >
         {/* Left: Quick Market Pills */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <div className={styles.quickPills}>
           {[
             { id: "all", label: "All Markets" },
             { id: "1x2", label: "1X2 Winner" },
@@ -112,9 +102,9 @@ export default function MatchFilterModal({
               <button
                 key={m.id}
                 onClick={() => onFilterChange({ ...filters, market: m.id as any, category: "all" })}
+                className={styles.quickPill}
+                data-active={isActive}
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -132,9 +122,9 @@ export default function MatchFilterModal({
           {/* Quick Rating 8+ Button */}
           <button
             onClick={() => onFilterChange({ ...filters, minRating: filters.minRating === 8 ? 0 : 8 })}
+            className={styles.quickPill}
+            data-active={filters.minRating === 8}
             style={{
-              padding: "6px 12px",
-              borderRadius: 8,
               fontSize: 12,
               fontWeight: 800,
               cursor: "pointer",
@@ -154,9 +144,9 @@ export default function MatchFilterModal({
           {/* Quick Top Tips Button */}
           <button
             onClick={() => onFilterChange({ ...filters, category: filters.category === "top_tips" ? "all" : "top_tips" })}
+            className={styles.quickPill}
+            data-active={filters.category === "top_tips"}
             style={{
-              padding: "6px 12px",
-              borderRadius: 8,
               fontSize: 12,
               fontWeight: 800,
               cursor: "pointer",
@@ -175,38 +165,25 @@ export default function MatchFilterModal({
         </div>
 
         {/* Right: Search & Main Filter Modal Trigger */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className={styles.toolbarActions}>
           {/* Quick Search */}
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "#1b183d",
-              border: "1px solid rgba(167, 159, 255, 0.15)",
-              borderRadius: 8,
-              padding: "5px 10px",
-            }}
+            className={styles.searchControl}
           >
             <Search size={13} color="#7874a4" />
             <input
               type="text"
+              aria-label="Search team or league"
               placeholder="Search team or league..."
               value={filters.searchTerm}
               onChange={(e) => onFilterChange({ ...filters, searchTerm: e.target.value })}
-              style={{
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                color: "#ffffff",
-                fontSize: 12,
-                width: 140,
-              }}
+              className={styles.searchInput}
             />
             {filters.searchTerm && (
               <button
                 onClick={() => onFilterChange({ ...filters, searchTerm: "" })}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+                aria-label="Clear search"
+                className={styles.clearSearch}
               >
                 <X size={12} color="#7874a4" />
               </button>
@@ -216,20 +193,15 @@ export default function MatchFilterModal({
           {/* Master Filter Button (NerdyTips Style) */}
           <button
             onClick={() => setIsOpen(true)}
+            className={styles.filterTrigger}
+            data-active={activeCount > 0}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 800,
               cursor: "pointer",
               background: activeCount > 0 ? "linear-gradient(135deg, #8b7ff5 0%, #6a5cf0 100%)" : "#1b183d",
               color: "#ffffff",
               border: activeCount > 0 ? "1px solid #8b7ff5" : "1px solid rgba(167, 159, 255, 0.2)",
-              boxShadow: activeCount > 0 ? "0 4px 14px rgba(139, 127, 245, 0.4)" : "none",
-              transition: "all 0.15s ease",
             }}
           >
             <SlidersHorizontal size={14} />
@@ -258,15 +230,8 @@ export default function MatchFilterModal({
             <button
               onClick={resetFilters}
               title="Reset all filters"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#7874a4",
-                cursor: "pointer",
-                padding: "6px",
-                display: "flex",
-                alignItems: "center",
-              }}
+              aria-label="Reset all filters"
+              className={styles.resetButton}
             >
               <RotateCcw size={14} />
             </button>

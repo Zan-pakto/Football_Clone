@@ -1,0 +1,166 @@
+.terminal button:focus-visible,
+.terminal a:focus-visible {
+  outline: 2px solid #c4b5fd;
+  outline-offset: 3px;
+}
+
+.scenarioTabs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.terminalGlyph {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(167, 159, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(124, 108, 245, 0.12);
+  color: #b8b1ff;
+}
+
+.scenarioTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.scenarioTab {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+.scenarioTab[data-active="false"]:hover {
+  background: rgba(124, 108, 245, 0.14) !important;
+  color: #fff !important;
+}
+
+.matchup {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.team {
+  min-width: 0;
+}
+
+.team > div {
+  min-width: 0;
+}
+
+.teamName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketTabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.marketTab {
+  min-width: 0;
+  min-height: 40px;
+}
+
+.marketTab[data-active="false"]:hover {
+  background: rgba(124, 108, 245, 0.14) !important;
+  color: #fff !important;
+}
+
+.tipCopy {
+  min-width: 0;
+}
+
+.terminalActions > button {
+  min-height: 40px;
+}
+
+@media (max-width: 600px) {
+  .terminalHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px !important;
+  }
+
+  .terminalBrand {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .terminalTitle {
+    font-size: 10px !important;
+  }
+
+  .terminalTools {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .terminalBody {
+    padding: 16px 14px !important;
+    gap: 13px !important;
+  }
+
+  .matchup {
+    gap: 8px !important;
+    padding: 12px 10px !important;
+  }
+
+  .team {
+    gap: 7px !important;
+  }
+
+  .team img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .teamName {
+    font-size: 13px !important;
+  }
+
+  .teamMeta {
+    font-size: 10px !important;
+    white-space: nowrap;
+  }
+
+  .marketTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketTab {
+    padding: 8px 4px !important;
+  }
+
+  .marketLabels {
+    gap: 8px;
+    font-size: 10.5px !important;
+  }
+
+  .tipCard {
+    align-items: flex-start !important;
+    padding: 14px !important;
+  }
+
+  .tipContent {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .terminalActions {
+    width: 100%;
+  }
+
+  .terminalActions > button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .terminalFooter {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px !important;
+  }
+}

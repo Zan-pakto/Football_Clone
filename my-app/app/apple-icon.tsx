@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import BrandMark from "@/components/BrandMark";
 
 export const size = {
   width: 180,
@@ -16,17 +17,10 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-          borderRadius: "36px",
-          color: "#ffffff",
-          fontSize: "92px",
-          fontWeight: 900,
-          fontStyle: "italic",
-          letterSpacing: "-4px",
-          transform: "skew(-4deg)",
+          background: "#ffffff",
         }}
       >
-        JT
+        <BrandMark width={150} height={138} />
       </div>
     ),
     {

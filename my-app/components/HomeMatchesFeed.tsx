@@ -7,6 +7,7 @@ import LeagueGroupCard from "@/components/LeagueGroupCard";
 import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/MatchFilterModal";
 import { RotateCcw, CheckCircle2, ShieldCheck, Flame, Calendar, RefreshCw, Crown, Lock, ArrowRight } from "lucide-react";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
+import styles from "./HomeMatchesFeed.module.css";
 
 export interface LeagueGroupItem {
   leagueName: string;
@@ -370,45 +371,25 @@ export default function HomeMatchesFeed({
   const countYesterday = yesterdayGroups.reduce((acc, g) => acc + g.matches.length, 0) || totalYesterdayMatches;
 
   return (
-    <div>
+    <div className={styles.feed}>
       {/* ── Day Selection Bar: Today's Free Picks vs Yesterday's Free Picks ── */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 14,
-          marginBottom: 20,
-          padding: "10px 14px",
-          background: "#100d2b",
-          border: "1px solid rgba(124, 108, 245, 0.22)",
-          borderRadius: 14,
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
-        }}
+        className={styles.dayBar}
       >
         {/* Toggle Pills */}
-        <div style={{ display: "inline-flex", gap: 6 }}>
+        <div className={styles.dayTabs}>
           <button
             onClick={() => handleSelectDay("today")}
+            className={styles.dayTab}
+            data-active={activeDay === "today"}
             style={{
-              padding: "9px 18px",
-              borderRadius: 10,
-              background: activeDay === "today"
-                ? "linear-gradient(135deg, #7c6cf5 0%, #6353e6 100%)"
-                : "rgba(255, 255, 255, 0.04)",
+              background: activeDay === "today" ? "#7063e6" : "rgba(255, 255, 255, 0.035)",
               border: activeDay === "today"
                 ? "1px solid rgba(167, 159, 255, 0.5)"
                 : "1px solid rgba(255, 255, 255, 0.07)",
               color: activeDay === "today" ? "#ffffff" : "#a79fff",
-              fontSize: 13.5,
               fontWeight: activeDay === "today" ? 800 : 600,
-              cursor: "pointer",
-              transition: "all 0.18s ease",
-              boxShadow: activeDay === "today" ? "0 4px 16px rgba(124, 108, 245, 0.45)" : "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
+              boxShadow: activeDay === "today" ? "0 2px 8px rgba(124, 108, 245, 0.2)" : "none",
             }}
           >
             <span>Today&apos;s Free Picks</span>
@@ -429,24 +410,16 @@ export default function HomeMatchesFeed({
 
           <button
             onClick={() => handleSelectDay("yesterday")}
+            className={styles.dayTab}
+            data-active={activeDay === "yesterday"}
             style={{
-              padding: "9px 18px",
-              borderRadius: 10,
-              background: activeDay === "yesterday"
-                ? "linear-gradient(135deg, #2fd08a 0%, #1ea568 100%)"
-                : "rgba(255, 255, 255, 0.04)",
+              background: activeDay === "yesterday" ? "#237a56" : "rgba(255, 255, 255, 0.035)",
               border: activeDay === "yesterday"
                 ? "1px solid rgba(47, 208, 138, 0.6)"
                 : "1px solid rgba(255, 255, 255, 0.07)",
               color: activeDay === "yesterday" ? "#ffffff" : "#a79fff",
-              fontSize: 13.5,
               fontWeight: activeDay === "yesterday" ? 800 : 600,
-              cursor: "pointer",
-              transition: "all 0.18s ease",
-              boxShadow: activeDay === "yesterday" ? "0 4px 16px rgba(47, 208, 138, 0.35)" : "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
+              boxShadow: activeDay === "yesterday" ? "0 2px 8px rgba(47, 208, 138, 0.18)" : "none",
             }}
           >
             <span>Yesterday&apos;s Free Picks</span>
@@ -472,6 +445,7 @@ export default function HomeMatchesFeed({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {activeDay === "yesterday" ? (
             <div
+              className={styles.trustBadge}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -490,6 +464,7 @@ export default function HomeMatchesFeed({
             </div>
           ) : (
             <div
+              className={styles.trustBadge}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -530,7 +505,7 @@ export default function HomeMatchesFeed({
 
       {/* ── Loading Spinner for Yesterday data if fetching ── */}
       {loadingYesterday && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 10, color: "#2fd08a" }}>
+        <div className={styles.loadingState}>
           <RefreshCw size={18} className="animate-spin" />
           <span style={{ fontSize: 14, fontWeight: 700 }}>Fetching settled yesterday free picks...</span>
         </div>
@@ -538,7 +513,7 @@ export default function HomeMatchesFeed({
 
       {/* ── League Groups Feed (Strictly 10 Free Predictions for Free Visitors) ── */}
       {!loadingYesterday && displayGroups.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className={styles.groupList}>
           {displayGroups.map((group, idx) => (
             <LeagueGroupCard
               key={`${activeDay}_${group.country || "Int"}_${group.leagueName}_${idx}`}
@@ -552,31 +527,18 @@ export default function HomeMatchesFeed({
           {/* ── High-Converting VIP Pro Paywall Card (Strictly after 10 free picks) ── */}
           {!isVip && remainingLockedCount > 0 && (
             <div
+              className={styles.paywall}
               style={{
                 marginTop: 12,
                 borderRadius: 16,
                 padding: "32px 24px",
-                background: "radial-gradient(ellipse at top, rgba(124, 108, 245, 0.22) 0%, #141132 75%)",
+                background: "#141132",
                 border: "1px solid rgba(255, 215, 0, 0.38)",
-                boxShadow: "0 12px 36px -8px rgba(0, 0, 0, 0.65), 0 0 24px rgba(255, 215, 0, 0.1)",
+                boxShadow: "0 14px 32px -20px rgba(0, 0, 0, 0.7)",
                 position: "relative",
                 overflow: "hidden",
               }}
             >
-              {/* Glow accent */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: -40,
-                  right: -40,
-                  width: 160,
-                  height: 160,
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle, rgba(255, 215, 0, 0.25) 0%, transparent 70%)",
-                  pointerEvents: "none",
-                }}
-              />
-
               <div
                 style={{
                   display: "flex",
@@ -797,19 +759,11 @@ export default function HomeMatchesFeed({
           )}
         </div>
       ) : !loadingYesterday ? (
-        <div
-          style={{
-            padding: "48px 24px",
-            textAlign: "center",
-            background: "#141132",
-            border: "1px solid rgba(167, 159, 255, 0.12)",
-            borderRadius: 14,
-          }}
-        >
+        <div className={styles.emptyState}>
           <p style={{ color: "#ffffff", fontSize: "16px", fontWeight: 800, margin: "0 0 8px" }}>
             No matches match the selected filters
           </p>
-          <p style={{ color: "#a79fff", fontSize: "13px", margin: "0 0 16px" }}>
+          <p style={{ color: "#d4cde3", fontSize: "13px", margin: "0 0 16px" }}>
             Try broadening your rating threshold or choosing &quot;All Markets&quot;.
           </p>
           <button

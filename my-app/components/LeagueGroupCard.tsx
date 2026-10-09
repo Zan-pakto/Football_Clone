@@ -6,6 +6,7 @@ import MatchRow from "./MatchRow";
 import { ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
+import styles from "./HomeMatchesFeed.module.css";
 
 interface LeagueGroupCardProps {
   leagueName: string;
@@ -20,28 +21,20 @@ export default function LeagueGroupCard({ leagueName, country, flagUrl, matches 
 
   return (
     <div
-      style={{
-        overflow: "hidden",
-        marginBottom: "16px",
-        background: "#141132",
-        border: "1px solid rgba(167, 159, 255, 0.12)",
-        borderRadius: "14px",
-        boxShadow: "0 8px 24px -8px rgba(0, 0, 0, 0.5)",
-      }}
+      className={styles.leagueCard}
     >
       {/* ── League Header (Exact NerdyTips Style) ── */}
       <div
+        className={styles.leagueHeader}
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "11px 18px",
-          background: "#1b183d",
-          borderBottom: isOpen ? "1px solid rgba(167, 159, 255, 0.1)" : "none",
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "background 0.15s ease",
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.currentTarget.click();
+          }
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>

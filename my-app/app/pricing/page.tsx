@@ -344,19 +344,28 @@ export default function PricingPage() {
                 Full algorithmic access, unlocked banker tips, and real-time value odds edges.
               </p>
 
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
                 <span style={{ fontSize: 36, fontWeight: 900, color: "var(--text-primary)" }}>$9.99</span>
                 <span style={{ fontSize: 13, color: "var(--text-dim)" }}>/month</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 800, padding: "2px 8px", borderRadius: 6, background: "rgba(47, 208, 138, 0.15)", color: "#2fd08a", border: "1px solid rgba(47, 208, 138, 0.3)" }}>
+                  🎁 7-Day Free Trial
+                </span>
+                <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>
+                  $0 today &bull; Cancel anytime
+                </span>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
+                  "7-Day Free Trial Included ($0 Today)",
                   "Unlimited Banker of the Day Access",
                   "100k Monte Carlo Simulated Probabilities",
                   "Mathematical Value Edge (+EV) Alerts",
                   "Custom Acca Bet Builder Unlocked",
                   "Verified AI Track Record Access",
-                  "Instant Whop Activation",
+                  "Instant Activation",
                 ].map((feat) => (
                   <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
                     <Check size={16} color="var(--gold)" />
@@ -432,7 +441,7 @@ export default function PricingPage() {
                   </>
                 ) : (
                   <>
-                    <span>Get Premium Pro ($9.99)</span>
+                    <span>Start 7-Day Free Trial ($9.99/mo)</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -469,7 +478,7 @@ export default function PricingPage() {
                 Ultimate betting intelligence suite with exclusive VIP Telegram broadcast alerts and priority bankers.
               </p>
 
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
                 <span style={{ fontSize: 36, fontWeight: 900, color: "var(--text-primary)" }}>
                   $19.99
                 </span>
@@ -477,9 +486,18 @@ export default function PricingPage() {
                   /month
                 </span>
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 800, padding: "2px 8px", borderRadius: 6, background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                  🎁 7-Day Free Trial
+                </span>
+                <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>
+                  $0 today &bull; Cancel anytime
+                </span>
+              </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
+                  "7-Day Free Trial Included ($0 Today)",
                   "Everything in Premium Pro Included",
                   "Exclusive VIP Telegram Channel & Instant Alerts",
                   "Priority High-Roller Edge Banker Tips",
@@ -577,7 +595,7 @@ export default function PricingPage() {
                   </>
                 ) : (
                   <>
-                    <span>Unlock VIP Pro Access</span>
+                    <span>Start 7-Day Free Trial ($19.99/mo)</span>
                     <ArrowRight size={16} />
                   </>
                 )}

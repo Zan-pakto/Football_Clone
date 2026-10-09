@@ -2,17 +2,19 @@ import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
 import HomeMatchesFeed, { LeagueGroupItem } from "@/components/HomeMatchesFeed";
 import {
-  TrustStrip,
-  HowJollofTipsWorks,
-  AIIntelligenceSection,
-  PerformanceAccuracySection,
-  WhyJollofTips,
-  PremiumCTABanner,
+  LeagueCoverageStrip,
+  TrackRecordSection,
+  ExploreRail,
+  PredictionsSimpleSection,
+  PredictionWorkflowSection,
+  PredictionProofSection,
+  PlansSection,
 } from "@/components/LandingSections";
 import { cookies } from "next/headers";
-import { Flame, ArrowRight, ShieldCheck } from "lucide-react";
+import { Flame, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
+import feedStyles from "@/components/HomeMatchesFeed.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -170,45 +172,29 @@ export default async function HomePage() {
       <Navbar liveCount={liveMatches.length} />
 
       {/* ── 2. Hero Section ── */}
-      <HeroLanding totalMatches={totalMatches} />
+      <HeroLanding totalMatches={totalMatches} todayMatches={allTodayMatchesFlat}>
 
       {/* ── 3. Free Predictions Feed (Today & Yesterday Free Picks) ── */}
-      <main id="matches-feed" className="scroll-mt-16" style={{ maxWidth: 1280, margin: "0 auto", padding: "40px 16px 70px" }}>
+      <main id="matches-feed" className={`${feedStyles.section} scroll-mt-16`}>
         {/* Section Header */}
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
-          <div>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: "#8b7ff5",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                display: "inline-block",
-                marginBottom: 6,
-              }}
-            >
-              FREE AI FOOTBALL PREDICTIONS (10 DAILY PICKS)
-            </span>
-            <h2 style={{ fontSize: "clamp(24px, 3.5vw, 34px)", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em", margin: 0 }}>
-              10 Free Football Predictions
-            </h2>
-            <p style={{ fontSize: 13, color: "#7874a4", margin: "4px 0 0", fontWeight: 600 }}>
+        <div className={feedStyles.sectionHeader}>
+          <div className={feedStyles.sectionIntro}>
+            <div className={feedStyles.titleRow}>
+              <h2 className={feedStyles.sectionTitle}>
+                10 Free Football Predictions
+              </h2>
+              <span className={feedStyles.sectionEyebrow}>
+                FREE AI FOOTBALL PREDICTIONS (10 DAILY PICKS)
+              </span>
+            </div>
+            <p className={feedStyles.sectionDescription}>
               Top 10 mathematically graded quantitative tips for today • VIP Pro unlocks all {totalMatches > 0 ? `${totalMatches}+ ` : ""}matches
             </p>
           </div>
 
           <Link
             href="/all-matches"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              color: "#8b7ff5",
-              fontSize: 14,
-              fontWeight: 800,
-              textDecoration: "none",
-            }}
+            className={feedStyles.sectionLink}
           >
             <span>View All {totalMatches > 0 ? `${totalMatches} ` : ""}Fixtures</span>
             <ArrowRight size={15} />
@@ -217,58 +203,45 @@ export default async function HomePage() {
 
         {/* Bet of the Day / Featured AI Pick Hero */}
         <div
-          style={{
-            padding: "20px 24px",
-            marginBottom: 24,
-            borderRadius: 14,
-            background: "linear-gradient(135deg, rgba(124, 108, 245, 0.16) 0%, rgba(20, 17, 50, 0.9) 100%)",
-            border: "1px solid rgba(124, 108, 245, 0.35)",
-            boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
-          }}
+          className={feedStyles.featuredPick}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
-            <div>
+          <div className={feedStyles.featuredContent}>
+            <div className={feedStyles.featuredCopy}>
               <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "3px 10px",
-                  borderRadius: 999,
-                  background: "rgba(124, 108, 245, 0.2)",
-                  border: "1px solid rgba(124, 108, 245, 0.4)",
-                  color: "#8b7ff5",
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  marginBottom: 8,
-                }}
+                className={feedStyles.featuredBadge}
               >
-                <Flame size={12} color="#2fd08a" />
-                <span>AI BET OF THE DAY • {featuredMatch?.confidence || "89%"} CONFIDENCE</span>
+                {featuredMatch ? (
+                  <>
+                    <Flame size={12} color="#2fd08a" />
+                    <span>AI BET OF THE DAY &middot; {featuredMatch.confidence || "89%"} CONFIDENCE</span>
+                  </>
+                ) : (
+                  <span>NO FEATURED PICK</span>
+                )}
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#ffffff", margin: "0 0 4px", letterSpacing: "-0.01em" }}>
-                {featuredMatch ? `${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} — ${featuredMatch.leagueName}` : "Featured Match Analysis"}
+              <h3 className={feedStyles.featuredTitle}>
+                {featuredMatch ? `${featuredMatch.homeTeam} vs ${featuredMatch.awayTeam} \u2014 ${featuredMatch.leagueName}` : "No featured match right now"}
               </h3>
-              <p style={{ color: "#a79fff", fontSize: 13, margin: 0 }}>
-                High-confidence consensus for{" "}
-                <strong style={{ color: "#2fd08a", fontWeight: 800 }}>
-                  {featuredMatch ? `${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}` : "Arsenal Win @ 1.72"}
-                </strong>
+              <p className={feedStyles.featuredDetail}>
+                {featuredMatch ? (
+                  <>
+                    High-confidence consensus for{" "}
+                    <strong style={{ color: "#2fd08a", fontWeight: 800 }}>
+                      {`${featuredMatch.predictions.bestTip.pick || "Home Win"} @ ${featuredMatch.predictions.bestTip.odd || "1.75"}`}
+                    </strong>
+                  </>
+                ) : (
+                  "Live fixture data is unavailable. Browse all fixtures to explore matches."
+                )}
               </p>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className={feedStyles.featuredActions}>
               <Link
                 href={featuredMatch?.url || "/all-matches"}
-                className="btn-primary"
-                style={{
-                  padding: "9px 18px",
-                  fontSize: 13,
-                }}
+                className={`btn-primary ${feedStyles.featuredCta}`}
               >
-                <span>View Full Analysis</span>
+                <span>{featuredMatch ? "View Full Analysis" : "Browse Fixtures"}</span>
                 <ArrowRight size={14} />
               </Link>
             </div>
@@ -283,24 +256,16 @@ export default async function HomePage() {
           totalYesterdayMatches={totalYesterday}
         />
       </main>
+      </HeroLanding>
 
-      {/* ── 4. Trust / Statistics Strip ── */}
-      <TrustStrip totalMatches={totalMatches} />
-
-      {/* ── 5. How JollofTips Works ── */}
-      <HowJollofTipsWorks />
-
-      {/* ── 6. AI Intelligence Section ── */}
-      <AIIntelligenceSection />
-
-      {/* ── 7. Performance / Accuracy Section ── */}
-      <PerformanceAccuracySection />
-
-      {/* ── 8. Why JollofTips ── */}
-      <WhyJollofTips />
-
-      {/* ── 9. Premium CTA Banner ── */}
-      <PremiumCTABanner />
+      {/* ── Lower landing sections ── */}
+      <LeagueCoverageStrip />
+      <TrackRecordSection />
+      <ExploreRail />
+      <PredictionsSimpleSection />
+      <PredictionWorkflowSection />
+      <PredictionProofSection />
+      <PlansSection />
     </div>
   );
 }

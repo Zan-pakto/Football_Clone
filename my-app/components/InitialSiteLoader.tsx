@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 const INITIAL_TIPS = [
   "Calibrating quantitative prediction algorithms...",
@@ -143,31 +143,7 @@ export default function InitialSiteLoader() {
               animation: "spinSlow 1.2s linear infinite",
             }}
           />
-          <div
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 14,
-              background: "linear-gradient(135deg, rgba(124, 108, 245, 0.25) 0%, rgba(47, 208, 138, 0.15) 100%)",
-              border: "1px solid rgba(124, 108, 245, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 20px rgba(124, 108, 245, 0.4)",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-sans, system-ui)",
-                color: "#ffffff",
-                fontWeight: 900,
-                fontSize: 18,
-                letterSpacing: "-0.5px",
-              }}
-            >
-              JT
-            </span>
-          </div>
+          <BrandMark width={52} height={48} />
         </div>
 
         {/* Brand Text & Status Tips */}
@@ -186,7 +162,6 @@ export default function InitialSiteLoader() {
               marginBottom: 8,
             }}
           >
-            <Trophy size={15} color="#2fd08a" />
             <span>
               JOLLOF<span style={{ color: "#2fd08a" }}>TIPS</span>
             </span>

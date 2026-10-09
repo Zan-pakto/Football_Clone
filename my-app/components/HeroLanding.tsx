@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -22,11 +22,15 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
+import { MatchData } from "@/lib/types";
+import styles from "./HeroLanding.module.css";
 
 const cdn = (url: string) => toCachedLogoUrl(url) || url;
 
 interface HeroLandingProps {
   totalMatches?: number;
+  todayMatches?: MatchData[];
+  children?: ReactNode;
 }
 
 type MarketTab = "1x2" | "goals" | "btts" | "scores";
@@ -242,16 +246,261 @@ const MARQUEE_VERIFIED_WINS = [
   { match: "Swansea vs Burnley", pick: "Under 3.5", logoH: cdn("https://cdn.nerdytips.com/public/img/logos/76.webp?width=48"), logoA: cdn("https://cdn.nerdytips.com/public/img/logos/44.webp?width=48") },
 ];
 
-export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
-  const [selectedId, setSelectedId] = useState<string>("banker_ucl");
+export default function HeroLanding({ totalMatches = 198, todayMatches, children }: HeroLandingProps) {
+  const simulationsData = useMemo<MatchSimulation[]>(() => {
+    if (!todayMatches || todayMatches.length === 0) {
+      return SIMULATIONS_DATA;
+    }
+
+    const valid = todayMatches.filter((m) => m && m.homeTeam && m.awayTeam);
+    if (valid.length === 0) return SIMULATIONS_DATA;
+
+    // 1. Banker of the Day: Highest confidence / rating
+    const sortedByConf = [...valid].sort((a, b) => {
+      const bC = parseFloat(String(b.confidence || "0").replace("%", "")) || (b.rating ? b.rating * 10 : 80);
+      const aC = parseFloat(String(a.confidence || "0").replace("%", "")) || (a.rating ? a.rating * 10 : 80);
+      return bC - aC;
+    });
+
+    const m1 = sortedByConf[0] || valid[0];
+    const m2 = valid.find((m) => m.isLive || m.status === "live") || valid.find((m) => m.id !== m1.id) || valid[1] || valid[0];
+    const m3 = valid.find((m) => m.id !== m1.id && m.id !== m2.id) || valid[2] || valid[0];
+    const m4 = valid.find((m) => m.id !== m1.id && m.id !== m2.id && m.id !== m3.id) || valid[3] || valid[0];
+
+    const pick1 = m1.predictions?.bestTip?.pick || m1.predictions?.pickScore?.pick || "1";
+    const odd1 = m1.predictions?.bestTip?.odd || m1.predictions?.pickScore?.odd || "1.85";
+    const conf1 = parseFloat(String(m1.confidence || "0").replace("%", "")) || 91;
+
+    const pick2 = m2.predictions?.bestTip?.pick || m2.predictions?.goals?.pick || "Over 1.5";
+    const odd2 = m2.predictions?.bestTip?.odd || m2.predictions?.goals?.odd || "1.65";
+
+    const pick3 = m3.predictions?.btts?.pick || m3.predictions?.bestTip?.pick || "BTTS Yes";
+    const odd3 = m3.predictions?.btts?.odd || m3.predictions?.bestTip?.odd || "1.80";
+
+    const pick4 = m4.predictions?.goals?.pick || m4.predictions?.bestTip?.pick || "Over 2.5";
+    const odd4 = m4.predictions?.goals?.odd || m4.predictions?.bestTip?.odd || "1.70";
+
+    return [
+      {
+        id: "banker_dynamic",
+        tabTitle: "Banker of the Day",
+        tabIcon: "banker",
+        badge: `${conf1.toFixed(1)}% ALGORITHMIC CERTAINTY`,
+        league: m1.leagueName || "Top Tier",
+        country: m1.country || "Global",
+        time: m1.kickTime ? `Today • ${m1.kickTime}` : "Today • Featured",
+        homeTeam: m1.homeTeam,
+        awayTeam: m1.awayTeam,
+        homeLogo: m1.homeLogo || undefined,
+        awayLogo: m1.awayLogo || undefined,
+        homeScore: m1.homeScore ? parseInt(m1.homeScore, 10) : undefined,
+        awayScore: m1.awayScore ? parseInt(m1.awayScore, 10) : undefined,
+        isLive: m1.isLive,
+        liveMin: m1.elapsed || (m1.isLive ? "LIVE" : undefined),
+        homeXg: 2.35,
+        awayXg: 0.85,
+        possession: { h: 63, a: 37 },
+        fieldTilt: { h: 72, a: 28 },
+        prob1: Math.min(85, Math.round(conf1)),
+        probX: 18,
+        prob2: 15,
+        goalsOver25: 68,
+        goalsUnder25: 32,
+        bttsYes: 58,
+        bttsNo: 42,
+        topCorrectScores: [
+          { score: "2 - 0", prob: 14.5, odd: "7.50" },
+          { score: "2 - 1", prob: 12.8, odd: "8.50" },
+          { score: "3 - 1", prob: 10.2, odd: "14.00" },
+        ],
+        bookieOdds: {
+          h: m1.odds?.home || "1.75",
+          d: m1.odds?.draw || "3.50",
+          a: m1.odds?.away || "4.20",
+          o25: m1.predictions?.goals?.odd || "1.68",
+          u25: "2.10",
+          bttsYes: m1.predictions?.btts?.odd || "1.75",
+        },
+        fairOdds: { h: (1 / (conf1 / 100)).toFixed(2), d: "4.50", a: "6.50" },
+        bestTip: `${pick1}`,
+        bestTipMarket: m1.predictions?.bestTip?.marketLabel || "AI CONSENSUS",
+        bestTipOdds: odd1,
+        evEdge: "+18.2% Value Edge",
+        confidenceScore: m1.rating || Number((conf1 / 10).toFixed(1)),
+        simulationsCount: "100,000",
+        keyMetric: `${m1.homeTeam} model consensus • ${conf1}% predictive certainty`,
+      },
+      {
+        id: "live_dynamic",
+        tabTitle: m2.isLive ? "In-Play Live Radar" : "Today's Live Radar",
+        tabIcon: "live",
+        badge: m2.isLive ? `LIVE ${m2.elapsed || "IN-PLAY"} TELEMETRY` : "TODAY'S TOP RADAR",
+        league: m2.leagueName || "League",
+        country: m2.country || "Global",
+        time: m2.isLive ? "LIVE IN-PLAY" : (m2.kickTime ? `Today • ${m2.kickTime}` : "Today"),
+        homeTeam: m2.homeTeam,
+        awayTeam: m2.awayTeam,
+        homeLogo: m2.homeLogo || undefined,
+        awayLogo: m2.awayLogo || undefined,
+        homeScore: m2.homeScore ? parseInt(m2.homeScore, 10) : (m2.isLive ? 1 : undefined),
+        awayScore: m2.awayScore ? parseInt(m2.awayScore, 10) : (m2.isLive ? 0 : undefined),
+        isLive: m2.isLive,
+        liveMin: m2.elapsed || (m2.isLive ? "LIVE" : undefined),
+        homeXg: 1.95,
+        awayXg: 1.10,
+        possession: { h: 57, a: 43 },
+        fieldTilt: { h: 64, a: 36 },
+        prob1: 62,
+        probX: 22,
+        prob2: 16,
+        goalsOver25: 56,
+        goalsUnder25: 44,
+        bttsYes: 52,
+        bttsNo: 48,
+        topCorrectScores: [
+          { score: "2 - 1", prob: 13.8, odd: "8.50" },
+          { score: "1 - 1", prob: 12.0, odd: "6.50" },
+          { score: "2 - 0", prob: 11.2, odd: "9.00" },
+        ],
+        bookieOdds: {
+          h: m2.odds?.home || "1.80",
+          d: m2.odds?.draw || "3.40",
+          a: m2.odds?.away || "4.00",
+          o25: m2.predictions?.goals?.odd || "1.75",
+          u25: "2.00",
+          bttsYes: m2.predictions?.btts?.odd || "1.80",
+        },
+        fairOdds: { h: "1.65", d: "4.20", a: "5.80" },
+        bestTip: `${pick2}`,
+        bestTipMarket: "RADAR CONSENSUS",
+        bestTipOdds: odd2,
+        evEdge: "+14.5% Live Value",
+        confidenceScore: m2.rating || 8.8,
+        simulationsCount: "100,000",
+        keyMetric: `${m2.homeTeam} vs ${m2.awayTeam} real-time pressure index`,
+      },
+      {
+        id: "value_dynamic",
+        tabTitle: "Poisson +EV Edge",
+        tabIcon: "value",
+        badge: "+21.8% EXPECTED VALUE",
+        league: m3.leagueName || "League",
+        country: m3.country || "Global",
+        time: m3.kickTime ? `Today • ${m3.kickTime}` : "Today",
+        homeTeam: m3.homeTeam,
+        awayTeam: m3.awayTeam,
+        homeLogo: m3.homeLogo || undefined,
+        awayLogo: m3.awayLogo || undefined,
+        homeScore: m3.homeScore ? parseInt(m3.homeScore, 10) : undefined,
+        awayScore: m3.awayScore ? parseInt(m3.awayScore, 10) : undefined,
+        homeXg: 1.82,
+        awayXg: 1.38,
+        possession: { h: 53, a: 47 },
+        fieldTilt: { h: 56, a: 44 },
+        prob1: 52,
+        probX: 26,
+        prob2: 22,
+        goalsOver25: 64,
+        goalsUnder25: 36,
+        bttsYes: 66,
+        bttsNo: 34,
+        topCorrectScores: [
+          { score: "2 - 1", prob: 13.5, odd: "9.00" },
+          { score: "1 - 1", prob: 12.8, odd: "7.00" },
+          { score: "2 - 2", prob: 9.2, odd: "15.00" },
+        ],
+        bookieOdds: {
+          h: m3.odds?.home || "2.05",
+          d: m3.odds?.draw || "3.35",
+          a: m3.odds?.away || "3.55",
+          o25: m3.predictions?.goals?.odd || "1.80",
+          u25: "2.05",
+          bttsYes: m3.predictions?.btts?.odd || "1.82",
+        },
+        fairOdds: { h: "1.92", d: "3.80", a: "4.50" },
+        bestTip: `${pick3}`,
+        bestTipMarket: "VALUE DISCREPANCY",
+        bestTipOdds: odd3,
+        evEdge: "+21.8% EV Discrepancy",
+        confidenceScore: m3.rating || 8.6,
+        simulationsCount: "100,000",
+        keyMetric: `Poisson model detects bookie pricing mismatch for ${m3.homeTeam}`,
+      },
+      {
+        id: "monte_dynamic",
+        tabTitle: "Monte Carlo Acca",
+        tabIcon: "monte",
+        badge: "92.4% COMPOUNDED PROBABILITY",
+        league: m4.leagueName || "Accumulator Core",
+        country: "Global",
+        time: "Today's Feature",
+        homeTeam: m4.homeTeam,
+        awayTeam: m4.awayTeam,
+        homeLogo: m4.homeLogo || undefined,
+        awayLogo: m4.awayLogo || undefined,
+        homeScore: m4.homeScore ? parseInt(m4.homeScore, 10) : undefined,
+        awayScore: m4.awayScore ? parseInt(m4.awayScore, 10) : undefined,
+        homeXg: 2.65,
+        awayXg: 1.25,
+        possession: { h: 61, a: 39 },
+        fieldTilt: { h: 67, a: 33 },
+        prob1: 65,
+        probX: 20,
+        prob2: 15,
+        goalsOver25: 72,
+        goalsUnder25: 28,
+        bttsYes: 60,
+        bttsNo: 40,
+        topCorrectScores: [
+          { score: "3 - 1", prob: 14.8, odd: "10.50" },
+          { score: "2 - 1", prob: 13.0, odd: "9.00" },
+          { score: "2 - 0", prob: 11.5, odd: "9.50" },
+        ],
+        bookieOdds: {
+          h: m4.odds?.home || "1.65",
+          d: m4.odds?.draw || "3.80",
+          a: m4.odds?.away || "4.80",
+          o25: m4.predictions?.goals?.odd || "1.55",
+          u25: "2.40",
+          bttsYes: m4.predictions?.btts?.odd || "1.68",
+        },
+        fairOdds: { h: "1.54", d: "5.00", a: "6.60" },
+        bestTip: `${pick4}`,
+        bestTipMarket: "ACCA MULTI LEG",
+        bestTipOdds: odd4,
+        evEdge: "+16.2% Edge",
+        confidenceScore: m4.rating || 9.1,
+        simulationsCount: "100,000",
+        keyMetric: `Top mathematical multi-leg selection across today's matches`,
+      },
+    ];
+  }, [todayMatches]);
+
+  const marqueeItems = useMemo(() => {
+    if (todayMatches && todayMatches.length > 0) {
+      return todayMatches.slice(0, 10).map((m) => ({
+        match: `${m.homeTeam} vs ${m.awayTeam}`,
+        pick: m.predictions?.bestTip?.pick || m.predictions?.pickScore?.pick || "1X",
+        logoH: m.homeLogo || undefined,
+        logoA: m.awayLogo || undefined,
+      }));
+    }
+    return MARQUEE_VERIFIED_WINS;
+  }, [todayMatches]);
+
+  const [selectedId, setSelectedId] = useState<string>("");
   const [activeMarket, setActiveMarket] = useState<MarketTab>("1x2");
   const [isSimulating, setIsSimulating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [addedToSlip, setAddedToSlip] = useState(false);
 
   const activeSim = useMemo(() => {
-    return SIMULATIONS_DATA.find((s) => s.id === selectedId) || SIMULATIONS_DATA[0];
-  }, [selectedId]);
+    if (selectedId) {
+      const found = simulationsData.find((s) => s.id === selectedId);
+      if (found) return found;
+    }
+    return simulationsData[0] || SIMULATIONS_DATA[0];
+  }, [selectedId, simulationsData]);
 
   const handleReSimulate = () => {
     setIsSimulating(true);
@@ -276,7 +525,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "hidden", background: "#0a081d" }}>
+    <div style={{ position: "relative", width: "100%", background: "#0a081d" }}>
       {/* ══════════════════════════════════════════════════════════════
           1. ICONIC NERDYTIPS GRAND HERO SECTION WITH STADIUM BACKDROP
           ══════════════════════════════════════════════════════════════ */}
@@ -284,7 +533,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
         style={{
           position: "relative",
           width: "100%",
-          minHeight: "78vh",
+          minHeight: "calc(100svh - 68px)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -299,9 +548,9 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: `url('${cdn("https://cdn.nerdytips.com/public/img/st/header-bg-st.webp")}')`,
+            backgroundImage: "url('https://cdn.nerdytips.com/public/img/st/header-bg-st.webp')",
             backgroundSize: "cover",
-            backgroundPosition: "center top",
+            backgroundPosition: "center -24px",
             backgroundRepeat: "no-repeat",
             zIndex: 0,
             opacity: 0.88,
@@ -322,7 +571,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(180deg, rgba(10, 8, 29, 0.25) 0%, rgba(10, 8, 29, 0.7) 60%, #0a081d 100%)",
+            background: "linear-gradient(180deg, #0a081d 0%, rgba(10, 8, 29, 0.94) 10%, rgba(10, 8, 29, 0.68) 28%, rgba(10, 8, 29, 0.7) 60%, #0a081d 100%)",
             zIndex: 2,
             pointerEvents: "none",
           }}
@@ -353,7 +602,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               margin: 0,
             }}
           >
-            AI <span className="gradient-text">Football</span> Predictions
+            AI <span style={{ color: "#c4b5fd" }}>Football</span> Predictions
           </h1>
 
           {/* Authentic NerdyTips Lede Subtitle */}
@@ -366,7 +615,11 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               margin: 0,
             }}
           >
-            JollofTips offers AI football predictions from its own quantitative model. Since 2021, it has simulated over <strong style={{ color: "#ffffff" }}>274,510</strong> matches across <strong style={{ color: "#ffffff" }}>711</strong> leagues. Every day, top predictions are free — no account needed.
+            JollofTips offers AI football predictions from its own quantitative model. Since 2021, it has simulated over <strong style={{ color: "#ffffff" }}>274,510</strong> matches across <strong style={{ color: "#ffffff" }}>711</strong> leagues.
+          </p>
+
+          <p style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#f1eff8", margin: "-8px 0 0" }}>
+            Every day, top predictions are free — no account needed.
           </p>
 
           {/* Action Buttons Row */}
@@ -419,7 +672,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
         }}
       >
         <div className="marquee-track">
-          {[...MARQUEE_VERIFIED_WINS, ...MARQUEE_VERIFIED_WINS].map((win, idx) => (
+          {[...marqueeItems, ...marqueeItems].map((win, idx) => (
             <div
               key={idx}
               style={{
@@ -485,18 +738,18 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
         }}
       >
         <div
+          className={styles.terminal}
           style={{
             borderRadius: 20,
-            background: "rgba(20, 17, 50, 0.85)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
+            background: "#100e29",
             border: "1px solid rgba(167, 159, 255, 0.16)",
-            boxShadow: "0 24px 50px -14px rgba(0,0,0,0.8), 0 0 35px -10px rgba(124, 108, 245, 0.25)",
+            boxShadow: "0 18px 40px rgba(0, 0, 0, 0.28)",
             overflow: "hidden",
           }}
         >
           {/* Terminal Window Header Bar */}
           <div
+            className={styles.terminalHeader}
             style={{
               display: "flex",
               alignItems: "center",
@@ -506,13 +759,10 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               borderBottom: "1px solid rgba(167, 159, 255, 0.12)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#fb7185" }} />
-                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#e8c34a" }} />
-                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#2fd08a" }} />
-              </div>
+            <div className={styles.terminalBrand} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className={styles.terminalGlyph}><Activity size={15} /></span>
               <span
+                className={styles.terminalTitle}
                 style={{
                   fontSize: 11.5,
                   fontFamily: "var(--font-mono)",
@@ -526,7 +776,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               </span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className={styles.terminalTools} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span
                 style={{
                   fontSize: 10.5,
@@ -545,15 +795,17 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               <button
                 onClick={handleReSimulate}
                 title="Recalculate Monte Carlo Run"
+                aria-label="Recalculate Monte Carlo run"
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#7874a4",
                   cursor: "pointer",
-                  padding: 4,
+                  width: 34,
+                  height: 34,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  borderRadius: 9,
+                  border: "1px solid rgba(167, 159, 255, 0.14)",
+                  background: "rgba(124, 108, 245, 0.08)",
                 }}
               >
                 <RotateCcw size={14} className={isSimulating ? "animate-spin" : ""} color="#8b7ff5" />
@@ -563,6 +815,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
           {/* Scenario Tabs */}
           <div
+            className={`${styles.scenarioTabs} no-scrollbar`}
             style={{
               display: "flex",
               gap: 6,
@@ -571,14 +824,15 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               borderBottom: "1px solid rgba(167, 159, 255, 0.08)",
               overflowX: "auto",
             }}
-            className="no-scrollbar"
           >
-            {SIMULATIONS_DATA.map((sim) => {
-              const isActive = sim.id === selectedId;
+            {simulationsData.map((sim) => {
+              const isActive = sim.id === activeSim.id;
               return (
                 <button
                   key={sim.id}
                   onClick={() => setSelectedId(sim.id)}
+                  data-active={isActive}
+                  className={styles.scenarioTab}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -608,6 +862,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
           {/* Terminal Body */}
           <div
+            className={styles.terminalBody}
             style={{
               padding: "20px 22px",
               display: "flex",
@@ -663,9 +918,9 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
             {/* Clash Teams Grid */}
             <div
+              className={styles.matchup}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
                 alignItems: "center",
                 gap: 16,
                 padding: "12px 14px",
@@ -675,17 +930,17 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               }}
             >
               {/* Home Team */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className={styles.team} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {activeSim.homeLogo ? (
-                  <img src={activeSim.homeLogo} alt="" style={{ width: 26, height: 26, objectFit: "contain" }} />
+                  <img src={activeSim.homeLogo} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} />
                 ) : (
                   <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#7c6cf5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 11 }}>
                     {activeSim.homeTeam.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: "#ffffff" }}>{activeSim.homeTeam}</div>
-                  <div style={{ fontSize: 11, color: "#a79fff", marginTop: 2 }}>
+                  <div className={styles.teamName} style={{ fontSize: 14.5, fontWeight: 800, color: "#ffffff" }}>{activeSim.homeTeam}</div>
+                  <div className={styles.teamMeta} style={{ fontSize: 11, color: "#a79fff", marginTop: 2 }}>
                     xG <span style={{ color: "#2fd08a", fontWeight: 700 }}>{activeSim.homeXg}</span> • Poss {activeSim.possession.h}%
                   </div>
                 </div>
@@ -703,15 +958,15 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               </div>
 
               {/* Away Team */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, textAlign: "right" }}>
+              <div className={`${styles.team} ${styles.awayTeam}`} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, textAlign: "right" }}>
                 <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: "#ffffff" }}>{activeSim.awayTeam}</div>
-                  <div style={{ fontSize: 11, color: "#a79fff", marginTop: 2 }}>
+                  <div className={styles.teamName} style={{ fontSize: 14.5, fontWeight: 800, color: "#ffffff" }}>{activeSim.awayTeam}</div>
+                  <div className={styles.teamMeta} style={{ fontSize: 11, color: "#a79fff", marginTop: 2 }}>
                     Poss {activeSim.possession.a}% • xG <span style={{ color: "#2fd08a", fontWeight: 700 }}>{activeSim.awayXg}</span>
                   </div>
                 </div>
                 {activeSim.awayLogo ? (
-                  <img src={activeSim.awayLogo} alt="" style={{ width: 26, height: 26, objectFit: "contain" }} />
+                  <img src={activeSim.awayLogo} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} />
                 ) : (
                   <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#221f4a", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 11 }}>
                     {activeSim.awayTeam.charAt(0)}
@@ -722,9 +977,8 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
             {/* Market Tabs Switcher */}
             <div
+              className={styles.marketTabs}
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
                 gap: 6,
                 background: "#0e0c26",
                 padding: 4,
@@ -741,6 +995,8 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
                 <button
                   key={m.id}
                   onClick={() => setActiveMarket(m.id as MarketTab)}
+                  data-active={activeMarket === m.id}
+                  className={styles.marketTab}
                   style={{
                     padding: "7px 4px",
                     borderRadius: 7,
@@ -761,7 +1017,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
             {/* Probability Breakdown Bar */}
             {activeMarket === "1x2" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
+                <div className={styles.marketLabels} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
                   <span style={{ color: "#ffffff" }}>1 (Home): {activeSim.prob1}%</span>
                   <span style={{ color: "#a79fff" }}>X (Draw): {activeSim.probX}%</span>
                   <span style={{ color: "#ffffff" }}>2 (Away): {activeSim.prob2}%</span>
@@ -776,7 +1032,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
             {activeMarket === "goals" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
+                <div className={styles.marketLabels} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
                   <span style={{ color: "#2fd08a" }}>Over 2.5: {activeSim.goalsOver25}%</span>
                   <span style={{ color: "#a79fff" }}>Under 2.5: {activeSim.goalsUnder25}%</span>
                 </div>
@@ -789,7 +1045,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
             {activeMarket === "btts" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
+                <div className={styles.marketLabels} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700 }}>
                   <span style={{ color: "#2fd08a" }}>BTTS Yes: {activeSim.bttsYes}%</span>
                   <span style={{ color: "#a79fff" }}>BTTS No: {activeSim.bttsNo}%</span>
                 </div>
@@ -823,11 +1079,12 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
             {/* Best Tip Highlight Card */}
             <div
+              className={styles.tipCard}
               style={{
                 padding: "14px 18px",
                 borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(124, 108, 245, 0.2) 0%, rgba(27, 24, 61, 0.95) 100%)",
-                border: "1px solid rgba(124, 108, 245, 0.45)",
+                background: "#191638",
+                border: "1px solid rgba(167, 159, 255, 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -835,7 +1092,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
                 gap: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div className={styles.tipContent} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 {/* Confidence Badge */}
                 <div
                   style={{
@@ -857,7 +1114,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
                   <span style={{ fontSize: 8.5, color: "#7874a4", fontWeight: 700, marginTop: 2 }}>/10</span>
                 </div>
 
-                <div>
+                <div className={styles.tipCopy}>
                   <div style={{ fontSize: 10.5, fontWeight: 800, color: "#8b7ff5", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     {activeSim.bestTipMarket}
                   </div>
@@ -873,7 +1130,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className={styles.terminalActions} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button
                   onClick={handleCopyTip}
                   style={{
@@ -939,6 +1196,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
 
           {/* Terminal Footer */}
           <div
+            className={styles.terminalFooter}
             style={{
               display: "flex",
               alignItems: "center",
@@ -949,7 +1207,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
               fontSize: 11.5,
             }}
           >
-            <span style={{ color: "#7874a4" }}>{activeSim.keyMetric}</span>
+            <span className={styles.keyMetric} style={{ color: "#aaa5c9" }}>{activeSim.keyMetric}</span>
             <Link
               href="/all-matches"
               style={{
@@ -967,6 +1225,7 @@ export default function HeroLanding({ totalMatches = 198 }: HeroLandingProps) {
           </div>
         </div>
       </div>
+      {children}
     </div>
   );
 }

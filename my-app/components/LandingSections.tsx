@@ -1,406 +1,188 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
 import {
-  Sparkles,
-  TrendingUp,
-  ShieldCheck,
-  Zap,
-  Globe2,
-  BrainCircuit,
-  BarChart3,
-  Cpu,
-  Target,
-  Flame,
-  CheckCircle2,
-  ArrowRight,
-  Database,
-  Layers,
   Activity,
-  Sliders,
-  Award,
+  ArrowRight,
+  Check,
+  Database,
+  Globe2,
+  Layers,
+  ShieldCheck,
+  Target,
+  TrendingUp,
 } from "lucide-react";
+import styles from "./LandingSections.module.css";
 
-interface TrustStripProps {
-  totalMatches?: number;
-}
+const leagues = [
+  "Premier League",
+  "La Liga",
+  "Bundesliga",
+  "Serie A",
+  "Ligue 1",
+  "Champions League",
+  "Europa League",
+  "Eredivisie",
+  "Championship",
+];
 
-// ── 3. Trust / Statistics Strip ──
-export function TrustStrip({ totalMatches = 0 }: TrustStripProps) {
-  const stats = [
-    {
-      value: "100,000+",
-      label: "Matches Analyzed",
-      sub: "Historical backtest ledger",
-      icon: Database,
-    },
-    {
-      value: "700+",
-      label: "Leagues Covered",
-      sub: "Global tier 1 to tier 4",
-      icon: Globe2,
-    },
-    {
-      value: "89.4%",
-      label: "Banker Accuracy",
-      sub: "Top confidence tier",
-      icon: Target,
-    },
-    {
-      value: totalMatches > 0 ? `${totalMatches}` : "500+",
-      label: "Predictions Today",
-      sub: "Updated in real-time",
-      icon: Zap,
-    },
-  ];
+const workflow = [
+  {
+    title: "Collect match data",
+    description:
+      "xG, team form, player fatigue, team rotation, and match context become structured inputs for each fixture.",
+    kind: "data",
+  },
+  {
+    title: "Run the model",
+    description:
+      "Poisson analysis and 10,000 Monte Carlo simulations estimate likely scorelines and outcomes.",
+    kind: "model",
+  },
+  {
+    title: "Compare the markets",
+    description:
+      "Review 1X2, goals, and BTTS probabilities alongside odds and the model’s confidence.",
+    kind: "markets",
+  },
+];
 
+const plans = [
+  {
+    name: "Free Starter",
+    description: "Explore daily football predictions with standard confidence access.",
+    price: "$0",
+    features: [
+      "Free match predictions",
+      "Standard 1X2 predictions",
+      "Live scores and match minutes",
+      "Public track record access",
+    ],
+    action: "Browse free picks",
+    href: "/all-matches",
+    featured: false,
+  },
+  {
+    name: "Premium Pro",
+    description: "Full algorithm access, banker tips, and value odds edges.",
+    price: "$9.99",
+    features: [
+      "Banker of the Day access",
+      "Monte Carlo probabilities",
+      "Value edge alerts",
+      "Acca Bet Builder",
+      "Verified track record access",
+    ],
+    action: "View Premium Pro",
+    href: "/pricing",
+    featured: true,
+  },
+  {
+    name: "VIP Pro",
+    description: "Premium access with VIP alerts and priority banker picks.",
+    price: "$19.99",
+    features: [
+      "Everything in Premium Pro",
+      "VIP Telegram alerts",
+      "Priority banker picks",
+      "Accumulator strategy guides",
+      "Dedicated VIP support",
+    ],
+    action: "View VIP Pro",
+    href: "/pricing",
+    featured: false,
+  },
+];
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  centered = false,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  centered?: boolean;
+}) {
   return (
-    <section
-      style={{
-        borderTop: "1px solid var(--border-color)",
-        borderBottom: "1px solid var(--border-color)",
-        background: "var(--surface-raised)",
-        padding: "36px 20px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1360,
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "24px",
-        }}
-      >
-        {stats.map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={idx}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-                padding: "12px 16px",
-                borderRadius: "12px",
-                background: "var(--surface)",
-                border: "1px solid var(--border-color)",
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 10,
-                  background: "var(--gold-bg)",
-                  border: "1px solid var(--gold-border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--gold)",
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={22} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: 900,
-                    color: "var(--text-primary)",
-                    fontFamily: "var(--font-mono)",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {item.value}
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                    marginTop: "2px",
-                  }}
-                >
-                  {item.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {item.sub}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <div className={`${styles.sectionHeading} ${centered ? styles.centered : ""}`}>
+      {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
+      <h2>{title}</h2>
+      {description && <p>{description}</p>}
+    </div>
   );
 }
 
-// ── 4. How JollofTips Works ──
-export function HowJollofTipsWorks() {
-  const steps = [
-    {
-      num: "01",
-      title: "Match Data & Telemetry",
-      desc: "Ingests millions of verified data points: real-time xG, passing networks, player fatigue, team rotation, weather conditions, and referee tendencies.",
-      icon: Database,
-    },
-    {
-      num: "02",
-      title: "Statistical Analysis",
-      desc: "Applies bivariate Poisson distribution matrices and Bayesian dynamic form weighting to remove human emotion and isolate true mathematical probability.",
-      icon: BarChart3,
-    },
-    {
-      num: "03",
-      title: "AI Prediction Engine",
-      desc: "Simulates each fixture 10,000 times through the proprietary JT Apex neural network, predicting outcomes for 1X2, Over/Under, and Both Teams To Score.",
-      icon: BrainCircuit,
-    },
-    {
-      num: "04",
-      title: "Confidence & Value Score",
-      desc: "Assigns a calibrated 0–100% confidence score and identifies discrepancies between algorithmic odds and bookmaker market inefficiencies.",
-      icon: Award,
-    },
-  ];
+function WorkflowArtwork({ kind }: { kind: string }) {
+  if (kind === "data") {
+    return (
+      <div className={`${styles.workflowArt} ${styles.dataArt}`} aria-hidden="true">
+        <div className={styles.dataInputs}>
+          <span>xG</span>
+          <span>FORM</span>
+          <span>TEAM</span>
+        </div>
+        <div className={styles.dataConnector} />
+        <div className={styles.dataCore}>
+          <Database size={20} strokeWidth={1.6} />
+          <span>FIXTURE</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === "model") {
+    return (
+      <div className={`${styles.workflowArt} ${styles.modelArt}`} aria-hidden="true">
+        <div className={styles.modelTopline}>
+          <span>10,000 RUNS</span>
+          <Activity size={16} />
+        </div>
+        <div className={styles.modelBars}>
+          {[28, 46, 34, 62, 42, 72, 52, 80, 58, 68, 38, 56].map((height, index) => (
+            <i key={index} style={{ height: `${height}%` }} />
+          ))}
+        </div>
+        <div className={styles.modelAxis}>
+          <span>SCENARIO</span>
+          <span>OUTCOME RANGE</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <section
-      id="how-it-works"
-      style={{
-        padding: "80px 20px",
-        maxWidth: 1360,
-        margin: "0 auto",
-      }}
-    >
-      <div style={{ textAlign: "center", maxWidth: 720, margin: "0 auto 50px" }}>
-        <div className="gold-badge" style={{ marginBottom: 14 }}>
-          <Sparkles size={12} />
-          QUANTITATIVE METHODOLOGY
-        </div>
-        <h2
-          style={{
-            fontSize: "clamp(28px, 4vw, 42px)",
-            fontWeight: 900,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.02em",
-            margin: "0 0 14px",
-          }}
-        >
-          How JollofTips Works
-        </h2>
-        <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.65, margin: 0 }}>
-          Four disciplined quantitative steps transform raw sports telemetry into high-confidence match intelligence.
-        </p>
+    <div className={`${styles.workflowArt} ${styles.marketArt}`} aria-hidden="true">
+      <div className={styles.marketNode}>
+        <Target size={18} />
+        <span>MODEL</span>
       </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "20px",
-        }}
-      >
-        {steps.map((s, idx) => {
-          const Icon = s.icon;
-          return (
-            <div
-              key={idx}
-              className="luxury-card"
-              style={{
-                padding: "28px 24px",
-                display: "flex",
-                flexDirection: "column",
-                position: "relative",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "20px",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "var(--gold)",
-                    background: "var(--gold-bg)",
-                    border: "1px solid var(--gold-border)",
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                  }}
-                >
-                  STEP {s.num}
-                </span>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: "var(--surface-raised)",
-                    border: "1px solid var(--border-color)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  <Icon size={18} />
-                </div>
-              </div>
-
-              <h3
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 800,
-                  color: "var(--text-primary)",
-                  letterSpacing: "-0.01em",
-                  margin: "0 0 10px",
-                }}
-              >
-                {s.title}
-              </h3>
-
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.65,
-                  margin: 0,
-                  flexGrow: 1,
-                }}
-              >
-                {s.desc}
-              </p>
-            </div>
-          );
-        })}
+      <div className={styles.marketLines}>
+        <span>1X2</span>
+        <span>GOALS</span>
+        <span>BTTS</span>
       </div>
-    </section>
+      <div className={styles.marketOutput}>
+        <span />
+        <span />
+        <span />
+      </div>
+    </div>
   );
 }
 
-// ── 6. AI Intelligence Section ──
-export function AIIntelligenceSection() {
-  const models = [
-    {
-      title: "Expected Goals (xG) Regressions",
-      desc: "Shot-location quality metrics, danger zone entries, and conversion probabilities replace noisy surface scores with underlying football performance reality.",
-      metric: "0.01xG precision",
-    },
-    {
-      title: "10,000-Scenario Monte Carlo",
-      desc: "Every matchup is run ten thousand times across stochastic permutations to quantify scorelines, draw probability, and goal line variance.",
-      metric: "10k iterations/match",
-    },
-    {
-      title: "Poisson Goal Distribution",
-      desc: "Independent attack-defense strength ratings evaluate the exact likelihood of 0, 1, 2, 3+ goals for both home and away sides.",
-      metric: "Bivariate density",
-    },
-    {
-      title: "Market Discrepancy Radar",
-      desc: "Continuously scans global odds movements to highlight positive Expected Value (+EV) bets where sportsbooks underprice true probabilities.",
-      metric: "Live +EV identification",
-    },
-  ];
-
+export function LeagueCoverageStrip() {
   return (
-    <section
-      style={{
-        padding: "80px 20px",
-        background: "var(--surface-raised)",
-        borderTop: "1px solid var(--border-color)",
-        borderBottom: "1px solid var(--border-color)",
-      }}
-    >
-      <div style={{ maxWidth: 1360, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", maxWidth: 740, margin: "0 auto 50px" }}>
-          <div className="gold-badge" style={{ marginBottom: 14 }}>
-            <Cpu size={12} />
-            JT APEX AI ENGINE
-          </div>
-          <h2
-            style={{
-              fontSize: "clamp(28px, 4vw, 42px)",
-              fontWeight: 900,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.02em",
-              margin: "0 0 14px",
-            }}
-          >
-            Engineering Unbiased Match Intelligence
-          </h2>
-          <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.65, margin: 0 }}>
-            Our multi-layer prediction architecture strips away human bias, gut feelings, and media narratives to deliver purely quantitative football probabilities.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: "24px",
-          }}
-        >
-          {models.map((m, idx) => (
-            <div
-              key={idx}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-color)",
-                borderRadius: "14px",
-                padding: "26px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: "16px",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    display: "inline-block",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: "var(--gold)",
-                    background: "var(--gold-bg)",
-                    border: "1px solid var(--gold-border)",
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  {m.metric}
-                </div>
-                <h3
-                  style={{
-                    fontSize: "17px",
-                    fontWeight: 800,
-                    color: "var(--text-primary)",
-                    margin: "0 0 8px",
-                  }}
-                >
-                  {m.title}
-                </h3>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.65, margin: 0 }}>
-                  {m.desc}
-                </p>
-              </div>
-            </div>
+    <section className={styles.leagueStrip} aria-label="Leagues covered">
+      <div className={styles.leagueInner}>
+        <span className={styles.stripLabel}>LEAGUES IN FOCUS</span>
+        <div className={styles.leagueList}>
+          {leagues.map((league) => (
+            <span className={styles.leagueChip} key={league}>
+              <i aria-hidden="true" />
+              {league}
+            </span>
           ))}
         </div>
       </div>
@@ -408,352 +190,268 @@ export function AIIntelligenceSection() {
   );
 }
 
-// ── 7. Performance / Accuracy Section ──
-export function PerformanceAccuracySection() {
-  const tiers = [
+export function TrackRecordSection() {
+  const milestones = [
     {
-      name: "Banker Picks",
-      range: "85% – 95% Confidence",
-      rate: "89.4%",
-      desc: "Top echelon AI consensus with overwhelming Poisson alignment.",
-      color: "var(--gold)",
+      value: "Since 2021",
+      title: "A model built around match data",
+      description: "JollofTips has developed its own quantitative football prediction model.",
     },
     {
-      name: "Value Edge",
-      range: "75% – 84% Confidence",
-      rate: "78.2%",
-      desc: "High positive expected value picks capitalizing on sportsbook mispricing.",
-      color: "var(--accent-green)",
+      value: "274,510+",
+      title: "Matches simulated",
+      description: "Historical match analysis spans 711 leagues.",
     },
     {
-      name: "Consensus",
-      range: "70% – 74% Confidence",
-      rate: "71.6%",
-      desc: "Solid probability selections for multi-leg accumulators and combos.",
-      color: "var(--text-primary)",
+      value: "Open record",
+      title: "Results stay reviewable",
+      description: "Explore graded predictions in the public performance tracker.",
     },
   ];
 
   return (
-    <section style={{ padding: "80px 20px", maxWidth: 1360, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", maxWidth: 740, margin: "0 auto 50px" }}>
-        <div className="gold-badge" style={{ marginBottom: 14 }}>
-          <ShieldCheck size={12} />
-          VERIFIED TRACK RECORD
-        </div>
-        <h2
-          style={{
-            fontSize: "clamp(28px, 4vw, 42px)",
-            fontWeight: 900,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.02em",
-            margin: "0 0 14px",
-          }}
-        >
-          Performance & Accuracy Breakdown
-        </h2>
-        <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.65, margin: 0 }}>
-          Every prediction is audited and recorded in an immutable public ledger. We publish transparent accuracy tiers rather than cherry-picked highlights.
-        </p>
-      </div>
+    <section className={styles.trackSection}>
+      <div className={styles.container}>
+        <SectionHeading
+          eyebrow="WELCOME TO JOLLOFTIPS"
+          title="Our track record since 2021"
+          description="A quantitative model, built over time and open for you to explore."
+          centered
+        />
+        <div className={styles.trackGrid}>
+          <ol className={styles.timeline}>
+            {milestones.map((milestone) => (
+              <li key={milestone.value}>
+                <span className={styles.timelineValue}>{milestone.value}</span>
+                <h3>{milestone.title}</h3>
+                <p>{milestone.description}</p>
+              </li>
+            ))}
+          </ol>
 
-      {/* Tier Matrix Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
-        {tiers.map((t, idx) => (
-          <div
-            key={idx}
-            className="luxury-card"
-            style={{
-              padding: "28px",
-              display: "flex",
-              flexDirection: "column",
-              borderTop: `3px solid ${t.color}`,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-              <div>
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px" }}>
-                  {t.name}
-                </h3>
-                <span style={{ fontSize: "12px", color: "var(--text-dim)", fontWeight: 600 }}>
-                  {t.range}
-                </span>
+          <div className={styles.modelPanel} aria-label="Illustration of the JollofTips prediction process">
+            <div className={styles.panelHeader}>
+              <span className={styles.panelDot} />
+              <span>JOLLOFTIPS MODEL</span>
+              <span className={styles.panelState}>MATCH ANALYSIS</span>
+            </div>
+            <div className={styles.panelFlow}>
+              <div className={styles.panelStage}>
+                <span className={styles.stageNumber}>01</span>
+                <div>
+                  <strong>Match context</strong>
+                  <small>xG · team form · odds</small>
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: 900,
-                  fontFamily: "var(--font-mono)",
-                  color: t.color,
-                  lineHeight: 1,
-                }}
-              >
-                {t.rate}
+              <div className={styles.panelLink} aria-hidden="true" />
+              <div className={`${styles.panelStage} ${styles.panelStageActive}`}>
+                <span className={styles.stageNumber}>02</span>
+                <div>
+                  <strong>10,000 simulations</strong>
+                  <small>Monte Carlo · Poisson</small>
+                </div>
+              </div>
+              <div className={styles.panelLink} aria-hidden="true" />
+              <div className={styles.marketOutputRow}>
+                <span>1X2</span>
+                <span>GOALS</span>
+                <span>BTTS</span>
               </div>
             </div>
-
-            <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.65, margin: "0 0 20px" }}>
-              {t.desc}
-            </p>
-
-            {/* Visual Bar */}
-            <div style={{ height: "6px", background: "var(--surface-raised)", borderRadius: "3px", overflow: "hidden" }}>
-              <div
-                style={{
-                  height: "100%",
-                  width: t.rate,
-                  background: t.color,
-                  borderRadius: "3px",
-                }}
-              />
-            </div>
+            <p className={styles.panelFootnote}>From match inputs to probability-led picks</p>
           </div>
-        ))}
-      </div>
-
-      {/* Transparent Ledger CTA */}
-      <div style={{ textAlign: "center" }}>
-        <Link
-          href="/progress"
-          className="gold-btn"
-          style={{
-            padding: "12px 28px",
-            fontSize: "14px",
-            textDecoration: "none",
-          }}
-        >
-          <span>Explore Verified Historical Audit Ledger</span>
-          <ArrowRight size={15} />
-        </Link>
+        </div>
+        <div className={styles.trackLinkRow}>
+          <span>Explore the public performance tracker</span>
+          <Link href="/progress" className={styles.textLink}>
+            View the ledger <ArrowRight size={15} />
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
 
-// ── 8. Why JollofTips (5 Core Pillars) ──
-export function WhyJollofTips() {
-  const pillars = [
+export function ExploreRail() {
+  const links = [
+    { title: "All matches", href: "/all-matches", icon: Globe2 },
+    { title: "How it works", href: "/how-it-works", icon: Layers },
+    { title: "Performance tracker", href: "/progress", icon: TrendingUp },
+    { title: "VIP plans", href: "/pricing", icon: ShieldCheck },
+  ];
+
+  return (
+    <nav className={styles.exploreRail} aria-label="Explore JollofTips">
+      <div className={styles.exploreInner}>
+        <span className={styles.stripLabel}>EXPLORE THE PLATFORM</span>
+        <div className={styles.exploreLinks}>
+          {links.map(({ title, href, icon: Icon }) => (
+            <Link href={href} key={title} className={styles.exploreLink}>
+              <Icon size={15} strokeWidth={1.8} />
+              <span>{title}</span>
+              <ArrowRight size={13} className={styles.exploreArrow} />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+export function PredictionsSimpleSection() {
+  return (
+    <section className={styles.simpleSection}>
+      <div className={`${styles.container} ${styles.simpleGrid}`}>
+        <div className={styles.simpleCopy}>
+          <SectionHeading
+            eyebrow="MATCH INTELLIGENCE, MADE CLEAR"
+            title="Football predictions made simple"
+            description="See the pick, the market, and the match context together. Open a fixture when you want the full analysis."
+          />
+          <Link href="/all-matches" className={styles.primaryLink}>
+            Explore all matches <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className={styles.simpleFeatures}>
+          <article className={styles.simpleFeature}>
+            <div className={styles.featureIcon}><Target size={18} /></div>
+            <div>
+              <h3>Every pick, with context</h3>
+              <p>Read probabilities, confidence, and odds beside the fixture they belong to.</p>
+            </div>
+          </article>
+          <article className={styles.simpleFeature}>
+            <div className={styles.featureIcon}><Activity size={18} /></div>
+            <div>
+              <h3>Follow the result</h3>
+              <p>Move from upcoming picks to graded matches and the public performance tracker.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function PredictionWorkflowSection() {
+  return (
+    <section id="how-it-works" className={styles.workflowSection}>
+      <div className={styles.container}>
+        <SectionHeading
+          eyebrow="FROM FIXTURE TO FORECAST"
+          title="How our AI football predictions work"
+          description="Three stages turn match information into probabilities you can inspect."
+          centered
+        />
+        <div className={styles.workflowGrid}>
+          {workflow.map((step, index) => (
+            <article className={styles.workflowCard} key={step.title}>
+              <WorkflowArtwork kind={step.kind} />
+              <div className={styles.workflowCopy}>
+                <span className={styles.workflowIndex}>0{index + 1} / 03</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function PredictionProofSection() {
+  const details = [
     {
-      title: "AI-Powered Predictions",
-      desc: "Machine learning algorithms trained on over a decade of match records calculate unbiased probabilities without emotional attachment.",
-      icon: Cpu,
-    },
-    {
-      title: "700+ Global Leagues",
-      desc: "From the Premier League and UEFA Champions League to regional tier 3 divisions, receive consistent analytical depth across all competitions.",
-      icon: Globe2,
-    },
-    {
-      title: "Calibrated Confidence Scores",
-      desc: "Every tip comes with a quantified percentage score so you immediately understand the mathematical edge and risk profile.",
+      title: "Model probabilities",
+      description: "Compare 1X2, goals, and BTTS markets with the model’s confidence for each fixture.",
+      action: "Browse predictions",
+      href: "/all-matches",
       icon: Target,
     },
     {
-      title: "Historical Transparency",
-      desc: "Every single bet outcome is archived into our publicly accessible performance ledger. No deleted losses, no fabricated records.",
-      icon: ShieldCheck,
+      title: "Market context",
+      description: "See the selection and available odds together, with value edges surfaced in the analysis.",
+      action: "See all matches",
+      href: "/all-matches",
+      icon: Activity,
     },
     {
-      title: "Data-Driven Value Edge",
-      desc: "Algorithms compare modeled probabilities against current market odds to identify mispriced lines before market correction.",
-      icon: TrendingUp,
+      title: "Historical outcomes",
+      description: "Review graded picks and the model’s published track record over time.",
+      action: "Open performance tracker",
+      href: "/progress",
+      icon: ShieldCheck,
     },
   ];
 
   return (
-    <section
-      style={{
-        padding: "80px 20px",
-        background: "var(--surface-raised)",
-        borderTop: "1px solid var(--border-color)",
-        borderBottom: "1px solid var(--border-color)",
-      }}
-    >
-      <div style={{ maxWidth: 1360, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", maxWidth: 740, margin: "0 auto 50px" }}>
-          <div className="gold-badge" style={{ marginBottom: 14 }}>
-            <Award size={12} />
-            THE JOLLOFTIPS ADVANTAGE
-          </div>
-          <h2
-            style={{
-              fontSize: "clamp(28px, 4vw, 42px)",
-              fontWeight: 900,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.02em",
-              margin: "0 0 14px",
-            }}
-          >
-            Why Choose JollofTips
-          </h2>
-          <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.65, margin: 0 }}>
-            Built for analytical punters who value mathematical rigor, transparency, and statistical edges over generic sports chatter.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "20px",
-          }}
-        >
-          {pillars.map((p, idx) => {
-            const Icon = p.icon;
-            return (
-              <div
-                key={idx}
-                className="luxury-card"
-                style={{
-                  padding: "24px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: "var(--gold-bg)",
-                    border: "1px solid var(--gold-border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--gold)",
-                  }}
-                >
-                  <Icon size={20} />
-                </div>
-                <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 800,
-                    color: "var(--text-primary)",
-                    margin: 0,
-                  }}
-                >
-                  {p.title}
-                </h3>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
-                  {p.desc}
-                </p>
-              </div>
-            );
-          })}
+    <section className={styles.proofSection}>
+      <div className={styles.container}>
+        <SectionHeading
+          eyebrow="OPEN BY DESIGN"
+          title="See what sits behind every pick"
+          description="Explore the predictions, the market details, and the results in the places they belong."
+          centered
+        />
+        <div className={styles.proofGrid}>
+          {details.map(({ title, description, action, href, icon: Icon }) => (
+            <article className={styles.proofCard} key={title}>
+              <div className={styles.proofIcon}><Icon size={17} strokeWidth={1.8} /></div>
+              <h3>{title}</h3>
+              <p>{description}</p>
+              <Link href={href} className={styles.textLink}>
+                {action} <ArrowRight size={14} />
+              </Link>
+            </article>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-// ── 9. Premium CTA Banner ──
-export function PremiumCTABanner() {
+export function PlansSection() {
   return (
-    <section style={{ padding: "80px 20px", maxWidth: 1360, margin: "0 auto" }}>
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--gold-border)",
-          borderRadius: "20px",
-          padding: "48px 36px",
-          textAlign: "center",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.06), 0 0 0 1px rgba(201,168,76,0.12)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "60%",
-            height: "100%",
-            background: "radial-gradient(ellipse at 50% 0%, var(--gold-glow) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
+    <section className={styles.plansSection}>
+      <div className={styles.container}>
+        <SectionHeading
+          eyebrow="SUBSCRIPTION OPTIONS"
+          title="Our plans"
+          description="Start with free match picks or choose the level of analysis you need."
+          centered
         />
-
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
-          <div className="gold-badge" style={{ marginBottom: 16 }}>
-            <Sparkles size={12} />
-            INSTANT ANALYTICAL ACCESS
-          </div>
-          <h2
-            style={{
-              fontSize: "clamp(28px, 4.5vw, 44px)",
-              fontWeight: 900,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.03em",
-              margin: "0 0 16px",
-              lineHeight: 1.15,
-            }}
-          >
-            Elevate Your Football Predictions With AI Intelligence
-          </h2>
-          <p
-            style={{
-              fontSize: "15px",
-              color: "var(--text-secondary)",
-              lineHeight: 1.65,
-              margin: "0 0 32px",
-            }}
-          >
-            Access today&apos;s computer-simulated picks, xG breakdowns, and high-confidence banker predictions across 700+ worldwide leagues.
-          </p>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "16px",
-              flexWrap: "wrap",
-            }}
-          >
-            <Link
-              href="/all-matches"
-              className="gold-btn"
-              style={{
-                padding: "14px 32px",
-                fontSize: "14px",
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
+        <div className={styles.plansGrid}>
+          {plans.map((plan) => (
+            <article
+              className={`${styles.planCard} ${plan.featured ? styles.planFeatured : ""}`}
+              key={plan.name}
             >
-              <span>Explore All Predictions</span>
-              <ArrowRight size={16} />
-            </Link>
-
-            <Link
-              href="/pricing"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "14px 28px",
-                borderRadius: "10px",
-                background: "var(--surface-raised)",
-                border: "1px solid var(--border-color)",
-                color: "var(--text-primary)",
-                fontSize: "14px",
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              <span>View VIP Plans</span>
-            </Link>
-          </div>
+              {plan.featured && <span className={styles.popularTag}>MOST POPULAR</span>}
+              <div>
+                <h3>{plan.name}</h3>
+                <p className={styles.planDescription}>{plan.description}</p>
+                <div className={styles.priceLine}>
+                  <strong>{plan.price}</strong>
+                  <span>/ month</span>
+                </div>
+                <ul className={styles.planFeatures}>
+                  {plan.features.map((feature) => (
+                    <li key={feature}>
+                      <Check size={15} />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Link
+                href={plan.href}
+                className={plan.featured ? styles.primaryLink : styles.secondaryLink}
+              >
+                {plan.action} <ArrowRight size={15} />
+              </Link>
+            </article>
+          ))}
         </div>
       </div>
     </section>

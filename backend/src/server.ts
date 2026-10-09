@@ -54,6 +54,8 @@ app.use(
       "webhook-signature",
       "whop-signature",
       "stripe-signature",
+      "x-bachs-signature",
+      "bachs-signature",
     ],
   })
 );

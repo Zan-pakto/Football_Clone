@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
       "webhook-signature",
       "whop-signature",
       "stripe-signature",
+      "x-bachs-signature",
+      "bachs-signature",
     ];
 
     for (const h of forwardHeaders) {

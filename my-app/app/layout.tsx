@@ -18,13 +18,23 @@ export const metadata: Metadata = {
   description:
     "AI-powered football predictions, 1X2 odds, goal tips, BTTS predictions, confidence scores, and real-time live match updates.",
   keywords: ["JollofTips", "football predictions", "AI football tips", "1X2 odds", "over under goals", "btts tips", "live scores"],
+  openGraph: {
+    title: "JollofTips | AI Football Predictions",
+    description: "Every day, top predictions are free — no account needed.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "JollofTips | AI Football Predictions",
+    description: "Every day, top predictions are free — no account needed.",
+  },
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/jt-mark.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
     ],
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    shortcut: "/jt-mark.svg",
+    apple: "/apple-icon",
   },
 };
 
