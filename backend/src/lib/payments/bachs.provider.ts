@@ -31,12 +31,40 @@ export class BachsPaymentProvider implements IPaymentProvider {
   async createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutResult> {
     const plan = getPlanOrThrow(input.planId);
 
-    // If keys not configured yet, return dev fallback with instructions
+    // 1. Direct Bachs Checkout Paylink (Preferred for hosted Mobile Money / M-Pesa checkouts)
+    const targetUrl = plan.bachsCheckoutUrl;
+    if (targetUrl) {
+      try {
+        const url = new URL(targetUrl);
+        if (input.userEmail) {
+          url.searchParams.set("email", input.userEmail);
+        }
+        if (input.userName) {
+          url.searchParams.set("name", input.userName);
+        }
+        url.searchParams.set("metadata[userId]", input.userId);
+        url.searchParams.set("metadata[userEmail]", input.userEmail);
+        url.searchParams.set("metadata[planId]", plan.id);
+        if (input.successUrl.startsWith("https://")) {
+          url.searchParams.set("redirect_url", input.successUrl);
+        }
+
+        return {
+          sessionId: `bachs_${Date.now()}`,
+          checkoutUrl: url.toString(),
+          provider: this.name,
+        };
+      } catch {
+        // Fallback to API checkout if URL parsing fails
+      }
+    }
+
+    // 2. Fallback to Bachs API if keys are provided
     if (!this.secretKey) {
-      console.log(`[BachsProvider] Pending API credentials for ${input.userEmail} on plan ${plan.name}`);
+      console.log(`[BachsProvider] Using default Bachs direct paylink for ${input.userEmail} on plan ${plan.name}`);
       return {
-        sessionId: `bachs_pending_${Date.now()}`,
-        checkoutUrl: `${input.successUrl}?bachs_trial=true&plan=${input.planId}`,
+        sessionId: `bachs_direct_${Date.now()}`,
+        checkoutUrl: plan.bachsCheckoutUrl || `${input.successUrl}?bachs_trial=true&plan=${input.planId}`,
         provider: this.name,
       };
     }
@@ -124,7 +152,18 @@ export class BachsPaymentProvider implements IPaymentProvider {
 
     const userEmail = data.customer?.email || data.email || data.metadata?.userEmail;
     const userId = data.metadata?.userId || data.customer?.metadata?.userId;
-    const planId = data.metadata?.planId || "VIP_MONTHLY";
+    let planId = data.metadata?.planId || "VIP_MONTHLY";
+    const productId = data.product_id || data.product?.id || data.metadata?.productId || data.metadata?.product_id;
+    if (productId === "prod_cb9782fabf1c4c5a8b67") {
+      planId = "PREMIUM_6MONTHS";
+    } else if (productId === "prod_ed97f1b60dc344e491c8") {
+      planId = "PREMIUM_MONTHLY";
+    } else if (productId === "prod_275e20b69d0940f8a31f") {
+      planId = "VIP_6MONTHS";
+    } else if (productId === "prod_8bcc294dbe674aab9ad3") {
+      planId = "VIP_MONTHLY";
+    }
+
     const providerSubId = data.subscription_id || data.id || data.reference;
     const providerCustId = data.customer?.id || data.customer_id;
 
@@ -137,7 +176,10 @@ export class BachsPaymentProvider implements IPaymentProvider {
     ) {
       const isTrial = Boolean(data.is_trial || data.status === "trialing" || eventType.includes("trialing"));
       const trialDays = data.metadata?.trialDays || 7;
-      const trialEnd = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+      const durationDays = (planId === "PREMIUM_6MONTHS" || planId === "VIP_6MONTHS") ? 180 : 30;
+      const periodEnd = isTrial
+        ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
+        : new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
       return {
         eventId: payload.id || `evt_${Date.now()}`,
@@ -149,7 +191,7 @@ export class BachsPaymentProvider implements IPaymentProvider {
         providerSubId,
         providerCustId,
         status: isTrial ? "TRIALING" : "ACTIVE",
-        currentPeriodEnd: data.current_period_end ? new Date(data.current_period_end) : trialEnd,
+        currentPeriodEnd: data.current_period_end ? new Date(data.current_period_end) : periodEnd,
       };
     }
 

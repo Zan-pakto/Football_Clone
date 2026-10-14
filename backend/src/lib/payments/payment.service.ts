@@ -11,55 +11,68 @@ import {
   StandardWebhookEvent,
   PlanId,
 } from "./types";
-import { getPlanOrThrow } from "./plans.config";
+import { getPlanOrThrow, resolveProviderAndCheckout } from "./plans.config";
 
 export class PaymentService {
-  private provider: IPaymentProvider;
+  private whopProvider: WhopPaymentProvider;
+  private bachsProvider: BachsPaymentProvider;
+  private stripeProvider: StripePaymentProvider;
+  private mockProvider: MockPaymentProvider;
+  private defaultProviderName: string;
 
   constructor() {
-    const providerName = (process.env.PAYMENT_PROVIDER || "whop").toLowerCase().trim();
-    if (providerName === "whop") {
-      this.provider = new WhopPaymentProvider();
-      console.log("💳 [PaymentService] Initialized with WHOP connector");
-    } else if (providerName === "stripe") {
-      this.provider = new StripePaymentProvider();
-      console.log("💳 [PaymentService] Initialized with STRIPE connector");
-    } else if (providerName === "bachs") {
-      this.provider = new BachsPaymentProvider();
-      console.log("💳 [PaymentService] Initialized with BACHS.IO connector");
-    } else {
-      this.provider = new MockPaymentProvider();
-      console.log("💳 [PaymentService] Initialized with MOCK connector (Zero-Stripe/Zero-Whop dev mode)");
-    }
+    this.whopProvider = new WhopPaymentProvider();
+    this.bachsProvider = new BachsPaymentProvider();
+    this.stripeProvider = new StripePaymentProvider();
+    this.mockProvider = new MockPaymentProvider();
+
+    this.defaultProviderName = (process.env.PAYMENT_PROVIDER || "whop").toLowerCase().trim();
+    console.log("💳 [PaymentService] Multi-gateway routing initialized: Whop (USD, NGN, ZAR) & Bachs.io (African Mobile Money)");
   }
 
   /**
-   * Get active provider name
+   * Get active default provider name
    */
   getProviderName(): string {
-    return this.provider.name;
+    return this.defaultProviderName;
   }
 
   /**
-   * 1. Create Checkout Session (Initiated from frontend with planId)
+   * 1. Create Checkout Session with Intelligent Gateway Routing
+   * - USD, NGN (bank transfers/OPay), and ZAR -> Whop
+   * - African Mobile Money (KES, GHS, UGX, TZS, etc.) -> Bachs.io
+   * - USD and NGN are never routed through Bachs
+   * - Every other country gets USD -> Whop
    */
   async createCheckoutSession(input: {
     userId: string;
     userEmail: string;
     userName?: string;
     planId: PlanId;
+    currency?: string;
+    country?: string;
     successUrl: string;
     cancelUrl: string;
   }): Promise<CheckoutResult> {
-    // Validate that the plan exists on the server
     const plan = getPlanOrThrow(input.planId);
-    console.log(`💳 [PaymentService] Creating checkout session for user: ${input.userEmail} | Plan: ${plan.name} (${plan.id}) | Gateway: ${this.provider.name}`);
+    const routed = resolveProviderAndCheckout(input.planId, input.currency);
 
-    return await this.provider.createCheckoutSession({
+    console.log(`💳 [PaymentService] Routing checkout for ${input.userEmail} | Plan: ${plan.name} (${plan.id}) | Currency: ${routed.currency} -> Provider: ${routed.provider.toUpperCase()}`);
+
+    let activeProvider: IPaymentProvider = this.whopProvider;
+    if (routed.provider === "bachs") {
+      activeProvider = this.bachsProvider;
+    } else if (this.defaultProviderName === "mock") {
+      activeProvider = this.mockProvider;
+    }
+
+    return await activeProvider.createCheckoutSession({
       userId: input.userId,
       userEmail: input.userEmail,
       userName: input.userName,
       planId: plan.id,
+      currency: routed.currency,
+      country: input.country,
       successUrl: input.successUrl,
       cancelUrl: input.cancelUrl,
     });
@@ -73,8 +86,39 @@ export class PaymentService {
     signature?: string,
     headers?: Record<string, string | string[] | undefined>
   ): Promise<{ status: "processed" | "already_processed" | "ignored"; eventId: string; type: string }> {
+    const bodyStr = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+
+    // Header normalization
+    const lowerHeaders: Record<string, string> = {};
+    if (headers) {
+      for (const [k, v] of Object.entries(headers)) {
+        lowerHeaders[k.toLowerCase()] = Array.isArray(v) ? (v[0] || "") : (v || "");
+      }
+    }
+
+    // Auto-detect which provider dispatched the webhook
+    let targetProvider: IPaymentProvider = this.whopProvider;
+
+    if (
+      lowerHeaders["x-bachs-signature"] ||
+      lowerHeaders["bachs-signature"] ||
+      bodyStr.includes("bachs.io") ||
+      bodyStr.includes("prod_ed97f1b60dc344e491c8") ||
+      bodyStr.includes("prod_cb9782fabf1c4c5a8b67") ||
+      bodyStr.includes("prod_8bcc294dbe674aab9ad3") ||
+      bodyStr.includes("prod_275e20b69d0940f8a31f")
+    ) {
+      targetProvider = this.bachsProvider;
+    } else if (lowerHeaders["stripe-signature"]) {
+      targetProvider = this.stripeProvider;
+    } else if (bodyStr.includes("mock_evt_") || bodyStr.includes("mock_sub_")) {
+      targetProvider = this.mockProvider;
+    } else {
+      targetProvider = this.whopProvider;
+    }
+
     // Cryptographically verify & normalize into standard event
-    const event: StandardWebhookEvent = await this.provider.verifyAndParseWebhook(rawBody, signature, headers);
+    const event: StandardWebhookEvent = await targetProvider.verifyAndParseWebhook(rawBody, signature, headers);
 
     if (event.type === "ignored") {
       return { status: "ignored", eventId: event.eventId, type: event.type };
@@ -129,7 +173,8 @@ export class PaymentService {
           }
 
           const plan = getPlanOrThrow(event.planId || "VIP_MONTHLY");
-          const expiresAt = event.currentPeriodEnd || new Date(Date.now() + (plan.interval === "year" ? 365 : 30) * 86400000);
+          const durationDays = (plan.intervalMonths === 6 || plan.id.includes("6MONTHS")) ? 180 : 30;
+          const expiresAt = event.currentPeriodEnd || new Date(Date.now() + durationDays * 86400000);
           const amountFormatted = event.amountPaid || `$${(plan.amountCents / 100).toFixed(2)}`;
 
           if (user) {
@@ -295,7 +340,13 @@ export class PaymentService {
       throw new Error("No active billing profile or customer ID found for this account.");
     }
 
-    return await this.provider.createCustomerPortalSession(sub.providerCustId, returnUrl);
+    const subProvider = (sub.provider || "").toLowerCase();
+    if (subProvider === "bachs") {
+      return await this.bachsProvider.createCustomerPortalSession(sub.providerCustId, returnUrl);
+    } else if (subProvider === "stripe") {
+      return await this.stripeProvider.createCustomerPortalSession(sub.providerCustId, returnUrl);
+    }
+    return await this.whopProvider.createCustomerPortalSession(sub.providerCustId, returnUrl);
   }
 
   /**
@@ -313,7 +364,7 @@ export class PaymentService {
         isExpired: false,
         plan: "FREE",
         status: "FREE",
-        provider: this.provider.name,
+        provider: this.defaultProviderName,
       };
     }
 

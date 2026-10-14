@@ -72,8 +72,11 @@ export class WhopPaymentProvider implements IPaymentProvider {
     }
 
     // Direct Whop Checkout URL resolution:
-    // ALWAYS prefer https://whop.com/checkout/{plan_id} over storefront links so users go straight to payment
-    const directUrl = (plan.whopPlanId ? `https://whop.com/checkout/${plan.whopPlanId}` : null) || plan.whopCheckoutUrl;
+    // Support multi-currency variant if requested (e.g. ngn, zar, usd)
+    const reqCur = (input.currency || "usd").toLowerCase().trim();
+    const curVariant = plan.currencyVariants?.[reqCur] || plan.currencyVariants?.usd;
+    const targetWhopPlanId = curVariant?.productId || plan.whopPlanId;
+    const directUrl = curVariant?.checkoutUrl || (targetWhopPlanId ? `https://whop.com/checkout/${targetWhopPlanId}` : null) || plan.whopCheckoutUrl;
 
     if (directUrl) {
       try {
@@ -87,6 +90,9 @@ export class WhopPaymentProvider implements IPaymentProvider {
         url.searchParams.set("metadata[userId]", input.userId);
         url.searchParams.set("metadata[userEmail]", input.userEmail);
         url.searchParams.set("metadata[planId]", plan.id);
+        if (input.currency) {
+          url.searchParams.set("metadata[currency]", input.currency.toUpperCase());
+        }
 
         return {
           sessionId: `whop_link_${Date.now()}`,
@@ -183,15 +189,37 @@ export class WhopPaymentProvider implements IPaymentProvider {
 
     // Resolve internal plan ID
     let planId: PlanId = "PREMIUM_MONTHLY";
-    if (metadata.planId === "VIP_MONTHLY" || metadata.planId === "PREMIUM_MONTHLY") {
+    if (
+      metadata.planId === "VIP_MONTHLY" ||
+      metadata.planId === "VIP_6MONTHS" ||
+      metadata.planId === "PREMIUM_MONTHLY" ||
+      metadata.planId === "PREMIUM_6MONTHS"
+    ) {
       planId = metadata.planId;
     } else if (data.plan_id) {
+      const pId = data.plan_id;
       if (
-        data.plan_id === process.env.WHOP_PLAN_VIP_MONTHLY ||
-        data.plan_id === "plan_DfSUCcAweadIa" ||
-        data.plan_id.toLowerCase().includes("vip")
+        pId === "plan_fTC4HGr9D33uO" || // VIP 6M USD
+        pId === "plan_b9oSv9CGseeG7" || // VIP 6M NGN
+        pId === "plan_x5pw1IbNFyi1Y" || // VIP 6M ZAR
+        pId === "plan_oaCOPGAT2FpXZ"    // VIP 6M KES
+      ) {
+        planId = "VIP_6MONTHS";
+      } else if (
+        pId === "plan_DfSUCcAweadIa" || // VIP 1M USD
+        pId === "plan_qBmyg12UoWVQc" || // VIP 1M NGN
+        pId === "plan_9Cx98mNqjAtVE" || // VIP 1M ZAR
+        pId === "plan_JIrwD7tDw5bnJ" || // VIP 1M KES
+        pId.toLowerCase().includes("vip")
       ) {
         planId = "VIP_MONTHLY";
+      } else if (
+        pId === "plan_xaGOGXV9S44NL" || // Premium 6M USD
+        pId === "plan_QWBXn1FL9DyO1" || // Premium 6M NGN
+        pId === "plan_u9AXPZ2NqmPIW" || // Premium 6M ZAR
+        pId === "plan_DL3PT43HhWvir"    // Premium 6M KES
+      ) {
+        planId = "PREMIUM_6MONTHS";
       } else {
         planId = "PREMIUM_MONTHLY";
       }
@@ -218,7 +246,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
       }
     }
     if (!currentPeriodEnd) {
-      const daysToAdd = 30;
+      const daysToAdd = (planId === "PREMIUM_6MONTHS" || planId === "VIP_6MONTHS") ? 180 : 30;
       currentPeriodEnd = new Date(Date.now() + daysToAdd * 86400000);
     }
 

@@ -27,19 +27,51 @@ function getAuthToken(req: Request): string | undefined {
 router.get("/plans", (_req: Request, res: Response) => {
   const plans = Object.values(SUBSCRIPTION_PLANS).map((p) => ({
     id: p.id,
+    tier: p.tier,
     name: p.name,
     badge: p.badge,
     description: p.description,
     amount: (p.amountCents / 100).toFixed(2),
     currency: p.currency.toUpperCase(),
     interval: p.interval,
+    intervalMonths: p.intervalMonths,
+    hasTrial: p.hasTrial,
+    trialDays: p.trialDays,
     features: p.features,
+    currencyVariants: p.currencyVariants,
   }));
+
+  const supportedCurrencies = [
+    { code: "USD", name: "US Dollar", symbol: "$", provider: "whop", note: "Worldwide & International (Cards, PayPal, Apple/Google Pay)" },
+    { code: "NGN", name: "Nigerian Naira", symbol: "₦", provider: "whop", note: "Nigeria (Direct Bank Transfer, Cards & OPay)" },
+    { code: "ZAR", name: "South African Rand", symbol: "R", provider: "whop", note: "South Africa (Cards, Instant EFT & Ozow)" },
+    { code: "KES", name: "Kenyan Shilling", symbol: "KSh", provider: "bachs", note: "Kenya (M-Pesa, Airtel Money)" },
+    { code: "GHS", name: "Ghanaian Cedi", symbol: "GH₵", provider: "bachs", note: "Ghana (MTN MoMo, Vodafone Cash)" },
+    { code: "MOMO", name: "African Mobile Money", symbol: "MoMo", provider: "bachs", note: "Uganda, Tanzania, Rwanda, Cameroon, CFA & all Africa" },
+  ];
+
+  const paymentMethods = [
+    "PayPal",
+    "OPay",
+    "M-Pesa",
+    "Mobile Money (MTN, Airtel, Vodafone, Orange)",
+    "Visa & Mastercard",
+    "Apple Pay & Google Pay",
+    "Instant Bank Transfer",
+  ];
 
   return res.json({
     success: true,
     provider: paymentService.getProviderName(),
     plans,
+    supportedCurrencies,
+    paymentMethods,
+    routingRules: {
+      whop: ["USD", "NGN", "ZAR"],
+      bachs: ["KES", "GHS", "UGX", "TZS", "MOMO", "All African Mobile Money"],
+      defaultCountryCurrency: "USD",
+      allTrialsIncluded: "7-Day Free Trial on all sign ups",
+    },
   });
 });
 
@@ -59,7 +91,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
 
-    const { planId } = req.body || {};
+    const { planId, currency, country } = req.body || {};
     if (!planId) {
       return res.status(400).json({
         success: false,
@@ -99,6 +131,8 @@ router.post("/checkout", async (req: Request, res: Response) => {
       userEmail: user.email,
       userName: user.name || undefined,
       planId,
+      currency,
+      country,
       successUrl,
       cancelUrl,
     });

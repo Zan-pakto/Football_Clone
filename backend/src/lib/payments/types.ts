@@ -1,10 +1,16 @@
-export type PlanId = "PREMIUM_MONTHLY" | "VIP_MONTHLY";
+export type PlanId =
+  | "PREMIUM_MONTHLY"
+  | "PREMIUM_6MONTHS"
+  | "VIP_MONTHLY"
+  | "VIP_6MONTHS";
 
 export interface CreateCheckoutInput {
   userId: string;
   userEmail: string;
   userName?: string;
   planId: PlanId;
+  currency?: string;
+  country?: string;
   successUrl: string;
   cancelUrl: string;
 }
