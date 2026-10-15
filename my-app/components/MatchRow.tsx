@@ -17,12 +17,9 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   const p = rawPick.trim();
 
   // Natural language double chance & explicit DC variations
-  if (/^1x\s*(?:double\s*chance|\/|\b)|double\s*chance\s*1x/i.test(p)) return "1X";
-  if (/^x2\s*(?:double\s*chance|\/|\b)|double\s*chance\s*x2/i.test(p)) return "X2";
-  if (/^12\s*(?:double\s*chance|\/|\b)|double\s*chance\s*12/i.test(p)) return "12";
-  if (/^away\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+away/i.test(p) || /^x2\b/i.test(p)) return "X2";
-  if (/^home\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)/i.test(p) || /^draw\s+or\s+home/i.test(p) || /^1x\b/i.test(p)) return "1X";
-  if (/^home\s+(?:team\s+)?or\s+away/i.test(p) || /^away\s+or\s+home/i.test(p) || /^12\b/i.test(p)) return "12";
+  if (/(?:double\s*chance|dc)[\s\-:]*1x|^1x\b|home\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)|^draw\s+or\s+home/i.test(p)) return "1X";
+  if (/(?:double\s*chance|dc)[\s\-:]*x2|^x2\b|away\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)|^draw\s+or\s+away/i.test(p)) return "X2";
+  if (/(?:double\s*chance|dc)[\s\-:]*12|^12\b|home\s+(?:team\s+)?or\s+away|^away\s+or\s+home/i.test(p)) return "12";
   if (/^(?:1x2\s*(?:\/|\-)\s*)?double\s*chance$/i.test(p)) return "1X";
 
   // Natural language 1X2 single

@@ -455,7 +455,7 @@ export default function BetBuilderPage() {
       `🔥 [JollofTips Bet Builder Slip]\n` +
       `Picks: ${generatedSlip.length} | Combined Odds: ${calculatedOdds.toFixed(2)}\n\n` +
       lines.join("\n") +
-      `\n\nGenerated via JollofTips NT Apex AI Engine`;
+      `\n\nGenerated via JollofTips AI Engine`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
@@ -497,7 +497,7 @@ export default function BetBuilderPage() {
           <div>
             <div className="bb-tagline" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={12} />
-              <span>POWERED BY NT APEX AI ENGINE</span>
+              <span>POWERED BY JOLLOFTIPS AI ENGINE</span>
             </div>
             <h1 className="bb-title">AI Bet Builder</h1>
           </div>

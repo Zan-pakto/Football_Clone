@@ -351,7 +351,7 @@ export default function HowItWorks() {
             </div>
           </div>
 
-          {/* ── CARD 03: Predictive Intelligence with JT Apex ── */}
+          {/* ── CARD 03: Predictive Intelligence with JollofTips AI ── */}
           <div
             className="luxury-card"
             onMouseEnter={() => setHoveredCard(3)}
@@ -443,10 +443,10 @@ export default function HowItWorks() {
 
               {/* Text Description */}
               <h3 style={{ fontSize: 18, fontWeight: 900, color: "var(--text-primary)", marginBottom: 10 }}>
-                Predictive Intelligence with JT Apex
+                Predictive Intelligence with JollofTips AI
               </h3>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                At this stage, our proprietary model, <strong>JT Apex</strong>, takes over. Developed by our AI engineering team, JT Apex combines deep neural networks with pattern recognition to interpret complex football dynamics and generate high-probability value predictions.
+                At this stage, our proprietary model, <strong>JollofTips Quantitative Model</strong>, takes over. Developed by our AI engineering team, it combines deep neural networks with pattern recognition to interpret complex football dynamics and generate high-probability value predictions.
               </p>
             </div>
           </div>

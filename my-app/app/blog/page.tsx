@@ -48,14 +48,14 @@ interface Article {
 const ARTICLES: Article[] = [
   {
     id: "art-1",
-    slug: "inside-jt-apex-ai-model-prediction-accuracy",
+    slug: "inside-jolloftips-ai-model-prediction-accuracy",
     category: "AI & Machine Learning",
     title: "Inside the Engine: How Neural Networks Predict Football Fixtures with 85%+ Accuracy",
     excerpt: "A deep dive into our multi-layered Poisson regression and bidirectional LSTM architecture that isolates true underlying goal expectancy from random luck.",
     content: [
       "In modern football, single-match scorelines are notoriously noisy. A team can dominate possession with 2.8 Expected Goals (xG), hit the woodwork twice, and lose 1-0 to a deflected set-piece. Human bettors often overreact to these deceptive outcomes, while bookmakers subtly adjust market prices to exploit public overreactions.",
-      "This is where JT Apex changes the dynamic. Rather than training models on final scores, our quantitative pipeline trains on underlying shot telemetry, pitch tilt, passing network pressure, and recovery zone locations.",
-      "By combining Bidirectional Long Short-Term Memory (LSTM) networks with Bivariate Poisson goal distribution models, JT Apex simulates every match 100,000 times before kickoff. The result is a mathematically grounded probability distribution across 1X2, Over/Under, and BTTS markets."
+      "This is where JollofTips AI changes the dynamic. Rather than training models on final scores, our quantitative pipeline trains on underlying shot telemetry, pitch tilt, passing network pressure, and recovery zone locations.",
+      "By combining Bidirectional Long Short-Term Memory (LSTM) networks with Bivariate Poisson goal distribution models, JollofTips Quantitative Model simulates every match 100,000 times before kickoff. The result is a mathematically grounded probability distribution across 1X2, Over/Under, and BTTS markets."
     ],
     keyTakeaways: [
       "Scorelines contain high variance; shot location and xG isolate true underlying team quality.",
@@ -79,7 +79,7 @@ const ARTICLES: Article[] = [
     content: [
       "Most sports bettors ask the wrong question: 'Who will win this match?' Professional quantitative syndicates ask: 'Is the price offered by the bookmaker higher than the true mathematical probability?'",
       "Expected Value (EV) measures the return you can expect on average for each bet placed at a specific price. The formula is straightforward: EV = (True Probability × Decimal Odds) - 1.",
-      "When JT Apex calculates a team has a 60% probability of winning (fair odds of 1.67) and the bookmaker offers 1.90, that bet carries a +14% Expected Value. Over hundreds of settled fixtures, positive EV is the single mathematical guarantee of beating the bookmaker margin."
+      "When JollofTips AI calculates a team has a 60% probability of winning (fair odds of 1.67) and the bookmaker offers 1.90, that bet carries a +14% Expected Value. Over hundreds of settled fixtures, positive EV is the single mathematical guarantee of beating the bookmaker margin."
     ],
     keyTakeaways: [
       "Value betting is about finding price discrepancies, not just picking heavy favorites.",
@@ -102,7 +102,7 @@ const ARTICLES: Article[] = [
     content: [
       "Traditional football pundits still rely on basic stats like recent clean sheets or winning streaks. Quantitative analysts know that these metrics are lagging indicators.",
       "Field Tilt measures the share of possession in the final third. When a team generates 68% field tilt but scores zero goals across 3 matches, market odds inflate because the public thinks they are in a slump. In reality, regression to the mean dictates an explosive goal haul in coming fixtures.",
-      "JT Apex leverages Non-Shot Expected Goals (npxG) to identify high-probability value on under-priced teams before the general market catches on."
+      "JollofTips Quantitative Model leverages Non-Shot Expected Goals (npxG) to identify high-probability value on under-priced teams before the general market catches on."
     ],
     keyTakeaways: [
       "Lagging indicators (goals conceded) hide underlying positive tactical performance.",

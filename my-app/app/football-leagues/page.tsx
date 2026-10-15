@@ -112,7 +112,7 @@ export default function FootballLeaguesPage() {
           <div style={{ position: "relative", zIndex: 2 }}>
             <span className="tm-hero__tag">
               <Sparkles size={12} style={{ color: "#a79fff" }} />
-              Powered by NT Apex AI
+              Powered by JollofTips AI
             </span>
             <h1 className="lgs-head__title">Leagues &amp; Competitions</h1>
             <p className="lgs-head__lead">
@@ -160,21 +160,25 @@ export default function FootballLeaguesPage() {
                   <span className="lgs-h2__ic">★</span>Popular Leagues
                 </h2>
                 <div className="lgs-pop">
-                  {filteredPopular.map((league) => (
-                    <Link
-                      key={league.id || league.slug}
-                      href={`/football-leagues/${league.slug}`}
-                      className="lgs-pop__card"
-                    >
-                      <TeamLogo src={league.logo} name={league.name} size={38} className="lgs-pop__img" />
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <span className="lgs-pop__name">{league.name}</span>
-                        <div style={{ fontSize: 11, color: "#7874a4", marginTop: 2 }}>
-                          {league.country}
+                  {filteredPopular.map((league) => {
+                    const displayName = league.name.replace(/UEFA Europa Conference League/i, "UEFA Conference League");
+                    return (
+                      <Link
+                        key={league.id || league.slug}
+                        href={`/football-leagues/${league.slug}`}
+                        className="lgs-pop__card"
+                        title={`${league.name} (${league.country})`}
+                      >
+                        <TeamLogo src={league.logo} name={displayName} size={38} className="lgs-pop__img" />
+                        <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                          <span className="lgs-pop__name">{displayName}</span>
+                          <div style={{ fontSize: 11, color: "#7874a4", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {league.country}
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               </section>
             )}

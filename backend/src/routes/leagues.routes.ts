@@ -69,7 +69,7 @@ const POPULAR_LEAGUES_DEFINITIONS = [
     logo: "https://cdn.nerdytips.com/public/img/flags/europa-league.svg",
   },
   {
-    name: "UEFA Europa Conference League",
+    name: "UEFA Conference League",
     country: "World",
     slug: "conference-league",
     logo: "https://cdn.nerdytips.com/public/img/flags/conference.svg",
@@ -403,7 +403,8 @@ router.get("/", async (_req: Request, res: Response) => {
       const dbMatch = allLeagues.find(
         (l) =>
           l.name.toLowerCase() === pop.name.toLowerCase() ||
-          l.name.toLowerCase().includes(pop.name.toLowerCase())
+          l.name.toLowerCase().includes(pop.name.toLowerCase()) ||
+          (pop.slug === "conference-league" && l.name.toLowerCase().includes("conference"))
       );
       return {
         id: dbMatch?.id || `pop_${pop.slug}`,

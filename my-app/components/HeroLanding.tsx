@@ -512,7 +512,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
   const handleCopyTip = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(
-        `${activeSim.homeTeam} vs ${activeSim.awayTeam} | Best Pick: ${activeSim.bestTip} @ ${activeSim.bestTipOdds} | Trust: ${activeSim.confidenceScore}/10`
+        `⚽ ${activeSim.homeTeam} vs ${activeSim.awayTeam} | Pick: ${activeSim.bestTip} @ ${activeSim.bestTipOdds} | Trust: ${activeSim.confidenceScore}/10 | Via JollofTips AI`
       );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

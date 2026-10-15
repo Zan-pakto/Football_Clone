@@ -87,7 +87,7 @@ export default function HowItWorksPage() {
             lineHeight: 1.15,
             margin: "0 0 20px",
           }}>
-            Inside JT Apex AI: How Our Football Intelligence Engine Works
+            Inside JollofTips AI: How Our Football Intelligence Engine Works
           </h1>
 
           <p style={{
@@ -229,7 +229,7 @@ export default function HowItWorksPage() {
             <div>
               <span className="gold-badge" style={{ marginBottom: 12 }}>STAGE 03 OF 04</span>
               <h3 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-primary)", marginBottom: 12 }}>
-                JT Apex Neural Engine & Monte Carlo Simulations
+                JollofTips Neural Engine & Monte Carlo Simulations
               </h3>
               <p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
                 Our proprietary neural engine leverages hybrid Bi-LSTM models combined with Poisson goal distribution equations.
@@ -282,7 +282,7 @@ export default function HowItWorksPage() {
             Live Match Neural Simulator
           </h2>
           <p style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 680, margin: "0 auto" }}>
-            Tweak real-world parameters like Expected Goals and form to see how the JT Apex neural network instantly recalculates outcome probabilities.
+            Tweak real-world parameters like Expected Goals and form to see how the JollofTips neural network instantly recalculates outcome probabilities.
           </p>
         </div>
 

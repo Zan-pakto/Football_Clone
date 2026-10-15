@@ -627,7 +627,7 @@ export default function ProgressPage() {
                   </summary>
                   <div className="pg-faq__a">
                     <p>
-                      Every football prediction NT Apex publishes goes into this record before the match is played, and stays in it once the result is in. Two rates come out of that archive: Bankers counted by themselves, and every prediction taken together.
+                      Every football prediction JollofTips publishes goes into this record before the match is played, and stays in it once the result is in. Two rates come out of that archive: Bankers counted by themselves, and every prediction taken together.
                     </p>
                     <p>
                       The charts, the monthly table and the download files are three views of the same rows, so a match cannot be counted in one and missing from another. Nothing is added to the record after a result is known.

@@ -222,7 +222,7 @@ export default function SingleLeaguePage({
               <div style={{ minWidth: 0 }}>
                 <span className="tm-hero__tag">
                   <Sparkles size={12} style={{ color: "#a79fff" }} />
-                  Powered by NT Apex AI
+                  Powered by JollofTips AI
                 </span>
                 <h1 className="tm-hero__name">
                   {league.name} - {league.country} <span>Predictions</span>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { getCountryFlagUrl, normalizeCountryName } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
+import { cleanPickLabel } from "@/components/MatchRow";
 import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 
 export interface BotdMatch {
@@ -267,7 +268,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
       )
       .join("\n");
     navigator.clipboard.writeText(
-      `🔥 NerdyTips Slip of the Day (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia JollofTips NT Apex AI`
+      `🔥 JollofTips Slip of the Day (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia JollofTips AI Engine`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -428,7 +429,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
               }}
             >
               <Sparkles size={13} color="#a79fff" />
-              <span>Powered by NT Apex AI</span>
+              <span>Powered by JollofTips AI</span>
             </div>
 
             <h1
@@ -455,7 +456,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
               }}
             >
               {activeDateItem.label === "Today"
-                ? "Today's Bet of the Day and Slip of the Day from NerdyTips – AI-selected football bankers rated above 9/10 confidence, plus a ready-made accumulator."
+                ? "Today's Bet of the Day and Slip of the Day from JollofTips – AI-selected football bankers rated above 9/10 confidence, plus a ready-made accumulator."
                 : `AI-selected football bankers rated above 9/10 confidence for ${activeDateItem.fullDateStr}, alongside ready-made accumulator selections.`}
             </p>
           </div>
@@ -801,9 +802,9 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
               <span style={{ width: 60, textAlign: "center" }}>O/U</span>
               <span style={{ width: 54, textAlign: "center" }}>BTTS</span>
             </div>
-            <div style={{ display: "flex", gap: 8, width: 150, justifyContent: "flex-end" }}>
-              <span style={{ width: 70, textAlign: "center" }}>Best Tip</span>
-              <span style={{ width: 60, textAlign: "center" }}>Trust</span>
+            <div style={{ display: "flex", gap: 8, width: 154, justifyContent: "flex-end" }}>
+              <span style={{ width: 84, textAlign: "center" }}>Best Tip</span>
+              <span style={{ width: 56, textAlign: "center" }}>Trust</span>
             </div>
           </div>
 
@@ -861,11 +862,13 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                 const flagUrl = getCountryFlagUrl(match.country);
 
                 // Prediction picks (respecting lock state for free users)
-                const pickScore = match.predictions?.pickScore?.pick || match.pickScore?.pick || "1";
-                const pickGoals = match.predictions?.goals?.pick || match.goals?.pick || "Over 2.5";
-                const pickBtts = match.predictions?.btts?.pick || match.btts?.pick || "Yes";
-                const bestTip = match.predictions?.bestTip?.pick || match.bestTip || "1";
-                const bestOdd = match.predictions?.bestTip?.odd || match.tipOdds || match.odds.home || 1.8;
+                const pickScore = cleanPickLabel(match.predictions?.pickScore?.pick || match.pickScore?.pick) || "1";
+                const pickGoals = cleanPickLabel(match.predictions?.goals?.pick || match.goals?.pick) || "Over 2.5";
+                const pickBtts = cleanPickLabel(match.predictions?.btts?.pick || match.btts?.pick) || "Yes";
+                const rawBestTip = match.predictions?.bestTip?.pick || match.bestTip || "1";
+                const bestTip = cleanPickLabel(rawBestTip) || rawBestTip;
+                const rawBestOdd = match.predictions?.bestTip?.odd || match.tipOdds || match.odds.home || 1.8;
+                const bestOdd = typeof rawBestOdd === "number" ? rawBestOdd.toFixed(2) : (parseFloat(String(rawBestOdd)) || 1.80).toFixed(2);
                 const ratingVal = match.rating ? match.rating.toFixed(1) : "8.5";
 
                 const matchHref = match.isLocked ? "/pricing" : match.id ? `/match/${match.id}` : "#";
@@ -1091,7 +1094,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                       </div>
 
                       {/* 5. Best Tip & Trust Rating */}
-                      <div style={{ display: "flex", gap: 8, width: 150, justifyContent: "flex-end", alignItems: "center", flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: 8, width: 154, justifyContent: "flex-end", alignItems: "center", flexShrink: 0 }}>
                         {match.isLocked ? (
                           <Link
                             href="/pricing"
@@ -1117,45 +1120,72 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             {/* Best Tip Pill */}
                             <div
                               style={{
-                                width: 72,
+                                width: 84,
                                 height: 38,
                                 borderRadius: 8,
-                                background: "rgba(124, 108, 245, 0.18)",
-                                border: "1px solid rgba(124, 108, 245, 0.5)",
+                                background: "linear-gradient(135deg, rgba(124, 108, 245, 0.22) 0%, rgba(100, 85, 230, 0.14) 100%)",
+                                border: "1px solid rgba(167, 159, 255, 0.38)",
                                 display: "flex",
                                 flexDirection: "column",
                                 alignItems: "center",
                                 justifyContent: "center",
+                                padding: "2px 6px",
+                                boxSizing: "border-box",
+                                overflow: "hidden",
                               }}
+                              title={`Best Tip: ${rawBestTip} @${bestOdd}`}
                             >
-                              <span style={{ fontSize: 11.5, fontWeight: 900, color: "#a79fff" }}>
+                              <span
+                                style={{
+                                  fontSize: bestTip.length > 5 ? 10.5 : 12,
+                                  fontWeight: 900,
+                                  color: "#c2baff",
+                                  lineHeight: 1.15,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "100%",
+                                  textAlign: "center",
+                                  letterSpacing: "-0.01em",
+                                }}
+                              >
                                 {bestTip}
                               </span>
-                              <span style={{ fontSize: 9.5, fontWeight: 700, color: "#7874a4" }}>
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 700,
+                                  color: "rgba(167, 159, 255, 0.75)",
+                                  lineHeight: 1.15,
+                                  marginTop: 2,
+                                  fontVariantNumeric: "tabular-nums",
+                                }}
+                              >
                                 @{bestOdd}
                               </span>
                             </div>
 
-                            {/* True Rating */}
+                            {/* Trust Rating */}
                             <div
                               style={{
-                                width: 52,
+                                width: 56,
                                 height: 38,
                                 borderRadius: 8,
                                 background:
                                   Number(ratingVal) >= 9.0
-                                    ? "linear-gradient(135deg, rgba(47, 208, 138, 0.25) 0%, rgba(16, 185, 129, 0.25) 100%)"
+                                    ? "linear-gradient(135deg, rgba(47, 208, 138, 0.22) 0%, rgba(16, 185, 129, 0.15) 100%)"
                                     : "rgba(124, 108, 245, 0.15)",
                                 border:
                                   Number(ratingVal) >= 9.0
-                                    ? "1px solid rgba(47, 208, 138, 0.6)"
-                                    : "1px solid rgba(124, 108, 245, 0.4)",
+                                    ? "1px solid rgba(47, 208, 138, 0.55)"
+                                    : "1px solid rgba(124, 108, 245, 0.35)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 color: Number(ratingVal) >= 9.0 ? "#2fd08a" : "#8b7ff5",
-                                fontSize: 14,
+                                fontSize: 13.5,
                                 fontWeight: 900,
+                                flexShrink: 0,
                               }}
                             >
                               {ratingVal}
@@ -1234,26 +1264,56 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                           <>
                             <div
                               style={{
-                                padding: "4px 8px",
+                                minWidth: 54,
+                                height: 32,
+                                padding: "2px 8px",
                                 borderRadius: 6,
                                 background: "rgba(124, 108, 245, 0.2)",
                                 border: "1px solid rgba(124, 108, 245, 0.4)",
-                                color: "#a79fff",
-                                fontSize: 11.5,
-                                fontWeight: 800,
-                                textAlign: "center",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                boxSizing: "border-box",
                               }}
+                              title={`Best Tip: ${rawBestTip} @${bestOdd}`}
                             >
-                              {bestTip}
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 900,
+                                  color: "#c2baff",
+                                  lineHeight: 1.1,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {bestTip}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 8.5,
+                                  fontWeight: 700,
+                                  color: "rgba(167, 159, 255, 0.75)",
+                                  lineHeight: 1.1,
+                                }}
+                              >
+                                @{bestOdd}
+                              </span>
                             </div>
                             <div
                               style={{
-                                padding: "4px 7px",
+                                width: 34,
+                                height: 32,
                                 borderRadius: 6,
                                 background: Number(ratingVal) >= 9.0 ? "rgba(47, 208, 138, 0.2)" : "rgba(124, 108, 245, 0.15)",
+                                border: Number(ratingVal) >= 9.0 ? "1px solid rgba(47, 208, 138, 0.45)" : "1px solid rgba(124, 108, 245, 0.3)",
                                 color: Number(ratingVal) >= 9.0 ? "#2fd08a" : "#8b7ff5",
                                 fontSize: 12,
                                 fontWeight: 900,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
                               }}
                             >
                               {ratingVal}
@@ -1286,7 +1346,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
             Bet of the Day & Slip of the Day – AI Football Bankers
           </h2>
           <p style={{ margin: "0 0 16px" }}>
-            The <strong>Bet of the Day</strong> is our single highest-confidence football tip generated by AI for each fixture slate, and the <strong>Slip of the Day</strong> bundles together our top algorithmic picks into a curated accumulator slip. Every call originates from matches our NT Apex AI model rates above the strict 9/10 trust threshold – derived from team form, expected goals (xG), head-to-head records, and dynamic line movement.
+            The <strong>Bet of the Day</strong> is our single highest-confidence football tip generated by AI for each fixture slate, and the <strong>Slip of the Day</strong> bundles together our top algorithmic picks into a curated accumulator slip. Every call originates from matches our JollofTips AI model rates above the strict 9/10 trust threshold – derived from team form, expected goals (xG), head-to-head records, and dynamic line movement.
           </p>
           <p style={{ margin: "0 0 16px" }}>
             Our model cross-references over 700 international leagues with historical outcome databases to uncover asymmetric betting value. Whether you are building single banker bets or multi-leg accumulator slips, every pick on this page provides deep mathematical justification.
