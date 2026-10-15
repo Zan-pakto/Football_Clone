@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Activity,
+  Zap,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
@@ -20,7 +21,7 @@ import styles from "./HomeMatchesFeed.module.css";
 export interface FilterState {
   market: "all" | "1x2" | "over15" | "over25" | "under25" | "btts" | "double_chance";
   minRating: number; // 0 = all, 6 = 6+, 7 = 7+, 8 = 8+, 9 = 9+
-  category: "all" | "top_tips" | "safe_picks" | "value_bets" | "high_scoring" | "live" | "won";
+  category: "all" | "free_tips" | "top_tips" | "safe_picks" | "value_bets" | "high_scoring" | "live" | "won";
   selectedLeagues: string[]; // empty = all
   searchTerm: string;
   sortBy: "default" | "rating" | "time" | "odds_low" | "odds_high";
@@ -161,6 +162,28 @@ export default function MatchFilterModal({
           >
             <Flame size={12} />
             <span>Top Tips</span>
+          </button>
+
+          {/* Quick Free Tips Button */}
+          <button
+            onClick={() => onFilterChange({ ...filters, category: filters.category === "free_tips" ? "all" : "free_tips" })}
+            className={styles.quickPill}
+            data-active={filters.category === "free_tips"}
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              border: filters.category === "free_tips" ? "1px solid #7c6cf5" : "1px solid rgba(167, 159, 255, 0.1)",
+              background: filters.category === "free_tips" ? "rgba(124, 108, 245, 0.22)" : "rgba(255, 255, 255, 0.03)",
+              color: filters.category === "free_tips" ? "#c4b5fd" : "#a79fff",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Zap size={12} fill={filters.category === "free_tips" ? "#c4b5fd" : "none"} />
+            <span>Free Tips</span>
           </button>
         </div>
 
@@ -411,6 +434,7 @@ export default function MatchFilterModal({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
                   {[
                     { id: "all", label: "All Matches", icon: Activity },
+                    { id: "free_tips", label: "Free Tips (Unlocked)", icon: Zap },
                     { id: "top_tips", label: "Top Rated Tips", icon: Flame },
                     { id: "safe_picks", label: "Safe Banker Picks", icon: ShieldCheck },
                     { id: "value_bets", label: "High Value Odds (2.0+)", icon: TrendingUp },

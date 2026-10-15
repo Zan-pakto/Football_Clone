@@ -12,6 +12,13 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import {
+  PayPalLogo,
+  OPayLogo,
+  MpesaLogo,
+  ApplePayLogo,
+  GooglePayLogo,
+} from "./PaymentLogos";
 import styles from "./LandingSections.module.css";
 
 const leagues = [
@@ -50,11 +57,14 @@ const workflow = [
 const plans = [
   {
     name: "Free Starter",
-    description: "Explore daily football predictions with standard confidence access.",
+    description: "Explore daily football predictions with standard confidence access and public records.",
     price: "$0",
     features: [
-      "Free match predictions",
-      "Standard 1X2 predictions",
+      "10 Free Daily Match Tips",
+      "2 Free Bankers Daily",
+      "1 Free Bet Builder Slip Daily",
+      "Previous Day Results & Predictions 100% Free",
+      "Standard 1X2 Match Predictions",
       "Live scores and match minutes",
       "Public track record access",
     ],
@@ -67,10 +77,11 @@ const plans = [
     description: "Full algorithm access, banker tips, and value odds edges.",
     price: "$9.99",
     features: [
-      "Banker of the Day access",
+      "7-Day Free Trial Included",
+      "Unlimited Banker of the Day access",
       "Monte Carlo probabilities",
       "Value edge alerts",
-      "Acca Bet Builder",
+      "Acca Bet Builder Unlocked",
       "Verified track record access",
     ],
     action: "View Premium Pro",
@@ -79,13 +90,13 @@ const plans = [
   },
   {
     name: "VIP Pro",
-    description: "Premium access with VIP alerts and priority banker picks.",
+    description: "Premium access with priority high-edge banker picks and multi-sport access.",
     price: "$19.99",
     features: [
       "Everything in Premium Pro",
-      "VIP Telegram alerts",
+      "Early and lifetime discounted access to upcoming predictions for other sports like Tennis, basketball, etc",
       "Priority banker picks",
-      "Accumulator strategy guides",
+      "Exclusive Rollover progression plans",
       "Dedicated VIP support",
     ],
     action: "View VIP Pro",
@@ -452,6 +463,36 @@ export function PlansSection() {
               </Link>
             </article>
           ))}
+        </div>
+
+        {/* Local Currencies & Payment Methods Accepted */}
+        <div className={styles.paymentMethodsStrip}>
+          <div className={styles.paymentMethodsHeader}>
+            <span className={styles.paymentMethodsTitle}>
+              Local Currencies &amp; Payment Options Accepted
+            </span>
+            <span className={styles.paymentMethodsSubtitle}>
+              Checkout seamlessly in your local currency. Mobile money, bank transfers, OPay, and major cards convert instantly at checkout.
+            </span>
+          </div>
+
+          <div className={styles.currencyPillsRow}>
+            <span className={styles.currencyPill}>🇳🇬 NGN (₦)</span>
+            <span className={styles.currencyPill}>🇰🇪 KES (KSh)</span>
+            <span className={styles.currencyPill}>🇬🇭 GHS (GH₵)</span>
+            <span className={styles.currencyPill}>🇿🇦 ZAR (R)</span>
+            <span className={styles.currencyPill}>🇺🇸 USD ($)</span>
+            <span className={styles.currencyPill}>🇪🇺 EUR (€)</span>
+            <span className={styles.currencyPill}>🇬🇧 GBP (£)</span>
+          </div>
+
+          <div className={styles.paymentLogosRow}>
+            <div title="PayPal"><PayPalLogo size={28} /></div>
+            <div title="OPay"><OPayLogo size={28} /></div>
+            <div title="M-Pesa"><MpesaLogo size={28} /></div>
+            <div title="Apple Pay"><ApplePayLogo size={28} /></div>
+            <div title="Google Pay"><GooglePayLogo size={28} /></div>
+          </div>
         </div>
       </div>
     </section>

@@ -21,6 +21,8 @@ import {
   Copy,
   Check,
   Image as ImageIcon,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { Rollover, RolloverType, RolloverStatus } from "@/lib/types";
 
@@ -30,6 +32,33 @@ export default function RolloversPage() {
   const [rollovers, setRollovers] = useState<Rollover[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Check VIP Pro status
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth");
+        const data = await res.json();
+        if (data.success && data.isLoggedIn && data.user) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      }
+    }
+    checkAuth();
+  }, []);
+
+  const isVipPro = Boolean(
+    user && (
+      user.role === "ADMIN" ||
+      ((user.subscriptionPlan === "VIP_PRO" ||
+        user.subscriptionPlan === "VIP_MONTHLY" ||
+        user.subscriptionPlan === "VIP") &&
+        user.subscriptionStatus === "ACTIVE")
+    )
+  );
 
   // Fetch published rollovers from API
   const fetchRollovers = async () => {
@@ -117,6 +146,86 @@ export default function RolloversPage() {
             Follow automated AI-engineered strategies or human-curated expert team rollovers.
           </p>
         </div>
+
+        {/* ── VIP Pro Exclusive Callout Banner ── */}
+        {!isVipPro && (
+          <div
+            style={{
+              padding: "22px 26px",
+              borderRadius: 16,
+              background: "linear-gradient(135deg, rgba(30, 24, 75, 0.95) 0%, rgba(18, 14, 45, 0.98) 100%)",
+              border: "1px solid rgba(232, 195, 74, 0.45)",
+              boxShadow: "0 12px 36px rgba(0, 0, 0, 0.45)",
+              marginBottom: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 20,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 16, maxWidth: 680 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "linear-gradient(135deg, #e8c34a 0%, #b89327 100%)",
+                  color: "#0a081d",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 14px rgba(232, 195, 74, 0.3)",
+                }}
+              >
+                <Crown size={22} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      color: "var(--gold)",
+                    }}
+                  >
+                    VIP PRO EXCLUSIVE FEATURE
+                  </span>
+                </div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#fff", margin: "0 0 6px" }}>
+                  Rollover Progression Plans are Exclusive to VIP Pro
+                </h2>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
+                  Compound your stakes with precision consecutive progression ladders. VIP Pro members unlock both Automated AI Progression ladders and human-curated Expert slips with live booking codes.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/pricing"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 24px",
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #e8c34a 0%, #caa12c 100%)",
+                color: "#0d0b24",
+                fontSize: 13,
+                fontWeight: 800,
+                textDecoration: "none",
+                boxShadow: "0 4px 18px rgba(232, 195, 74, 0.35)",
+              }}
+            >
+              <Lock size={15} />
+              <span>Upgrade to VIP Pro</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        )}
 
         {/* ── Primary Option Tabs (AI Rollover vs Expert Rollover) ── */}
         <div
@@ -413,35 +522,56 @@ export default function RolloversPage() {
 
                         {/* Booking Code Pill (with 1-click copy) */}
                         {rollover.bookingCode && (
-                          <div
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigator.clipboard.writeText(rollover.bookingCode!);
-                              setCopiedCodeId(rollover.id);
-                              setTimeout(() => setCopiedCodeId(null), 2000);
-                            }}
-                            title="Click to copy booking code"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              padding: "3px 10px",
-                              borderRadius: 6,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              fontFamily: "monospace",
-                              letterSpacing: "0.04em",
-                              background: "rgba(232, 195, 74, 0.15)",
-                              color: "var(--gold)",
-                              border: "1px solid rgba(232, 195, 74, 0.35)",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Ticket size={12} />
-                            <span>{rollover.bookingCode}</span>
-                            {copiedCodeId === rollover.id ? <Check size={12} /> : <Copy size={12} />}
-                          </div>
+                          isVipPro ? (
+                            <div
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(rollover.bookingCode!);
+                                setCopiedCodeId(rollover.id);
+                                setTimeout(() => setCopiedCodeId(null), 2000);
+                              }}
+                              title="Click to copy booking code"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "3px 10px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                fontFamily: "monospace",
+                                letterSpacing: "0.04em",
+                                background: "rgba(232, 195, 74, 0.15)",
+                                color: "var(--gold)",
+                                border: "1px solid rgba(232, 195, 74, 0.35)",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Ticket size={12} />
+                              <span>{rollover.bookingCode}</span>
+                              {copiedCodeId === rollover.id ? <Check size={12} /> : <Copy size={12} />}
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "3px 10px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: "rgba(124, 108, 245, 0.15)",
+                                color: "#a79fff",
+                                border: "1px solid rgba(167, 159, 255, 0.25)",
+                              }}
+                              title="Booking code is exclusive to VIP Pro"
+                            >
+                              <Lock size={12} />
+                              <span>VIP Pro Code</span>
+                            </div>
+                          )
                         )}
 
                         {/* Slip indicator badge */}
@@ -599,7 +729,7 @@ export default function RolloversPage() {
                   </div>
 
                   {/* Step-by-Step Games List */}
-                  <div>
+                  <div style={{ position: "relative" }}>
                     <h4
                       style={{
                         fontSize: 13,
@@ -613,7 +743,77 @@ export default function RolloversPage() {
                       Individual Match Selections
                     </h4>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!isVipPro && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          top: 24,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "rgba(13, 10, 32, 0.72)",
+                          backdropFilter: "blur(4px)",
+                          borderRadius: 8,
+                          padding: 16,
+                          textAlign: "center",
+                          zIndex: 5,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #e8c34a 0%, #b89327 100%)",
+                            color: "#0a081d",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: 8,
+                            boxShadow: "0 4px 12px rgba(232, 195, 74, 0.35)",
+                          }}
+                        >
+                          <Lock size={16} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", marginBottom: 3 }}>
+                          Selections Locked for VIP Pro
+                        </div>
+                        <p style={{ fontSize: 11, color: "#cfc9e9", margin: "0 0 10px", maxWidth: 320 }}>
+                          Unlock the exact fixtures, odds, compound calculations, and live booking codes.
+                        </p>
+                        <Link
+                          href="/pricing"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "7px 16px",
+                            borderRadius: 8,
+                            background: "linear-gradient(135deg, #e8c34a 0%, #caa12c 100%)",
+                            color: "#0a081d",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            textDecoration: "none",
+                          }}
+                        >
+                          <span>Unlock with VIP Pro</span>
+                          <ArrowRight size={12} />
+                        </Link>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        filter: !isVipPro ? "blur(5px)" : "none",
+                        userSelect: !isVipPro ? "none" : "auto",
+                        pointerEvents: !isVipPro ? "none" : "auto",
+                      }}
+                    >
                       {rollover.steps.map((step, idx) => {
                         const isWon = step.status === "WON";
                         const isActive = step.status === "ACTIVE";
@@ -754,7 +954,7 @@ export default function RolloversPage() {
                     </div>
 
                     <Link
-                      href={`/rollovers/${rollover.id}`}
+                      href={isVipPro ? `/rollovers/${rollover.id}` : "/pricing"}
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
@@ -765,7 +965,7 @@ export default function RolloversPage() {
                         gap: 4,
                       }}
                     >
-                      <span>Full step history</span>
+                      <span>{isVipPro ? "Full step history" : "Unlock full history (VIP Pro)"}</span>
                       <ArrowRight size={13} />
                     </Link>
                   </div>

@@ -103,9 +103,12 @@ router.get("/", async (req: Request, res: Response) => {
     const rawBankers = botd.bankers.map(applyMatchVariance);
     const rawSlip = botd.slip.map(applyMatchVariance);
 
-    // Apply premium lock to picks: Pro users see everything, free users see first 2 free
+    // Determine if viewing historical/yesterday picks (past results are completely free)
+    const isPastDay = dParam === "-1" || parseInt(dParam, 10) < 0;
+
+    // Apply premium lock to picks: Pro users see everything, free users see first 2 sure bankers free for today, all free for yesterday
     const bankers = rawBankers.map((m: ScrapedMatch, idx: number) => {
-      const isLocked = !isPremiumUser && idx >= 2;
+      const isLocked = !isPastDay && !isPremiumUser && idx >= 2;
       return {
         ...m,
         isLocked,
@@ -127,7 +130,7 @@ router.get("/", async (req: Request, res: Response) => {
     });
 
     const slip = rawSlip.map((m: ScrapedMatch, idx: number) => {
-      const isLocked = !isPremiumUser && idx >= 2;
+      const isLocked = !isPastDay && !isPremiumUser && idx >= 2;
       return {
         ...m,
         isLocked,

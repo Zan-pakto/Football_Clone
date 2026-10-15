@@ -543,17 +543,17 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           overflow: "hidden",
         }}
       >
-        {/* Backlit Stadium & Footballer Silhouette Art */}
+        {/* Backlit JollofTips Custom Futuristic Stadium Art */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: "url('https://cdn.nerdytips.com/public/img/st/header-bg-st.webp')",
+            backgroundImage: "url('/hero-jolloftips.jpg')",
             backgroundSize: "cover",
-            backgroundPosition: "center -24px",
+            backgroundPosition: "center 20%",
             backgroundRepeat: "no-repeat",
             zIndex: 0,
-            opacity: 0.88,
+            opacity: 0.92,
           }}
         />
 
@@ -591,7 +591,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           }}
         >
 
-          {/* Master Headline (Exact NerdyTips Visual Formula) */}
+          {/* Master Headline */}
           <h1
             style={{
               fontSize: "clamp(2.7rem, 5.5vw, 4.6rem)",
@@ -605,7 +605,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             AI <span style={{ color: "#c4b5fd" }}>Football</span> Predictions
           </h1>
 
-          {/* Authentic NerdyTips Lede Subtitle */}
+          {/* Authentic Subtitle */}
           <p
             style={{
               fontSize: "clamp(15px, 1.8vw, 17px)",
@@ -619,8 +619,72 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           </p>
 
           <p style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#f1eff8", margin: "-8px 0 0" }}>
-            Every day, top predictions are free — no account needed.
+            Every day, top 10 football predictions are 100% free — no credit card needed.
           </p>
+
+          {/* Top Free Bets Preview Strip (Quick glimpse of top free games) */}
+          {todayMatches && todayMatches.length > 0 && (
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 720,
+                background: "rgba(18, 15, 45, 0.75)",
+                border: "1px solid rgba(167, 159, 255, 0.22)",
+                borderRadius: 14,
+                padding: "10px 14px",
+                backdropFilter: "blur(12px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 2,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    background: "rgba(47, 208, 138, 0.15)",
+                    border: "1px solid rgba(47, 208, 138, 0.35)",
+                    color: "#2fd08a",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  <Sparkles size={11} /> 10 Free Bets Today
+                </span>
+                <span style={{ fontSize: 12.5, color: "#d4cde3", fontWeight: 600 }}>
+                  Ready to view with full match probabilities
+                </span>
+              </div>
+
+              <a
+                href="#matches-feed"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "#c4b5fd",
+                  textDecoration: "none",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  background: "rgba(124, 108, 245, 0.18)",
+                  border: "1px solid rgba(124, 108, 245, 0.3)",
+                }}
+              >
+                <span>Jump to Free Bets</span>
+                <ChevronDown size={14} />
+              </a>
+            </div>
+          )}
 
           {/* Action Buttons Row */}
           <div
@@ -630,16 +694,16 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
               justifyContent: "center",
               flexWrap: "wrap",
               gap: 14,
-              marginTop: 10,
+              marginTop: 6,
               width: "100%",
             }}
           >
             <a
               href="#matches-feed"
               className="btn-primary"
-              style={{ minWidth: 200 }}
+              style={{ minWidth: 220, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
-              <span>See Free Predictions</span>
+              <span>View 10 Free Bets of the Day</span>
               <ChevronDown size={17} />
             </a>
 

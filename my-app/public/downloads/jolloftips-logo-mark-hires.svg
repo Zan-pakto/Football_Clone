@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" fill="none">
+  <defs>
+    <linearGradient id="jt-mark-hires" x1="500" y1="0" x2="500" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF2432"/>
+      <stop offset="45%" stop-color="#ED101B"/>
+      <stop offset="100%" stop-color="#9E0513"/>
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#ED101B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)">
+    <!-- Top angled roof bar -->
+    <path d="M60 0h940l-100 170H0L60 0Z" fill="url(#jt-mark-hires)"/>
+    <!-- J hook glyph -->
+    <path d="M260 150h180v520c0 180-110 330-310 330H0l50-170h80c80 0 130-50 130-150V150Z" fill="url(#jt-mark-hires)"/>
+    <!-- T stem glyph -->
+    <path d="M610 150h180v850H580l30-850Z" fill="url(#jt-mark-hires)"/>
+  </g>
+</svg>

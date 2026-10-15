@@ -35,9 +35,8 @@ class MatchStore {
 
     const targetDate = resolveDateString(d);
 
-    // 1. Immediately update fast in-memory cache so client receives matches in <1ms
+    // 1. Immediately update fast in-memory cache keyed strictly by targetDate (YYYY-MM-DD)
     this.cache.set(targetDate, matches);
-    this.cache.set(d, matches);
     this.lastSyncedAt = new Date().toISOString();
 
     // 2. Persist to PostgreSQL asynchronously in background without delaying HTTP responses
@@ -260,16 +259,14 @@ class MatchStore {
     const targetDate = resolveDateString(d);
 
     // 1. Check in-memory store cache first (instant response, zero DB overhead)
-    const cached = this.cache.get(targetDate) || this.cache.get(d);
+    const cached = this.cache.get(targetDate);
     if (cached && cached.length > 0) {
       matches = cached;
     } else {
       // 2. Query database only when cache is empty
       try {
         const dbFixtures = await prisma.fixture.findMany({
-          where: {
-            OR: [{ matchDate: targetDate }, { matchDate: d }],
-          },
+          where: { matchDate: targetDate },
           include: {
             homeTeam: true,
             awayTeam: true,

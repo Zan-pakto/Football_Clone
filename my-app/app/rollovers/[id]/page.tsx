@@ -22,6 +22,8 @@ import {
   ZoomIn,
   X,
   ExternalLink,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { Rollover } from "@/lib/types";
 
@@ -37,6 +39,32 @@ export default function RolloverDetailPage({ params }: PageProps) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedStepCodeId, setCopiedStepCodeId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth");
+        const data = await res.json();
+        if (data.success && data.isLoggedIn && data.user) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      }
+    }
+    checkAuth();
+  }, []);
+
+  const isVipPro = Boolean(
+    user && (
+      user.role === "ADMIN" ||
+      ((user.subscriptionPlan === "VIP_PRO" ||
+        user.subscriptionPlan === "VIP_MONTHLY" ||
+        user.subscriptionPlan === "VIP") &&
+        user.subscriptionStatus === "ACTIVE")
+    )
+  );
 
   useEffect(() => {
     async function loadDetail() {
@@ -132,6 +160,97 @@ export default function RolloverDetailPage({ params }: PageProps) {
             <ArrowLeft size={16} />
             <span>Return to All Rollovers</span>
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isVipPro) {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+        <Navbar />
+        <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 20px" }}>
+          <div
+            className="luxury-card"
+            style={{
+              padding: "40px 32px",
+              textAlign: "center",
+              border: "1px solid rgba(232, 195, 74, 0.4)",
+              background: "linear-gradient(135deg, rgba(26, 20, 64, 0.95) 0%, rgba(13, 10, 32, 0.98) 100%)",
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #e8c34a 0%, #b89327 100%)",
+                color: "#0a081d",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                boxShadow: "0 6px 20px rgba(232, 195, 74, 0.35)",
+              }}
+            >
+              <Crown size={28} />
+            </div>
+
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: "var(--gold)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginBottom: 6,
+              }}
+            >
+              VIP Pro Exclusive
+            </div>
+
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: "#fff", margin: "0 0 10px" }}>
+              {rollover.name}
+            </h2>
+
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 24 }}>
+              Detailed multi-step progression picks, compound calculations, and live booking codes are exclusive to VIP Pro subscribers.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+              <Link
+                href="/pricing"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "12px 28px",
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #e8c34a 0%, #caa12c 100%)",
+                  color: "#0d0b24",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 18px rgba(232, 195, 74, 0.35)",
+                }}
+              >
+                <Lock size={16} />
+                <span>Upgrade to VIP Pro</span>
+              </Link>
+
+              <Link
+                href="/rollovers"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "var(--text-dim)",
+                  textDecoration: "none",
+                }}
+              >
+                ← Back to Rollovers
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );

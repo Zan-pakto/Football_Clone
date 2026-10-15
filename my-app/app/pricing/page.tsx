@@ -18,6 +18,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  PayPalLogo,
+  OPayLogo,
+  MpesaLogo,
+  ApplePayLogo,
+  GooglePayLogo,
+} from "@/components/PaymentLogos";
 
 function getValidToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -473,6 +480,27 @@ export default function PricingPage() {
               <span style={{ color: "#2fd08a", fontWeight: 700 }}>{curInfo.methodsText}</span>
             </div>
           </div>
+
+          {/* MoMo Local Currency Discount Notice */}
+          {currency === "MOMO" && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "12px 16px",
+                borderRadius: 10,
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.4)",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ color: "#fbbf24", fontWeight: 900, fontSize: 13.5 }}>
+                ***Click on &quot;Pay&quot; after filling in your name and email address to get an amazing discount***
+              </div>
+              <p style={{ margin: "5px 0 0", fontSize: 11.5, color: "#d4cde3", lineHeight: 1.4 }}>
+                Bachs automatically converts the base currency into your exact local African Mobile Money currency, and your final local discount price is calculated directly at the gateway.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 1 Month vs 6 Months Billing Frequency Toggle */}
@@ -682,7 +710,10 @@ export default function PricingPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
-                  "7 Free Daily Match Tips",
+                  "10 Free Daily Match Tips",
+                  "2 Free Bankers Daily",
+                  "1 Free Bet Builder Slip Daily",
+                  "Previous Day Selections & Results 100% Free",
                   "Standard 1X2 Match Predictions",
                   "Live Match Scores & Minutes",
                   "Public Track Record Access",
@@ -955,7 +986,7 @@ export default function PricingPage() {
                 {[
                   "7-Day Free Trial Included ($0 Today)",
                   "Everything in Premium Pro Included",
-                  "Exclusive VIP Telegram Channel & Instant Alerts",
+                  "Early and lifetime discounted access to upcoming predictions for other sports like Tennis, basketball, etc",
                   "Priority High-Roller Edge Banker Tips",
                   "VIP Accumulator Strategy Guides",
                   "Dedicated 1-on-1 VIP Customer Support",
@@ -1096,11 +1127,11 @@ export default function PricingPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 16,
             }}
           >
-            {/* 1. PayPal Highlight */}
+            {/* 1. PayPal Official Logo */}
             <div
               style={{
                 background: "rgba(0, 112, 186, 0.08)",
@@ -1112,23 +1143,7 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: "#0070ba",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
-              >
-                P
-              </div>
+              <PayPalLogo size={36} />
               <div>
                 <strong style={{ fontSize: 14, color: "#60a5fa", display: "block", marginBottom: 3 }}>
                   PayPal
@@ -1139,11 +1154,11 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* 2. OPay, M-Pesa & Mobile Money */}
+            {/* 2. OPay Official Logo */}
             <div
               style={{
-                background: "rgba(47, 208, 138, 0.08)",
-                border: "1px solid rgba(47, 208, 138, 0.3)",
+                background: "rgba(0, 184, 117, 0.08)",
+                border: "1px solid rgba(0, 184, 117, 0.3)",
                 borderRadius: 12,
                 padding: "16px 18px",
                 display: "flex",
@@ -1151,36 +1166,22 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: "#10b981",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Smartphone size={20} />
-              </div>
+              <OPayLogo size={36} />
               <div>
-                <strong style={{ fontSize: 14, color: "#34d399", display: "block", marginBottom: 3 }}>
-                  Pay with OPay, M-Pesa & Mobile Money
+                <strong style={{ fontSize: 14, color: "#00B875", display: "block", marginBottom: 3 }}>
+                  OPay Wallet & Bank
                 </strong>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                  Direct wallet & PIN payments: OPay (NG), M-Pesa (KE/TZ), MTN MoMo, Airtel & Vodafone.
+                  Instant wallet and bank transfer payments in Nigeria with zero failed transactions.
                 </p>
               </div>
             </div>
 
-            {/* 3. Cards & Digital Wallets */}
+            {/* 3. M-Pesa Official Logo */}
             <div
               style={{
-                background: "rgba(245, 158, 11, 0.08)",
-                border: "1px solid rgba(245, 158, 11, 0.25)",
+                background: "rgba(0, 136, 55, 0.08)",
+                border: "1px solid rgba(0, 136, 55, 0.3)",
                 borderRadius: 12,
                 padding: "16px 18px",
                 display: "flex",
@@ -1188,27 +1189,39 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: "#f59e0b",
-                  color: "#08071e",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <CreditCard size={20} />
-              </div>
+              <MpesaLogo size={36} />
               <div>
-                <strong style={{ fontSize: 14, color: "#fbbf24", display: "block", marginBottom: 3 }}>
-                  Cards, Apple Pay & Google Pay
+                <strong style={{ fontSize: 14, color: "#22c55e", display: "block", marginBottom: 3 }}>
+                  M-Pesa Mobile Money
                 </strong>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                  Visa, Mastercard, American Express, Apple Pay, and Google Pay with 256-bit SSL encryption.
+                  Direct Safaricom & Vodacom M-Pesa PIN prompt payments in Kenya and Tanzania.
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Apple Pay & Google Pay Official Logos */}
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: 12,
+                padding: "16px 18px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <ApplePayLogo size={36} />
+                <GooglePayLogo size={36} />
+              </div>
+              <div>
+                <strong style={{ fontSize: 14, color: "#ffffff", display: "block", marginBottom: 3 }}>
+                  Apple Pay & Google Pay
+                </strong>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                  1-tap biometric checkout on iPhone, iPad, Mac, and Android devices worldwide.
                 </p>
               </div>
             </div>

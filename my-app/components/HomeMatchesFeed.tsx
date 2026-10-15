@@ -309,6 +309,7 @@ export default function HomeMatchesFeed({
             const bestRating = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
             const bestOdd = parseFloat(m.predictions?.bestTip?.odd || "1.75");
 
+            if (filters.category === "free_tips" && (m.isLocked || m.predictions?.bestTip?.isLocked || m.predictions?.pickScore?.isLocked)) return false;
             if (filters.category === "top_tips" && bestRating < 8.2) return false;
             if (filters.category === "safe_picks" && (bestRating < 8.0 || bestOdd > 1.85)) return false;
             if (filters.category === "value_bets" && bestOdd < 2.0) return false;
@@ -338,7 +339,8 @@ export default function HomeMatchesFeed({
   const FREE_PREDICTIONS_LIMIT = 10;
 
   const displayGroups = useMemo(() => {
-    if (isVip) return filteredGroups;
+    // Pro VIP users or visitors viewing previous day's results get all matches unlocked for free
+    if (isVip || activeDay === "yesterday") return filteredGroups;
 
     let matchCounter = 0;
     const limitedGroups: LeagueGroupItem[] = [];
@@ -359,13 +361,13 @@ export default function HomeMatchesFeed({
     }
 
     return limitedGroups;
-  }, [filteredGroups, isVip]);
+  }, [filteredGroups, isVip, activeDay]);
 
   const displayedMatchesCount = useMemo(() => {
     return displayGroups.reduce((acc, g) => acc + g.matches.length, 0);
   }, [displayGroups]);
 
-  const remainingLockedCount = Math.max(0, activeTotalMatches - displayedMatchesCount);
+  const remainingLockedCount = activeDay === "yesterday" ? 0 : Math.max(0, activeTotalMatches - displayedMatchesCount);
 
   const countToday = todayGroups.reduce((acc, g) => acc + g.matches.length, 0) || totalTodayMatches;
   const countYesterday = yesterdayGroups.reduce((acc, g) => acc + g.matches.length, 0) || totalYesterdayMatches;
@@ -422,7 +424,7 @@ export default function HomeMatchesFeed({
               boxShadow: activeDay === "yesterday" ? "0 2px 8px rgba(47, 208, 138, 0.18)" : "none",
             }}
           >
-            <span>Yesterday&apos;s Free Picks</span>
+            <span>Yesterday&apos;s Results (100% Free)</span>
             <span
               style={{
                 fontSize: 11,
@@ -435,8 +437,8 @@ export default function HomeMatchesFeed({
               }}
             >
               {countYesterday > 0
-                ? (isVip ? countYesterday : `${Math.min(FREE_PREDICTIONS_LIMIT, countYesterday)} Free`)
-                : (loadingYesterday ? "..." : `${FREE_PREDICTIONS_LIMIT} Free`)}
+                ? `${countYesterday} Free`
+                : (loadingYesterday ? "..." : "Free Results")}
             </span>
           </button>
         </div>

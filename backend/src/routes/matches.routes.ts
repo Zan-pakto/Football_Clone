@@ -255,9 +255,12 @@ router.get("/", async (req: Request, res: Response) => {
         );
       }
 
-      // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT unlocked)
+      // Past days (yesterday d=-1 or past date) are completely free so visitors can verify track record and results
+      const isPastDay = d === "-1" || parseInt(d, 10) < 0;
+
+      // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT unlocked for today)
       convertedMatches = filtered.map((m, idx) => {
-        const isLocked = !isPremiumUser && idx >= FREE_DAILY_TIPS_LIMIT;
+        const isLocked = !isPastDay && !isPremiumUser && idx >= FREE_DAILY_TIPS_LIMIT;
         return {
           ...m,
           isLocked,

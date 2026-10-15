@@ -868,15 +868,31 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                 const bestOdd = match.predictions?.bestTip?.odd || match.tipOdds || match.odds.home || 1.8;
                 const ratingVal = match.rating ? match.rating.toFixed(1) : "8.5";
 
+                const matchHref = match.isLocked ? "/pricing" : match.id ? `/match/${match.id}` : "#";
+
                 return (
                   <div
                     key={match.id || idx}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest("a, button")) return;
+                      router.push(matchHref);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View match analysis for ${match.homeTeam} vs ${match.awayTeam}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        router.push(matchHref);
+                      }
+                    }}
                     style={{
                       borderBottom: "1px solid rgba(167, 159, 255, 0.08)",
                       transition: "background 0.15s ease",
+                      cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(124, 108, 245, 0.04)";
+                      e.currentTarget.style.background = "rgba(124, 108, 245, 0.08)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = "transparent";
