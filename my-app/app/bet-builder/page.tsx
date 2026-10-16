@@ -200,7 +200,17 @@ export default function BetBuilderPage() {
         if (!isMajor) return;
       }
 
-      const ratingNum = typeof m.rating === "number" ? m.rating : 8.5;
+      const rawRating =
+        typeof m.rating === "number"
+          ? m.rating
+          : typeof m.predictions?.bestTip?.rating === "number"
+          ? m.predictions.bestTip.rating
+          : typeof m.predictions?.pickScore?.rating === "number"
+          ? m.predictions.pickScore.rating
+          : m.confidence
+          ? parseFloat(m.confidence.replace("%", "")) / 10
+          : 8.5;
+      const ratingNum = isNaN(rawRating) || rawRating <= 0 ? 8.5 : Math.min(10, Math.max(1, rawRating));
       if (ratingNum < minTrust) return;
 
       let trustLevel: "cf1" | "cf2" | "cf3" | "cf4" = "cf2";
@@ -376,38 +386,29 @@ export default function BetBuilderPage() {
 
   // Action: Trigger Slip Generation with Micro-Animation & User Limit Checks
   const handleGenerateSlip = async () => {
-    // 1. Guard for unauthenticated guests
-    if (!isLoggedIn) {
+    // If free user already used their daily ticket and is requesting another
+    if (isLoggedIn && !isVip && freeTicketsUsedToday >= 1) {
       setShowLimitModal(true);
       return;
     }
 
-    // 2. Guard for free users who already used their 1 daily ticket
-    if (!isVip && freeTicketsUsedToday >= 1) {
-      setShowLimitModal(true);
-      return;
-    }
-
-    // 3. Play visual feedback generation animation
+    // Play quick smooth visual feedback generation animation
     setIsGenerating(true);
     setGenerationStep("Analyzing quantitative market odds & probability distributions...");
 
-    await new Promise((r) => setTimeout(r, 260));
-    setGenerationStep("Testing 100,000 Monte Carlo accumulator simulations...");
+    await new Promise((r) => setTimeout(r, 200));
+    setGenerationStep("Testing accumulator simulations...");
 
-    await new Promise((r) => setTimeout(r, 280));
-    setGenerationStep("Assembling optimal value slip...");
+    await new Promise((r) => setTimeout(r, 150));
 
-    await new Promise((r) => setTimeout(r, 160));
-
-    // 4. Generate new randomized slip
+    // Generate new randomized slip respecting all parameters
     const newSlip = buildSlip();
     setGeneratedSlip(newSlip);
     setIsGenerating(false);
     setGenerationStep("");
 
-    // 5. If free user, mark 1 daily ticket used
-    if (!isVip && userId) {
+    // If free logged-in user, mark 1 daily ticket used
+    if (isLoggedIn && !isVip && userId && freeTicketsUsedToday < 1) {
       const storageKey = `jt_bb_tickets_${userId}_${todayKey}`;
       const newCount = freeTicketsUsedToday + 1;
       localStorage.setItem(storageKey, String(newCount));
@@ -452,7 +453,7 @@ export default function BetBuilderPage() {
         `${idx + 1}. [${m.country} · ${m.league}] ${m.homeTeam} vs ${m.awayTeam} -> Pick: ${m.pick} (${m.marketName}) @ ${m.odds.toFixed(2)}`
     );
     const text =
-      `🔥 [JollofTips Bet Builder Slip]\n` +
+      `[JollofTips Bet Builder Slip]\n` +
       `Picks: ${generatedSlip.length} | Combined Odds: ${calculatedOdds.toFixed(2)}\n\n` +
       lines.join("\n") +
       `\n\nGenerated via JollofTips AI Engine`;
@@ -1313,7 +1314,7 @@ export default function BetBuilderPage() {
               </div>
 
               <div style={{ fontSize: 12, color: "#7874a4", lineHeight: 1.5, marginBottom: 20 }}>
-                💡 <strong>How to load:</strong> Open the {selectedBookie} app or website, open your betslip, click <em>Load Bet / Booking Code</em>, paste <strong>{bookingCode}</strong>, and all selections will load automatically.
+                <strong>How to load:</strong> Open the {selectedBookie} app or website, open your betslip, click <em>Load Bet / Booking Code</em>, paste <strong>{bookingCode}</strong>, and all selections will load automatically.
               </div>
 
               <button

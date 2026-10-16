@@ -750,11 +750,11 @@ export default function HomeMatchesFeed({
                     fontWeight: 600,
                   }}
                 >
-                  <span>⚡ Instant Whop Activation</span>
-                  <span>•</span>
-                  <span>🛡️ Cancel Anytime</span>
-                  <span>•</span>
-                  <span>🔒 Secure Stripe/Apple Pay</span>
+                  <span>Instant Activation</span>
+                  <span>&bull;</span>
+                  <span>Cancel Anytime</span>
+                  <span>&bull;</span>
+                  <span>Secure Payments</span>
                 </div>
               </div>
             </div>

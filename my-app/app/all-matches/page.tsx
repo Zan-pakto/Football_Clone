@@ -45,7 +45,7 @@ export default function AllMatchesPage() {
   const [d, setD] = useState("0");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("all");
-  const [activeFilter, setActiveFilter] = useState<"all" | "predicted" | "upcoming" | "live" | "won">("predicted");
+  const [activeFilter, setActiveFilter] = useState<"all" | "predicted" | "upcoming" | "live" | "won" | "free">("predicted");
   const [modalFilters, setModalFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
@@ -223,7 +223,7 @@ export default function AllMatchesPage() {
   const statCounts = useMemo(() => {
     const isPastDay = parseInt(d, 10) < 0;
     const isFutureDay = parseInt(d, 10) > 0;
-    let predicted = 0, upcoming = 0, live = 0, won = 0;
+    let predicted = 0, upcoming = 0, live = 0, won = 0, free = 0;
 
     matches.forEach((m) => {
       const isLiveM = !isPastDay && Boolean(m.isLive || m.status === "live" || m.status === "In Progress" || (m.elapsed && /^\d+['′]/.test(m.elapsed)));
@@ -231,11 +231,13 @@ export default function AllMatchesPage() {
       const isFin   = isPastDay || m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
       const isWon   = !isFutureDay && (m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true));
       const isUp    = isFutureDay || (!isLiveM && !isFin);
+      const isFree  = !m.isLocked && !m.predictions?.bestTip?.isLocked;
 
       if (m.predictions?.bestTip?.pick || m.confidence) predicted++;
       if (isUp) upcoming++;
       if (isLiveM) live++;
       if (isWon) won++;
+      if (isFree) free++;
     });
 
     return {
@@ -243,6 +245,7 @@ export default function AllMatchesPage() {
       upcoming: isPastDay ? 0 : (isFutureDay ? matches.length : upcoming),
       live: isPastDay || isFutureDay ? 0 : live,
       won: isFutureDay ? 0 : won,
+      free,
     };
   }, [matches, d]);
 
@@ -351,6 +354,9 @@ export default function AllMatchesPage() {
         const hasScores = m.homeScore !== null && m.awayScore !== null && m.homeScore !== "" && m.awayScore !== "";
         const isFin   = isPastDay || m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
         return m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
+      }
+      if (activeFilter === "free") {
+        return !m.isLocked && !m.predictions?.bestTip?.isLocked;
       }
       return true;
     });
@@ -524,11 +530,33 @@ export default function AllMatchesPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
+                gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
                 gap: 12,
               }}
               className="stat-cards-grid"
             >
+              {/* FREE TIPS */}
+              <button
+                onClick={() => setActiveFilter("free")}
+                style={{
+                  padding: "16px 20px",
+                  borderRadius: 14,
+                  background: activeFilter === "free" ? "rgba(124, 108, 245, 0.22)" : "var(--surface)",
+                  border: activeFilter === "free" ? "1px solid #8b7ff5" : "1px solid var(--border-color)",
+                  boxShadow: activeFilter === "free" ? "0 0 20px rgba(124, 108, 245, 0.35)" : "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  transition: "all 0.18s ease",
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 800, color: activeFilter === "free" ? "#c4b5fd" : "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                  FREE TIPS
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#FFFFFF", lineHeight: 1 }}>
+                  {statCounts.free}
+                </div>
+              </button>
+
               {/* PREDICTED */}
               <button
                 onClick={() => setActiveFilter("predicted")}

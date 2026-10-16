@@ -32,17 +32,23 @@ export function isMatchLive(status: string | null | undefined, elapsed: string |
 }
 
 /**
- * Resolve day offset or YYYY-MM-DD date string using UTC internal boundary
+ * Resolve day offset or YYYY-MM-DD date string using visitor or regional timezone boundary (default: West Africa Time UTC+1, -60 min)
  */
-export function resolveDateString(d: string): string {
+export function resolveDateString(d: string, tzOffsetMin?: number | string | null): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
     return d;
   }
   const offset = parseInt(d, 10);
   if (!isNaN(offset)) {
     const now = new Date();
-    const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset));
-    return utcDate.toISOString().split("T")[0];
+    // Default to West Africa Time (UTC+1 = -60 min in browser getTimezoneOffset standard)
+    const tz = tzOffsetMin !== undefined && tzOffsetMin !== null && !isNaN(Number(tzOffsetMin))
+      ? Number(tzOffsetMin)
+      : -60;
+    // Calculate local timestamp adjusted for timezone offset
+    const localMs = now.getTime() - tz * 60 * 1000;
+    const targetDate = new Date(localMs + offset * 86400 * 1000);
+    return targetDate.toISOString().split("T")[0];
   }
   return d;
 }

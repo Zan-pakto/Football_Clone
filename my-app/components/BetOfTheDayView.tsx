@@ -17,6 +17,9 @@ import {
   Copy,
   Share2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
   HelpCircle,
   ExternalLink,
   ShieldCheck,
@@ -154,6 +157,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
   const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
   const [stake, setStake] = useState<number>(50);
   const [copied, setCopied] = useState<boolean>(false);
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
   // Data state
   const [loading, setLoading] = useState<boolean>(true);
@@ -268,7 +272,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
       )
       .join("\n");
     navigator.clipboard.writeText(
-      `🔥 JollofTips Slip of the Day (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia JollofTips AI Engine`
+      `[JollofTips Slip of the Day] (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia JollofTips AI Engine`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -356,7 +360,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
               marginBottom: 20,
             }}
           >
-            <span style={{ fontSize: 18 }}>🚀</span>
+            <Sparkles size={16} color="var(--gold)" />
             <p style={{ margin: 0, fontSize: 13, color: "#d4cde3", flex: 1, lineHeight: 1.4 }}>
               Predictions are locked without a subscription, but you can enjoy the selection of free tips.{" "}
               <Link href="/pricing" style={{ color: "#a79fff", fontWeight: 700, textDecoration: "underline" }}>
@@ -871,38 +875,43 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                 const bestOdd = typeof rawBestOdd === "number" ? rawBestOdd.toFixed(2) : (parseFloat(String(rawBestOdd)) || 1.80).toFixed(2);
                 const ratingVal = match.rating ? match.rating.toFixed(1) : "8.5";
 
-                const matchHref = match.isLocked ? "/pricing" : match.id ? `/match/${match.id}` : "#";
+                const matchKey = match.id || `botd-${idx}`;
+                const isExpanded = expandedMatchId === matchKey;
 
                 return (
                   <div
-                    key={match.id || idx}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.closest("a, button")) return;
-                      router.push(matchHref);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`View match analysis for ${match.homeTeam} vs ${match.awayTeam}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        router.push(matchHref);
-                      }
-                    }}
+                    key={matchKey}
                     style={{
                       borderBottom: "1px solid rgba(167, 159, 255, 0.08)",
+                      background: isExpanded ? "rgba(124, 108, 245, 0.07)" : "transparent",
                       transition: "background 0.15s ease",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(124, 108, 245, 0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    {/* Desktop & Tablet Row */}
+                    {/* Clickable Header Row */}
                     <div
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest("a")) return;
+                        if (match.isLocked) {
+                          router.push("/pricing");
+                          return;
+                        }
+                        setExpandedMatchId(isExpanded ? null : matchKey);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      aria-label={`View analysis for ${match.homeTeam} vs ${match.awayTeam}`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          if (match.isLocked) router.push("/pricing");
+                          else setExpandedMatchId(isExpanded ? null : matchKey);
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {/* Desktop & Tablet Row */}
+                      <div
                       className="botd-row-desktop"
                       style={{
                         display: "flex",
@@ -1320,12 +1329,115 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             </div>
                           </>
                         )}
+                        <span style={{ color: "#7874a4", marginLeft: 4 }}>
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* ── Expandable Match Intel Drawer (Mobile-First) ── */}
+                  {isExpanded && !match.isLocked && (
+                    <div
+                      style={{
+                        padding: "16px 20px 20px",
+                        background: "rgba(18, 15, 45, 0.65)",
+                        borderTop: "1px solid rgba(124, 108, 245, 0.18)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 14,
+                        animation: "fadeIn 0.2s ease-out",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        {/* 1. Model Trust Breakdown */}
+                        <div
+                          style={{
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(167, 159, 255, 0.12)",
+                            borderRadius: 10,
+                            padding: "12px 14px",
+                          }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+                            Statistical Confidence
+                          </span>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                            <strong style={{ fontSize: 22, fontWeight: 900, color: Number(ratingVal) >= 9.0 ? "#2fd08a" : "#8b7ff5" }}>
+                              {ratingVal} / 10
+                            </strong>
+                            <span style={{ fontSize: 12, color: "#7874a4" }}>
+                              {Number(ratingVal) >= 9.0 ? "High Edge Banker" : "Strong Value Pick"}
+                            </span>
+                          </div>
+                          <div style={{ width: "100%", height: 6, borderRadius: 999, background: "rgba(255,255,255,0.06)", marginTop: 8, overflow: "hidden" }}>
+                            <div style={{ width: `${(Number(ratingVal) / 10) * 100}%`, height: "100%", background: Number(ratingVal) >= 9.0 ? "linear-gradient(90deg, #2fd08a, #8b7ff5)" : "#7c6cf5" }} />
+                          </div>
+                        </div>
+
+                        {/* 2. Key Match Markets */}
+                        <div
+                          style={{
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(167, 159, 255, 0.12)",
+                            borderRadius: 10,
+                            padding: "12px 14px",
+                          }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+                            Market Consensus
+                          </span>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 12.5 }}>
+                            <span style={{ background: "rgba(124, 108, 245, 0.15)", padding: "4px 8px", borderRadius: 6, color: "#ffffff" }}>
+                              1X2: <strong>{pickScore}</strong>
+                            </span>
+                            <span style={{ background: "rgba(124, 108, 245, 0.15)", padding: "4px 8px", borderRadius: 6, color: "#ffffff" }}>
+                              O/U Goals: <strong>{pickGoals}</strong>
+                            </span>
+                            <span style={{ background: "rgba(124, 108, 245, 0.15)", padding: "4px 8px", borderRadius: 6, color: "#ffffff" }}>
+                              BTTS: <strong>{pickBtts}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Links */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, paddingTop: 4 }}>
+                        <span style={{ fontSize: 12, color: "#7874a4" }}>
+                          Selection: <strong style={{ color: "#2fd08a" }}>{bestTip}</strong> @ {bestOdd}
+                        </span>
+                        <Link
+                          href={match.id ? `/match/${match.id}` : "/all-matches"}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "7px 14px",
+                            borderRadius: 8,
+                            background: "linear-gradient(135deg, #7c6cf5 0%, #5d4ee0 100%)",
+                            color: "#ffffff",
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            textDecoration: "none",
+                            boxShadow: "0 2px 8px rgba(124, 108, 245, 0.35)",
+                          }}
+                        >
+                          <span>Full Match Intel</span>
+                          <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           )}
         </div>
 

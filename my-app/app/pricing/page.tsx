@@ -389,7 +389,7 @@ export default function PricingPage() {
             }}
           >
             <Sparkles size={16} />
-            <span>🎁 7-Day Free Trial Included on All Sign-Ups &bull; $0 Today &bull; Cancel Anytime</span>
+            <span>7-Day Free Trial Included on All Sign-Ups &bull; $0 Today &bull; Cancel Anytime</span>
           </div>
         </div>
 
@@ -809,9 +809,13 @@ export default function PricingPage() {
                     background: "rgba(47, 208, 138, 0.15)",
                     color: "#2fd08a",
                     border: "1px solid rgba(47, 208, 138, 0.3)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  🎁 7-Day Free Trial
+                  <Sparkles size={12} />
+                  <span>7-Day Free Trial</span>
                 </span>
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
               </div>
@@ -949,7 +953,7 @@ export default function PricingPage() {
                 )}
               </div>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 18 }}>
-                Ultimate betting intelligence suite with exclusive VIP Telegram broadcast alerts and priority bankers.
+                Ultimate betting intelligence suite with priority bankers and multi-sport prediction access.
               </p>
 
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
@@ -975,9 +979,13 @@ export default function PricingPage() {
                     background: "rgba(245, 158, 11, 0.15)",
                     color: "#f59e0b",
                     border: "1px solid rgba(245, 158, 11, 0.3)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  🎁 7-Day Free Trial
+                  <Sparkles size={12} />
+                  <span>7-Day Free Trial</span>
                 </span>
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
               </div>
