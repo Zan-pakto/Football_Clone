@@ -529,125 +529,36 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
       {/* ══════════════════════════════════════════════════════════════
           1. ICONIC NERDYTIPS GRAND HERO SECTION WITH STADIUM BACKDROP
           ══════════════════════════════════════════════════════════════ */}
-      <section
-        style={{
-          position: "relative",
-          width: "100%",
-          minHeight: "calc(100svh - 68px)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "60px 16px 50px",
-          textAlign: "center",
-          overflow: "hidden",
-        }}
-      >
-        {/* Backlit JollofTips Custom Futuristic Stadium Art */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: "url('/hero-ai-football.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center 42%",
-            backgroundRepeat: "no-repeat",
-            zIndex: 0,
-            opacity: 0.95,
-          }}
-        />
+      <section className={styles.heroSection}>
+        {/* Backlit Stadium Art (Art directed: 9:16 portrait on mobile, 16:9 on desktop) */}
+        <div className={styles.heroBackdrop} />
 
         {/* Ambient Halo Glow & Depth Veils */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(circle at 50% 50%, rgba(124, 108, 245, 0.22) 0%, rgba(47, 208, 138, 0.1) 40%, transparent 75%)",
-            zIndex: 1,
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, #0a081d 0%, rgba(10, 8, 29, 0.5) 12%, rgba(10, 8, 29, 0.18) 32%, rgba(10, 8, 29, 0.28) 60%, rgba(10, 8, 29, 0.88) 90%, #0a081d 100%)",
-            zIndex: 2,
-            pointerEvents: "none",
-          }}
-        />
-        {/* Centered optical vignette behind typography for razor-sharp readability without obscuring player & cyber HUD */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse 960px 540px at 50% 40%, rgba(10, 8, 29, 0.76) 0%, rgba(10, 8, 29, 0.42) 60%, transparent 100%)",
-            zIndex: 3,
-            pointerEvents: "none",
-          }}
-        />
+        <div className={styles.heroVeilAmbient} />
+        <div className={styles.heroVeilGradient} />
+        <div className={styles.heroVeilSpotlight} />
 
         {/* Hero Content Layer */}
-        <div
-          style={{
-            position: "relative",
-            zIndex: 10,
-            maxWidth: 900,
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 20,
-          }}
-        >
+        <div className={styles.heroContent}>
           {/* Elite Model Badge */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 16px",
-              borderRadius: 30,
-              background: "rgba(18, 15, 45, 0.82)",
-              border: "1px solid rgba(124, 108, 245, 0.38)",
-              boxShadow: "0 0 24px rgba(124, 108, 245, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
-              backdropFilter: "blur(12px)",
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              color: "#c4b5fd",
-              textTransform: "uppercase",
-            }}
-          >
+          <div className={styles.heroBadge}>
             <span
               style={{
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
                 borderRadius: "50%",
                 background: "#2fd08a",
-                boxShadow: "0 0 12px #2fd08a",
+                boxShadow: "0 0 10px #2fd08a",
+                flexShrink: 0,
               }}
             />
             <span>Quantitative AI Engine V4.2</span>
-            <span style={{ color: "rgba(167, 159, 255, 0.5)" }}>•</span>
+            <span style={{ color: "rgba(167, 159, 255, 0.45)" }}>•</span>
             <span style={{ color: "#2fd08a", fontWeight: 800 }}>100K Monte Carlo</span>
           </div>
 
           {/* Master Headline */}
-          <h1
-            style={{
-              fontSize: "clamp(2.7rem, 5.5vw, 4.6rem)",
-              fontWeight: 900,
-              lineHeight: 1.05,
-              letterSpacing: "-0.025em",
-              color: "#ffffff",
-              margin: 0,
-              textShadow: "0 4px 28px rgba(0, 0, 0, 0.9), 0 0 50px rgba(124, 108, 245, 0.4)",
-            }}
-          >
+          <h1 className={styles.heroHeadline}>
             AI{" "}
             <span
               style={{
@@ -661,31 +572,13 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             Predictions
           </h1>
 
-          {/* Authentic Subtitle */}
-          <p
-            style={{
-              fontSize: "clamp(15px, 1.8vw, 17px)",
-              lineHeight: 1.65,
-              color: "#d4cde3",
-              maxWidth: 640,
-              margin: 0,
-              textShadow: "0 2px 16px rgba(0, 0, 0, 0.95)",
-            }}
-          >
-            JollofTips offers AI football predictions from its own quantitative model. Since 2021, it has simulated over <strong style={{ color: "#ffffff", textShadow: "0 0 10px rgba(255, 255, 255, 0.4)" }}>274,510</strong> matches across <strong style={{ color: "#ffffff", textShadow: "0 0 10px rgba(255, 255, 255, 0.4)" }}>711</strong> leagues.
+          {/* Subtitle */}
+          <p className={styles.heroSubtitle}>
+            Quantitative AI match simulations, value edges, and probabilities calculated from over <strong style={{ color: "#ffffff" }}>274,510</strong> matches across <strong style={{ color: "#ffffff" }}>711</strong> leagues.
           </p>
 
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              lineHeight: 1.5,
-              color: "#f1eff8",
-              margin: "-8px 0 0",
-              textShadow: "0 2px 14px rgba(0, 0, 0, 0.95)",
-            }}
-          >
-            Every day, top 10 football predictions are <span style={{ color: "#2fd08a", fontWeight: 800 }}>100% free</span> — no credit card needed.
+          <p className={styles.heroFreeNote}>
+            Top 10 daily football predictions are <span style={{ color: "#2fd08a", fontWeight: 800 }}>100% free</span> — no card required.
           </p>
 
           {/* Top Free Bets Preview Strip (Quick glimpse of top free games) */}
@@ -693,18 +586,18 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             <div
               style={{
                 width: "100%",
-                maxWidth: 720,
-                background: "rgba(18, 15, 45, 0.75)",
+                maxWidth: 680,
+                background: "rgba(18, 15, 45, 0.8)",
                 border: "1px solid rgba(167, 159, 255, 0.22)",
                 borderRadius: 14,
-                padding: "10px 14px",
+                padding: "9px 14px",
                 backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 flexWrap: "wrap",
-                gap: 10,
-                marginTop: 2,
+                gap: 8,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -725,8 +618,8 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
                 >
                   <Sparkles size={11} /> 10 Free Bets Today
                 </span>
-                <span style={{ fontSize: 12.5, color: "#d4cde3", fontWeight: 600 }}>
-                  Ready to view with full match probabilities
+                <span style={{ fontSize: 12, color: "#d4cde3", fontWeight: 600 }}>
+                  Active fixtures simulated
                 </span>
               </div>
 
@@ -735,82 +628,73 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
-                  fontSize: 12,
+                  gap: 4,
+                  fontSize: 11.5,
                   fontWeight: 800,
                   color: "#c4b5fd",
                   textDecoration: "none",
-                  padding: "4px 10px",
+                  padding: "4px 9px",
                   borderRadius: 6,
                   background: "rgba(124, 108, 245, 0.18)",
                   border: "1px solid rgba(124, 108, 245, 0.3)",
                 }}
               >
                 <span>Jump to Free Bets</span>
-                <ChevronDown size={14} />
+                <ChevronDown size={13} />
               </a>
             </div>
           )}
 
           {/* Action Buttons Row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexWrap: "wrap",
-              gap: 14,
-              marginTop: 6,
-              width: "100%",
-            }}
-          >
-            <a
-              href="#matches-feed"
-              className="btn-primary"
-              style={{ minWidth: 220, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            >
+          <div className={styles.heroActions}>
+            <a href="#matches-feed" className={styles.heroPrimaryBtn}>
               <span>View 10 Free Bets of the Day</span>
-              <ChevronDown size={17} />
+              <ChevronDown size={16} />
             </a>
 
-            <Link
-              href="/all-matches"
-              className="btn-ghost"
-              style={{ minWidth: 150 }}
-            >
+            <Link href="/all-matches" className={styles.heroSecondaryBtn}>
               <span>All Matches</span>
+              <ArrowRight size={15} />
             </Link>
           </div>
 
           {/* Micro Telemetry Indicators matching futuristic AI HUD */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexWrap: "wrap",
-              gap: 18,
-              marginTop: 6,
-              padding: "7px 18px",
-              background: "rgba(16, 13, 40, 0.72)",
-              border: "1px solid rgba(167, 159, 255, 0.18)",
-              borderRadius: 30,
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
-              <TrendingUp size={13} color="#2fd08a" />
-              <span>Model Win Rate: <strong style={{ color: "#2fd08a", fontWeight: 800 }}>72.4%</strong></span>
+          <div className={styles.telemetryStrip}>
+            <div className={styles.telemetryItem}>
+              <div className={styles.telemetryVal} style={{ color: "#2fd08a" }}>
+                72.4%
+              </div>
+              <div className={styles.telemetryLabel}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <TrendingUp size={11} color="#2fd08a" /> Model Win Rate
+                </span>
+              </div>
             </div>
-            <span style={{ color: "rgba(167, 159, 255, 0.25)" }}>•</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
-              <Zap size={13} color="#c4b5fd" />
-              <span>Avg Value Edge: <strong style={{ color: "#c4b5fd", fontWeight: 800 }}>+18.4%</strong></span>
+
+            <div className={styles.telemetryDivider}>•</div>
+
+            <div className={styles.telemetryItem}>
+              <div className={styles.telemetryVal} style={{ color: "#c4b5fd" }}>
+                +18.4%
+              </div>
+              <div className={styles.telemetryLabel}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Zap size={11} color="#c4b5fd" /> Avg +EV Edge
+                </span>
+              </div>
             </div>
-            <span style={{ color: "rgba(167, 159, 255, 0.25)" }}>•</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
-              <Cpu size={13} color="#38bdf8" />
-              <span>Monte Carlo: <strong style={{ color: "#38bdf8", fontWeight: 800 }}>100K / Match</strong></span>
+
+            <div className={styles.telemetryDivider}>•</div>
+
+            <div className={styles.telemetryItem}>
+              <div className={styles.telemetryVal} style={{ color: "#38bdf8" }}>
+                100K
+              </div>
+              <div className={styles.telemetryLabel}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Cpu size={11} color="#38bdf8" /> Sims / Match
+                </span>
+              </div>
             </div>
           </div>
         </div>

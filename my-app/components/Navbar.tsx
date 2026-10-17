@@ -1136,8 +1136,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           backdropFilter: "blur(18px)",
           WebkitBackdropFilter: "blur(18px)",
           borderTop: "1px solid rgba(167, 159, 255, 0.12)",
-          height: 62,
-          padding: "0 8px",
+          height: "calc(58px + env(safe-area-inset-bottom, 0px))",
+          padding: "4px 8px env(safe-area-inset-bottom, 0px)",
           alignItems: "center",
           justifyContent: "space-around",
         }}

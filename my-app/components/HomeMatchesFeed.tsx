@@ -424,7 +424,7 @@ export default function HomeMatchesFeed({
               boxShadow: activeDay === "yesterday" ? "0 2px 8px rgba(47, 208, 138, 0.18)" : "none",
             }}
           >
-            <span>Yesterday&apos;s Results (100% Free)</span>
+            <span>Yesterday&apos;s Results</span>
             <span
               style={{
                 fontSize: 11,

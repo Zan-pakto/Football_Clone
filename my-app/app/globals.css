@@ -86,6 +86,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Tabular Numerals for Odds and Scores */
 .num {
   font-variant-numeric: tabular-nums;

@@ -1,3 +1,334 @@
+/* ══════════════════════════════════════════════════════════════
+   HERO LANDING RESPONSIVE STYLES (MOBILE-FIRST)
+   ══════════════════════════════════════════════════════════════ */
+
+.heroSection {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  padding: 42px 16px 48px;
+  min-height: auto;
+}
+
+@media (min-width: 768px) {
+  .heroSection {
+    min-height: calc(100svh - 68px);
+    padding: 64px 20px 60px;
+  }
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 0;
+  opacity: 0.95;
+  background-image: url('/hero-mobile.jpg');
+  background-position: center bottom;
+}
+
+@media (min-width: 768px) {
+  .heroBackdrop {
+    background-image: url('/hero-ai-football.jpg');
+    background-position: center 38%;
+  }
+}
+
+.heroVeilAmbient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(124, 108, 245, 0.22) 0%, rgba(47, 208, 138, 0.1) 40%, transparent 75%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.heroVeilGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #0a081d 0%,
+    rgba(10, 8, 29, 0.45) 16%,
+    rgba(10, 8, 29, 0.2) 38%,
+    rgba(10, 8, 29, 0.5) 75%,
+    #0a081d 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .heroVeilGradient {
+    background: linear-gradient(
+      180deg,
+      #0a081d 0%,
+      rgba(10, 8, 29, 0.5) 12%,
+      rgba(10, 8, 29, 0.18) 32%,
+      rgba(10, 8, 29, 0.28) 60%,
+      rgba(10, 8, 29, 0.88) 90%,
+      #0a081d 100%
+    );
+  }
+}
+
+.heroVeilSpotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 960px 540px at 50% 38%, rgba(10, 8, 29, 0.76) 0%, rgba(10, 8, 29, 0.42) 60%, transparent 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .heroContent {
+    gap: 20px;
+  }
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px;
+  border-radius: 30px;
+  background: rgba(18, 15, 45, 0.85);
+  border: 1px solid rgba(124, 108, 245, 0.38);
+  box-shadow: 0 0 20px rgba(124, 108, 245, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: "#c4b5fd";
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .heroBadge {
+    padding: 6px 16px;
+    font-size: 12px;
+  }
+}
+
+.heroHeadline {
+  margin: 0;
+  font-size: clamp(2.1rem, 7vw, 4.4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.9), 0 0 50px rgba(124, 108, 245, 0.35);
+  text-wrap: balance;
+}
+
+.heroSubtitle {
+  margin: 0;
+  font-size: clamp(14px, 1.8vw, 16.5px);
+  line-height: 1.6;
+  color: #d4cde3;
+  max-width: 620px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95);
+}
+
+.heroFreeNote {
+  margin: -6px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #f1eff8;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95);
+}
+
+@media (min-width: 768px) {
+  .heroFreeNote {
+    font-size: 15px;
+  }
+}
+
+/* ── Hero Actions ── */
+.heroActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (min-width: 600px) {
+  .heroActions {
+    flex-direction: row;
+    max-width: none;
+    gap: 14px;
+  }
+}
+
+.heroPrimaryBtn {
+  width: 100%;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c6cf5 0%, #6352e8 100%);
+  border: 1px solid rgba(196, 181, 253, 0.5);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 0 25px rgba(124, 108, 245, 0.45);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+@media (min-width: 600px) {
+  .heroPrimaryBtn {
+    width: auto;
+    min-width: 230px;
+  }
+}
+
+.heroPrimaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 32px rgba(124, 108, 245, 0.6);
+}
+
+.heroSecondaryBtn {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 12px;
+  background: rgba(16, 14, 41, 0.75);
+  border: 1px solid rgba(167, 159, 255, 0.25);
+  color: #f1eff8;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+@media (min-width: 600px) {
+  .heroSecondaryBtn {
+    width: auto;
+    min-width: 150px;
+  }
+}
+
+.heroSecondaryBtn:hover {
+  background: rgba(124, 108, 245, 0.16);
+  border-color: rgba(167, 159, 255, 0.4);
+}
+
+/* ── Micro Telemetry Strip ── */
+.telemetryStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  max-width: 360px;
+  padding: 8px 10px;
+  background: rgba(16, 13, 40, 0.78);
+  border: 1px solid rgba(167, 159, 255, 0.2);
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  margin-top: 6px;
+}
+
+@media (min-width: 768px) {
+  .telemetryStrip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    max-width: none;
+    border-radius: 30px;
+    gap: 18px;
+    padding: 7px 20px;
+  }
+}
+
+.telemetryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .telemetryItem {
+    flex-direction: row;
+    gap: 6px;
+  }
+}
+
+.telemetryVal {
+  font-size: 13.5px;
+  font-weight: 900;
+  font-family: var(--font-mono, monospace);
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .telemetryVal {
+    font-size: 12.5px;
+    font-weight: 800;
+  }
+}
+
+.telemetryLabel {
+  font-size: 10px;
+  color: #d4cde3;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+@media (min-width: 768px) {
+  .telemetryLabel {
+    font-size: 12px;
+    margin-top: 0;
+  }
+}
+
+.telemetryDivider {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .telemetryDivider {
+    display: block;
+    color: rgba(167, 159, 255, 0.25);
+  }
+}
+
+/* ── TERMINAL CORE ── */
 .terminal button:focus-visible,
 .terminal a:focus-visible {
   outline: 2px solid #c4b5fd;
@@ -11,8 +342,8 @@
 
 .terminalGlyph {
   display: inline-grid;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid rgba(167, 159, 255, 0.18);
@@ -27,7 +358,7 @@
 
 .scenarioTab {
   flex: 0 0 auto;
-  min-height: 40px;
+  min-height: 38px;
 }
 
 .scenarioTab[data-active="false"]:hover {
@@ -73,74 +404,75 @@
 }
 
 .terminalActions > button {
-  min-height: 40px;
+  min-height: 42px;
 }
 
 @media (max-width: 600px) {
   .terminalHeader {
     flex-wrap: wrap;
     gap: 8px;
-    padding: 12px 14px !important;
+    padding: 10px 12px !important;
   }
 
   .terminalBrand {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     min-width: 0;
   }
 
   .terminalTitle {
-    font-size: 10px !important;
+    font-size: 10.5px !important;
   }
 
   .terminalTools {
-    width: 100%;
     justify-content: flex-end;
   }
 
   .terminalBody {
-    padding: 16px 14px !important;
-    gap: 13px !important;
+    padding: 14px 12px !important;
+    gap: 12px !important;
   }
 
   .matchup {
-    gap: 8px !important;
-    padding: 12px 10px !important;
+    gap: 6px !important;
+    padding: 10px 8px !important;
   }
 
   .team {
-    gap: 7px !important;
+    gap: 6px !important;
   }
 
   .team img {
-    width: 28px !important;
-    height: 28px !important;
+    width: 26px !important;
+    height: 26px !important;
   }
 
   .teamName {
-    font-size: 13px !important;
+    font-size: 12px !important;
   }
 
   .teamMeta {
-    font-size: 10px !important;
+    font-size: 9.5px !important;
     white-space: nowrap;
   }
 
   .marketTabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .marketTab {
-    padding: 8px 4px !important;
+    padding: 8px 6px !important;
+    font-size: 12px !important;
   }
 
   .marketLabels {
-    gap: 8px;
-    font-size: 10.5px !important;
+    gap: 6px;
+    font-size: 10px !important;
   }
 
   .tipCard {
     align-items: flex-start !important;
-    padding: 14px !important;
+    padding: 12px !important;
   }
 
   .tipContent {
@@ -150,10 +482,12 @@
 
   .terminalActions {
     width: 100%;
+    margin-top: 8px;
   }
 
   .terminalActions > button {
     flex: 1;
+    min-height: 44px;
     justify-content: center;
   }
 
@@ -161,6 +495,6 @@
     align-items: flex-start !important;
     flex-direction: column;
     gap: 8px;
-    padding: 12px 14px !important;
+    padding: 10px 12px !important;
   }
 }

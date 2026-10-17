@@ -183,9 +183,6 @@ export default async function HomePage() {
               <h2 className={feedStyles.sectionTitle}>
                 10 Free Football Predictions
               </h2>
-              <span className={feedStyles.sectionEyebrow}>
-                FREE AI FOOTBALL PREDICTIONS (10 DAILY PICKS)
-              </span>
             </div>
             <p className={feedStyles.sectionDescription}>
               Top 10 mathematically graded quantitative tips for today • VIP Pro unlocks all {totalMatches > 0 ? `${totalMatches}+ ` : ""}matches
