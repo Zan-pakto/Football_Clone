@@ -548,12 +548,12 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: "url('/hero-jolloftips.jpg')",
+            backgroundImage: "url('/hero-ai-football.jpg')",
             backgroundSize: "cover",
-            backgroundPosition: "center 20%",
+            backgroundPosition: "center 42%",
             backgroundRepeat: "no-repeat",
             zIndex: 0,
-            opacity: 0.92,
+            opacity: 0.95,
           }}
         />
 
@@ -562,7 +562,8 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           style={{
             position: "absolute",
             inset: 0,
-            background: "radial-gradient(closest-side at 50% 36%, rgba(124, 108, 245, 0.28) 0%, rgba(47, 208, 138, 0.07) 45%, transparent 75%)",
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(124, 108, 245, 0.22) 0%, rgba(47, 208, 138, 0.1) 40%, transparent 75%)",
             zIndex: 1,
             pointerEvents: "none",
           }}
@@ -571,8 +572,20 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(180deg, #0a081d 0%, rgba(10, 8, 29, 0.94) 10%, rgba(10, 8, 29, 0.68) 28%, rgba(10, 8, 29, 0.7) 60%, #0a081d 100%)",
+            background:
+              "linear-gradient(180deg, #0a081d 0%, rgba(10, 8, 29, 0.5) 12%, rgba(10, 8, 29, 0.18) 32%, rgba(10, 8, 29, 0.28) 60%, rgba(10, 8, 29, 0.88) 90%, #0a081d 100%)",
             zIndex: 2,
+            pointerEvents: "none",
+          }}
+        />
+        {/* Centered optical vignette behind typography for razor-sharp readability without obscuring player & cyber HUD */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 960px 540px at 50% 40%, rgba(10, 8, 29, 0.76) 0%, rgba(10, 8, 29, 0.42) 60%, transparent 100%)",
+            zIndex: 3,
             pointerEvents: "none",
           }}
         />
@@ -582,7 +595,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
           style={{
             position: "relative",
             zIndex: 10,
-            maxWidth: 880,
+            maxWidth: 900,
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
@@ -590,6 +603,38 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             gap: 20,
           }}
         >
+          {/* Elite Model Badge */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 16px",
+              borderRadius: 30,
+              background: "rgba(18, 15, 45, 0.82)",
+              border: "1px solid rgba(124, 108, 245, 0.38)",
+              boxShadow: "0 0 24px rgba(124, 108, 245, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+              backdropFilter: "blur(12px)",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              color: "#c4b5fd",
+              textTransform: "uppercase",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#2fd08a",
+                boxShadow: "0 0 12px #2fd08a",
+              }}
+            />
+            <span>Quantitative AI Engine V4.2</span>
+            <span style={{ color: "rgba(167, 159, 255, 0.5)" }}>•</span>
+            <span style={{ color: "#2fd08a", fontWeight: 800 }}>100K Monte Carlo</span>
+          </div>
 
           {/* Master Headline */}
           <h1
@@ -600,9 +645,20 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
               letterSpacing: "-0.025em",
               color: "#ffffff",
               margin: 0,
+              textShadow: "0 4px 28px rgba(0, 0, 0, 0.9), 0 0 50px rgba(124, 108, 245, 0.4)",
             }}
           >
-            AI <span style={{ color: "#c4b5fd" }}>Football</span> Predictions
+            AI{" "}
+            <span
+              style={{
+                background: "linear-gradient(135deg, #ffffff 10%, #c4b5fd 55%, #7c6cf5 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Football
+            </span>{" "}
+            Predictions
           </h1>
 
           {/* Authentic Subtitle */}
@@ -611,15 +667,25 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
               fontSize: "clamp(15px, 1.8vw, 17px)",
               lineHeight: 1.65,
               color: "#d4cde3",
-              maxWidth: 620,
+              maxWidth: 640,
               margin: 0,
+              textShadow: "0 2px 16px rgba(0, 0, 0, 0.95)",
             }}
           >
-            JollofTips offers AI football predictions from its own quantitative model. Since 2021, it has simulated over <strong style={{ color: "#ffffff" }}>274,510</strong> matches across <strong style={{ color: "#ffffff" }}>711</strong> leagues.
+            JollofTips offers AI football predictions from its own quantitative model. Since 2021, it has simulated over <strong style={{ color: "#ffffff", textShadow: "0 0 10px rgba(255, 255, 255, 0.4)" }}>274,510</strong> matches across <strong style={{ color: "#ffffff", textShadow: "0 0 10px rgba(255, 255, 255, 0.4)" }}>711</strong> leagues.
           </p>
 
-          <p style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: "#f1eff8", margin: "-8px 0 0" }}>
-            Every day, top 10 football predictions are 100% free — no credit card needed.
+          <p
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1.5,
+              color: "#f1eff8",
+              margin: "-8px 0 0",
+              textShadow: "0 2px 14px rgba(0, 0, 0, 0.95)",
+            }}
+          >
+            Every day, top 10 football predictions are <span style={{ color: "#2fd08a", fontWeight: 800 }}>100% free</span> — no credit card needed.
           </p>
 
           {/* Top Free Bets Preview Strip (Quick glimpse of top free games) */}
@@ -714,6 +780,38 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             >
               <span>All Matches</span>
             </Link>
+          </div>
+
+          {/* Micro Telemetry Indicators matching futuristic AI HUD */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: 18,
+              marginTop: 6,
+              padding: "7px 18px",
+              background: "rgba(16, 13, 40, 0.72)",
+              border: "1px solid rgba(167, 159, 255, 0.18)",
+              borderRadius: 30,
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
+              <TrendingUp size={13} color="#2fd08a" />
+              <span>Model Win Rate: <strong style={{ color: "#2fd08a", fontWeight: 800 }}>72.4%</strong></span>
+            </div>
+            <span style={{ color: "rgba(167, 159, 255, 0.25)" }}>•</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
+              <Zap size={13} color="#c4b5fd" />
+              <span>Avg Value Edge: <strong style={{ color: "#c4b5fd", fontWeight: 800 }}>+18.4%</strong></span>
+            </div>
+            <span style={{ color: "rgba(167, 159, 255, 0.25)" }}>•</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#d4cde3" }}>
+              <Cpu size={13} color="#38bdf8" />
+              <span>Monte Carlo: <strong style={{ color: "#38bdf8", fontWeight: 800 }}>100K / Match</strong></span>
+            </div>
           </div>
         </div>
       </section>
