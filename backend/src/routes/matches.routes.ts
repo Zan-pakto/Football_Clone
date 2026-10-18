@@ -203,7 +203,7 @@ router.post("/live", async (req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const d = (req.query.d as string) ?? "0";
-    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "330";
+    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "0";
     const country = (req.query.country as string) ?? undefined;
     const league = (req.query.league as string) ?? undefined;
     const status = (req.query.status as string) ?? undefined;

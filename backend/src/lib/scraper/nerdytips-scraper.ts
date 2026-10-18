@@ -3,12 +3,13 @@ import { cacheService, CACHE_TTL } from "../cache/cache-service";
 import { adjustOdd, adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 import { toCachedLogoUrl } from "../logo-utils";
 import { normalizeScrapedMatchToMatchData } from "./nerdytips-normalizer";
-import { decodeHtmlEntities } from "../utils";
+import { decodeHtmlEntities, resolveDateString } from "../utils";
 
 export interface ScrapedMatch {
   id: string;
   href: string;
   kickoff: string;
+  kickoffUtc?: string | null;
   status: "UPCOMING" | "LIVE" | "FINISHED" | "POSTPONED" | "CANCELLED" | "WON" | "LOST";
   country: string;
   league: string;
@@ -228,10 +229,19 @@ export class NerdyTipsScraper {
       const homeLogo = toCachedLogoUrl(logos[0] || null);
       const awayLogo = toCachedLogoUrl(logos[1] || null);
 
+      // Build canonical ISO UTC kickoff timestamp if kick (HH:mm) is available
+      let kickoffUtc: string | null = null;
+      if (kick && /^\d{1,2}:\d{2}$/.test(kick)) {
+        const [kh, km] = kick.split(":");
+        const matchDate = resolveDateString(dParam, 0);
+        kickoffUtc = `${matchDate}T${kh.padStart(2, "0")}:${km.padStart(2, "0")}:00.000Z`;
+      }
+
       matches.push({
         id,
         href: `${this.baseUrl}${href}`,
         kickoff: kick || "00:00",
+        kickoffUtc,
         status,
         elapsed,
         country: country || "International",
@@ -325,7 +335,7 @@ export class NerdyTipsScraper {
     tz?: string | number | null
   ): Promise<ScrapedMatch[]> {
     const url = `${this.baseUrl}/all-matches?d=${dParam}`;
-    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "330");
+    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "0");
     const tzCookie = `tz_offset_v2=${activeTz}; timezone_manual=1;`;
 
     const headers: Record<string, string> = {
@@ -470,7 +480,7 @@ export class NerdyTipsScraper {
     cookieHeader?: string | null,
     forceRefresh: boolean = false
   ): Promise<BetOfTheDayResult> {
-    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "330");
+    const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "0");
     const cacheKey = `botd:${dParam}:${activeTz}`;
 
     // Check cache (12-hour duration unless forced)
@@ -658,7 +668,7 @@ export class NerdyTipsScraper {
 
     const url = `${this.baseUrl}/match-details/${matchId}`;
     try {
-      const activeTz = process.env.TIMEZONE_OFFSET || "330";
+      const activeTz = process.env.TIMEZONE_OFFSET || "0";
       const res = await fetch(url, {
         headers: {
           "User-Agent": this.userAgent,

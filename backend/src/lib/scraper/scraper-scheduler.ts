@@ -81,7 +81,7 @@ export class ScraperScheduler {
     const breakdown: Record<string, number> = {};
 
     try {
-      const activeTz = tz || process.env.TIMEZONE_OFFSET || "330";
+      const activeTz = tz || process.env.TIMEZONE_OFFSET || "0";
       console.log(`[ScraperScheduler] Initiating sync for days: [${days.join(", ")}] (tz=${activeTz})...`);
       const cycleResults = await nerdyTipsScraper.runAuthenticatedCycle(days, activeTz);
 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import Link from "next/link";
+import { formatMatchKickoff } from "@/lib/utils";
 
 interface SlipMatch {
   id: string;
@@ -346,7 +347,7 @@ export default function BetBuilderPage() {
       if (!candidate) continue;
 
       const m = matchObj.raw;
-      const kick = m.kickTime || "20:00";
+      const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
       const dateStr = `Today · ${kick}`;
 
       selected.push({

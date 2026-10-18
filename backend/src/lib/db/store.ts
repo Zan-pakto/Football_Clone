@@ -124,6 +124,17 @@ class MatchStore {
     const hScore = m.homeScore !== null && m.homeScore !== undefined ? parseInt(m.homeScore, 10) || 0 : null;
     const aScore = m.awayScore !== null && m.awayScore !== undefined ? parseInt(m.awayScore, 10) || 0 : null;
 
+    let kickoffDateTime: Date;
+    if (m.kickoffUtc) {
+      const parsed = new Date(m.kickoffUtc);
+      kickoffDateTime = isNaN(parsed.getTime()) ? new Date() : parsed;
+    } else if (m.kickTime && /^\d{1,2}:\d{2}$/.test(m.kickTime)) {
+      const [kh, km] = m.kickTime.split(":");
+      kickoffDateTime = new Date(`${targetDate}T${kh.padStart(2, "0")}:${km.padStart(2, "0")}:00.000Z`);
+    } else {
+      kickoffDateTime = new Date();
+    }
+
     const fixture = await prisma.fixture.upsert({
       where: { externalId: m.id },
       update: {
@@ -131,7 +142,7 @@ class MatchStore {
         homeTeamId,
         awayTeamId,
         matchDate: targetDate,
-        kickoffTime: new Date(),
+        kickoffTime: kickoffDateTime,
         status: statusEnum as any,
         elapsed: m.elapsed,
         homeScore: hScore,
@@ -143,7 +154,7 @@ class MatchStore {
         homeTeamId,
         awayTeamId,
         matchDate: targetDate,
-        kickoffTime: new Date(),
+        kickoffTime: kickoffDateTime,
         status: statusEnum as any,
         elapsed: m.elapsed,
         homeScore: hScore,
@@ -299,7 +310,8 @@ class MatchStore {
               awayTeam: decodeHtmlEntities(df.awayTeam.name),
               homeLogo: toCachedLogoUrl(df.homeTeam.logo),
               awayLogo: toCachedLogoUrl(df.awayTeam.logo),
-              kickTime: df.kickoffTime ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
+              kickoffUtc: df.kickoffTime ? df.kickoffTime.toISOString() : null,
+              kickTime: df.kickoffTime ? df.kickoffTime.toISOString().substring(11, 16) : null,
               status: activeStatus.toLowerCase(),
               homeScore: live?.homeScore !== undefined && live.homeScore !== null ? String(live.homeScore) : df.homeScore !== null ? String(df.homeScore) : null,
               awayScore: live?.awayScore !== undefined && live.awayScore !== null ? String(live.awayScore) : df.awayScore !== null ? String(df.awayScore) : null,
@@ -478,9 +490,8 @@ class MatchStore {
           awayTeam: decodeHtmlEntities(df.awayTeam.name),
           homeLogo: df.homeTeam.logo || null,
           awayLogo: df.awayTeam.logo || null,
-          kickTime: df.kickoffTime
-            ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-            : null,
+          kickoffUtc: df.kickoffTime ? df.kickoffTime.toISOString() : null,
+          kickTime: df.kickoffTime ? df.kickoffTime.toISOString().substring(11, 16) : null,
           status: activeStatus.toLowerCase(),
           homeScore:
             live?.homeScore !== undefined && live.homeScore !== null

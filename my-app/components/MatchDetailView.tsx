@@ -20,6 +20,7 @@ import {
   Clock,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
+import { formatMatchKickoff } from "@/lib/utils";
 
 interface MatchDetailViewProps {
   fixture: any;
@@ -393,8 +394,8 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
 
           {/* Match Score / Status Center */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 6 }}>
-            <div style={{ fontSize: 12, color: "#a198f7", fontWeight: 600 }}>
-              <span>{hero.date}</span> {hero.time && <strong style={{ color: "#ffffff", marginLeft: 4 }}>{hero.time}</strong>}
+            <div suppressHydrationWarning style={{ fontSize: 12, color: "#a198f7", fontWeight: 600 }}>
+              <span>{hero.date}</span> {hero.time && <strong style={{ color: "#ffffff", marginLeft: 4 }}>{formatMatchKickoff(hero.time, fixture.kickoffUtc, hero.date || fixture.matchDate)}</strong>}
             </div>
 
             <div

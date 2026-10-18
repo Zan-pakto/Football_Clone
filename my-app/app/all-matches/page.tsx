@@ -133,6 +133,7 @@ export default function AllMatchesPage() {
 
         const cleanMatches = data.matches.map((m: MatchData) => ({
           ...m,
+          kickoffUtc: m.kickoffUtc || (m.matchDate && m.kickTime && /^\d{1,2}:\d{2}$/.test(m.kickTime) ? `${m.matchDate}T${m.kickTime.padStart(5, "0")}:00.000Z` : null),
           homeTeam: decodeHtmlEntities(m.homeTeam),
           awayTeam: decodeHtmlEntities(m.awayTeam),
           leagueName: decodeHtmlEntities(m.leagueName),

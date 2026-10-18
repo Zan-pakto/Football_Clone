@@ -89,6 +89,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     homeLogo: toCachedLogoUrl(m.homeLogo),
     awayLogo: toCachedLogoUrl(m.awayLogo),
     kickTime: m.kickoff,
+    kickoffUtc: m.kickoffUtc || (m.kickoff && matchDate ? `${matchDate}T${m.kickoff.padStart(5, "0")}:00.000Z` : null),
     matchDate,
     status: m.status.toLowerCase(),
     homeScore: m.homeScore !== undefined ? String(m.homeScore) : null,

@@ -41,6 +41,7 @@ export interface MatchData {
   homeLogo: string | null;
   awayLogo: string | null;
   kickTime: string | null;
+  kickoffUtc?: string | null;
   matchDate?: string;
   status: string; // 'won' | 'lost' | 'upcoming' | 'live' | 'canceled' | 'postponed' | string
   homeScore: string | null;

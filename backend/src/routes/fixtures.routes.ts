@@ -60,7 +60,7 @@ router.get("/track-record", async (_req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const date = (req.query.date as string) || (req.query.d as string) || "0";
-    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "330";
+    const tz = (req.query.tz as string) || (req.headers["x-timezone-offset"] as string) || process.env.TIMEZONE_OFFSET || "0";
     const country = (req.query.country as string) || undefined;
     const league = (req.query.league as string) || undefined;
     const status = (req.query.status as any) || undefined;
@@ -126,7 +126,9 @@ router.get("/", async (req: Request, res: Response) => {
             logo: toCachedLogoUrl(m.awayLogo),
           },
           matchDate: m.matchDate || new Date().toISOString().split("T")[0],
-          kickoffTime: m.kickTime || "00:00",
+          kickoffTime: m.kickoffUtc || (m.matchDate && m.kickTime && /^\d{1,2}:\d{2}$/.test(m.kickTime) ? `${m.matchDate}T${m.kickTime.padStart(5, "0")}:00.000Z` : (m.kickTime || "00:00")),
+          kickoffUtc: m.kickoffUtc || (m.matchDate && m.kickTime && /^\d{1,2}:\d{2}$/.test(m.kickTime) ? `${m.matchDate}T${m.kickTime.padStart(5, "0")}:00.000Z` : null),
+          kickTime: m.kickTime || "00:00",
           status: statusUpper as any,
           homeScore: m.homeScore !== null && m.homeScore !== undefined ? parseInt(m.homeScore, 10) : null,
           awayScore: m.awayScore !== null && m.awayScore !== undefined ? parseInt(m.awayScore, 10) : null,

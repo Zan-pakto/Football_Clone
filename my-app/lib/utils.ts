@@ -114,3 +114,56 @@ export function formatToLocalTime(utcIsoString: string, timeZone?: string): stri
   }
 }
 
+/**
+ * Format a match kickoff time for the visitor's local device timezone.
+ * Handles UTC ISO strings ("2026-10-18T13:00:00.000Z"), HH:mm times, and date strings.
+ */
+export function formatMatchKickoff(
+  kickTime?: string | null,
+  kickoffUtc?: string | null,
+  matchDate?: string | null
+): string {
+  if (kickoffUtc) {
+    try {
+      const d = new Date(kickoffUtc);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (kickTime && /^\d{1,2}:\d{2}$/.test(kickTime)) {
+    try {
+      const dStr = matchDate || new Date().toISOString().split("T")[0];
+      const [hh, mm] = kickTime.split(":");
+      const d = new Date(`${dStr}T${hh.padStart(2, "0")}:${mm.padStart(2, "0")}:00.000Z`);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      }
+    } catch {
+      // fallback
+    }
+    return kickTime;
+  }
+
+  return kickTime || "--:--";
+}
+
+/**
+ * Format kickoff time into stacked hour (top) and minute (bottom) in visitor's local timezone
+ */
+export function formatStackedKickoff(
+  kickTime?: string | null,
+  kickoffUtc?: string | null,
+  matchDate?: string | null
+): { top: string; bottom: string } {
+  const formatted = formatMatchKickoff(kickTime, kickoffUtc, matchDate);
+  if (formatted.includes(":")) {
+    const [hh, mm] = formatted.split(":");
+    return { top: hh, bottom: mm };
+  }
+  return { top: formatted, bottom: "" };
+}
+

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
 import { MatchData } from "@/lib/types";
+import { formatMatchKickoff } from "@/lib/utils";
 import styles from "./HeroLanding.module.css";
 
 const cdn = (url: string) => toCachedLogoUrl(url) || url;
@@ -288,7 +289,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
         badge: `${conf1.toFixed(1)}% ALGORITHMIC CERTAINTY`,
         league: m1.leagueName || "Top Tier",
         country: m1.country || "Global",
-        time: m1.kickTime ? `Today • ${m1.kickTime}` : "Today • Featured",
+        time: m1.kickTime ? `Today • ${formatMatchKickoff(m1.kickTime, m1.kickoffUtc, m1.matchDate)}` : "Today • Featured",
         homeTeam: m1.homeTeam,
         awayTeam: m1.awayTeam,
         homeLogo: m1.homeLogo || undefined,
@@ -337,7 +338,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
         badge: m2.isLive ? `LIVE ${m2.elapsed || "IN-PLAY"} TELEMETRY` : "TODAY'S TOP RADAR",
         league: m2.leagueName || "League",
         country: m2.country || "Global",
-        time: m2.isLive ? "LIVE IN-PLAY" : (m2.kickTime ? `Today • ${m2.kickTime}` : "Today"),
+        time: m2.isLive ? "LIVE IN-PLAY" : (m2.kickTime ? `Today • ${formatMatchKickoff(m2.kickTime, m2.kickoffUtc, m2.matchDate)}` : "Today"),
         homeTeam: m2.homeTeam,
         awayTeam: m2.awayTeam,
         homeLogo: m2.homeLogo || undefined,
@@ -386,7 +387,7 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
         badge: "+21.8% EXPECTED VALUE",
         league: m3.leagueName || "League",
         country: m3.country || "Global",
-        time: m3.kickTime ? `Today • ${m3.kickTime}` : "Today",
+        time: m3.kickTime ? `Today • ${formatMatchKickoff(m3.kickTime, m3.kickoffUtc, m3.matchDate)}` : "Today",
         homeTeam: m3.homeTeam,
         awayTeam: m3.awayTeam,
         homeLogo: m3.homeLogo || undefined,

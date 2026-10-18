@@ -74,6 +74,9 @@ export default async function MatchDetailPage(props: { params: Promise<{ id: str
       },
       matchDate: matchDetails.hero.date,
       kickoffTime: matchDetails.hero.time,
+      kickoffUtc: matchDetails.hero.time && matchDetails.hero.date && /^\d{1,2}:\d{2}$/.test(matchDetails.hero.time)
+        ? `${matchDetails.hero.date}T${matchDetails.hero.time.padStart(5, "0")}:00.000Z`
+        : null,
       status:
         matchDetails.hero.status === "Finished"
           ? "FINISHED"

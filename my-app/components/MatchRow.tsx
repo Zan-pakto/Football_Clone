@@ -4,6 +4,7 @@ import { MatchData } from "@/lib/types";
 import { Check, X, Shield, Sparkles, Flame, Target, Lock, Radio } from "lucide-react";
 import Link from "next/link";
 import TeamLogo from "@/components/TeamLogo";
+import { formatMatchKickoff, formatStackedKickoff } from "@/lib/utils";
 
 interface MatchRowProps {
   match: MatchData;
@@ -143,17 +144,9 @@ export default function MatchRow({ match }: MatchRowProps) {
   const hasScores = match.homeScore !== null && match.homeScore !== undefined &&
                     match.awayScore !== null && match.awayScore !== undefined;
 
-  // Stacked time (e.g. 18 on top, 15 on bottom)
-  const formatStackedTime = (timeStr: string | null | undefined) => {
-    if (!timeStr) return { top: "--", bottom: "--" };
-    if (timeStr.includes(":")) {
-      const [hh, mm] = timeStr.split(":");
-      return { top: hh, bottom: mm };
-    }
-    return { top: timeStr, bottom: "" };
-  };
-
-  const stackedTime = formatStackedTime(match.kickTime);
+  // Stacked time and kickoff in visitor's local timezone
+  const stackedTime = formatStackedKickoff(match.kickTime, match.kickoffUtc, match.matchDate);
+  const formattedKickoff = formatMatchKickoff(match.kickTime, match.kickoffUtc, match.matchDate);
 
   // Confidence Rating
   const numericConfidence = (() => {
@@ -284,11 +277,11 @@ export default function MatchRow({ match }: MatchRowProps) {
                 lineHeight: 1.15,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>
+              <span suppressHydrationWarning style={{ fontSize: 13, fontWeight: 800, color: "#FFFFFF", fontFamily: "var(--font-mono)" }}>
                 {isFinished ? "FT" : stackedTime.top}
               </span>
               {!isFinished && stackedTime.bottom && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", fontFamily: "var(--font-mono)" }}>
+                <span suppressHydrationWarning style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", fontFamily: "var(--font-mono)" }}>
                   {stackedTime.bottom}
                 </span>
               )}
@@ -517,8 +510,8 @@ export default function MatchRow({ match }: MatchRowProps) {
                 <span>LIVE {match.elapsed ? `· ${match.elapsed}` : ""}</span>
               </span>
             ) : (
-              <span style={{ color: "#7874a4", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
-                {isFinished ? "FULL TIME" : match.kickTime || "19:00"}
+              <span suppressHydrationWarning style={{ color: "#7874a4", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
+                {isFinished ? "FULL TIME" : formattedKickoff || "19:00"}
               </span>
             )}
           </div>
