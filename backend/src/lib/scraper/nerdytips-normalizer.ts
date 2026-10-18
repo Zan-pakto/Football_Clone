@@ -1,6 +1,6 @@
 import { MatchData } from "../types";
 import { ScrapedMatch } from "./nerdytips-scraper";
-import { resolveDateString } from "../utils";
+import { resolveDateString, decodeHtmlEntities } from "../utils";
 import { getCountryFlagUrl } from "../flags";
 import { adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 import { toCachedLogoUrl } from "../logo-utils";
@@ -81,11 +81,11 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
   return {
     id: m.id,
     url: m.href,
-    leagueName: m.league,
-    country: normalizedCountry,
+    leagueName: decodeHtmlEntities(m.league),
+    country: decodeHtmlEntities(normalizedCountry),
     flagUrl: getCountryFlagUrl(normalizedCountry),
-    homeTeam: m.homeTeam,
-    awayTeam: m.awayTeam,
+    homeTeam: decodeHtmlEntities(m.homeTeam),
+    awayTeam: decodeHtmlEntities(m.awayTeam),
     homeLogo: toCachedLogoUrl(m.homeLogo),
     awayLogo: toCachedLogoUrl(m.awayLogo),
     kickTime: m.kickoff,
@@ -101,7 +101,7 @@ export function normalizeScrapedMatchToMatchData(m: ScrapedMatch): MatchData {
     rating: ratingOutOf10,
     predictions: {
       bestTip: {
-        pick: m.bestTip ? m.bestTip.replace(/^(?:Double Chance\s*)+/i, "").trim() || m.bestTip : "1",
+        pick: decodeHtmlEntities(m.bestTip ? m.bestTip.replace(/^(?:Double Chance\s*)+/i, "").trim() || m.bestTip : "1"),
         odd: adjustOddStr(m.tipOdds ? m.tipOdds.toFixed(2) : (homeOddStr || "1.85"), `${m.id}_best_odd`) || (homeOddStr || "1.85"),
         rating: ratingOutOf10,
         confidence: adjustedConf,

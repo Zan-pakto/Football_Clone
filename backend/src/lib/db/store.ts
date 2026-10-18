@@ -1,5 +1,5 @@
 import { MatchData, LiveMatchUpdate } from "../types";
-import { isMatchLive, resolveDateString } from "../utils";
+import { isMatchLive, resolveDateString, decodeHtmlEntities } from "../utils";
 import { prisma } from "./prisma";
 import { toCachedLogoUrl } from "../logo-utils";
 
@@ -75,40 +75,45 @@ class MatchStore {
     teamCache: Map<string, string>,
     leagueCache: Map<string, string>
   ): Promise<void> {
+    const cleanHome = decodeHtmlEntities(m.homeTeam);
+    const cleanAway = decodeHtmlEntities(m.awayTeam);
+    const cleanLeague = decodeHtmlEntities(m.leagueName);
+    const cleanCountry = decodeHtmlEntities(m.country);
+
     // 1. Upsert Home Team
-    const homeTeamExtId = `team_${m.homeTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const homeTeamExtId = `team_${cleanHome.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     let homeTeamId = teamCache.get(homeTeamExtId);
     if (!homeTeamId) {
       const team = await prisma.team.upsert({
         where: { externalId: homeTeamExtId },
-        update: { name: m.homeTeam, logo: m.homeLogo || undefined, country: m.country },
-        create: { externalId: homeTeamExtId, name: m.homeTeam, logo: m.homeLogo, country: m.country },
+        update: { name: cleanHome, logo: m.homeLogo || undefined, country: cleanCountry },
+        create: { externalId: homeTeamExtId, name: cleanHome, logo: m.homeLogo, country: cleanCountry },
       });
       homeTeamId = team.id;
       teamCache.set(homeTeamExtId, homeTeamId);
     }
 
     // 2. Upsert Away Team
-    const awayTeamExtId = `team_${m.awayTeam.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const awayTeamExtId = `team_${cleanAway.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     let awayTeamId = teamCache.get(awayTeamExtId);
     if (!awayTeamId) {
       const team = await prisma.team.upsert({
         where: { externalId: awayTeamExtId },
-        update: { name: m.awayTeam, logo: m.awayLogo || undefined, country: m.country },
-        create: { externalId: awayTeamExtId, name: m.awayTeam, logo: m.awayLogo, country: m.country },
+        update: { name: cleanAway, logo: m.awayLogo || undefined, country: cleanCountry },
+        create: { externalId: awayTeamExtId, name: cleanAway, logo: m.awayLogo, country: cleanCountry },
       });
       awayTeamId = team.id;
       teamCache.set(awayTeamExtId, awayTeamId);
     }
 
     // 3. Upsert League
-    const leagueExtId = `league_${m.leagueName.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const leagueExtId = `league_${cleanLeague.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
     let leagueId = leagueCache.get(leagueExtId);
     if (!leagueId) {
       const league = await prisma.league.upsert({
         where: { externalId: leagueExtId },
-        update: { name: m.leagueName, logo: m.flagUrl || undefined },
-        create: { externalId: leagueExtId, name: m.leagueName, logo: m.flagUrl },
+        update: { name: cleanLeague, logo: m.flagUrl || undefined },
+        create: { externalId: leagueExtId, name: cleanLeague, logo: m.flagUrl },
       });
       leagueId = league.id;
       leagueCache.set(leagueExtId, leagueId);
@@ -287,11 +292,11 @@ class MatchStore {
             return {
               id: df.externalId,
               url: `/match/${df.id}`,
-              leagueName: df.league?.name || "League",
-              country: df.league?.country?.name || "World",
+              leagueName: decodeHtmlEntities(df.league?.name || "League"),
+              country: decodeHtmlEntities(df.league?.country?.name || "World"),
               flagUrl: df.league?.logo || null,
-              homeTeam: df.homeTeam.name,
-              awayTeam: df.awayTeam.name,
+              homeTeam: decodeHtmlEntities(df.homeTeam.name),
+              awayTeam: decodeHtmlEntities(df.awayTeam.name),
               homeLogo: toCachedLogoUrl(df.homeTeam.logo),
               awayLogo: toCachedLogoUrl(df.awayTeam.logo),
               kickTime: df.kickoffTime ? new Date(df.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null,
@@ -466,11 +471,11 @@ class MatchStore {
         return {
           id: df.externalId,
           url: `/match/${df.id}`,
-          leagueName: df.league?.name || "League",
-          country: df.league?.country?.name || "World",
+          leagueName: decodeHtmlEntities(df.league?.name || "League"),
+          country: decodeHtmlEntities(df.league?.country?.name || "World"),
           flagUrl: df.league?.logo || null,
-          homeTeam: df.homeTeam.name,
-          awayTeam: df.awayTeam.name,
+          homeTeam: decodeHtmlEntities(df.homeTeam.name),
+          awayTeam: decodeHtmlEntities(df.awayTeam.name),
           homeLogo: df.homeTeam.logo || null,
           awayLogo: df.awayTeam.logo || null,
           kickTime: df.kickoffTime

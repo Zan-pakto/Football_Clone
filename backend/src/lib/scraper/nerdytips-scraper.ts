@@ -3,6 +3,7 @@ import { cacheService, CACHE_TTL } from "../cache/cache-service";
 import { adjustOdd, adjustOddStr, adjustConfidence, adjustRating } from "../ai/ai-variance";
 import { toCachedLogoUrl } from "../logo-utils";
 import { normalizeScrapedMatchToMatchData } from "./nerdytips-normalizer";
+import { decodeHtmlEntities } from "../utils";
 
 export interface ScrapedMatch {
   id: string;
@@ -109,14 +110,14 @@ export class NerdyTipsScraper {
       // Extract Teams & League
       const teamsMatch = srOnly.match(/^(.*?)\s+vs\s+(.*?),\s*(.*?),\s*kick-off/i);
       if (teamsMatch) {
-        homeTeam = teamsMatch[1].trim();
-        awayTeam = teamsMatch[2].trim();
-        league = teamsMatch[3].trim();
+        homeTeam = decodeHtmlEntities(teamsMatch[1]);
+        awayTeam = decodeHtmlEntities(teamsMatch[2]);
+        league = decodeHtmlEntities(teamsMatch[3]);
       } else {
         const slugMatch = href.match(/\/match-details\/(.*?)-vs-(.*?)-prediction/);
         if (slugMatch) {
-          homeTeam = slugMatch[1].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-          awayTeam = slugMatch[2].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+          homeTeam = decodeHtmlEntities(slugMatch[1].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()));
+          awayTeam = decodeHtmlEntities(slugMatch[2].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()));
         }
       }
 
@@ -687,15 +688,7 @@ export class NerdyTipsScraper {
   parseFullMatchHtml(html: string, matchId: string): FullMatchDetails {
     const clean = (str?: string | null) => {
       if (!str) return "";
-      return str
-        .replace(/&#039;/g, "'")
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/<[^>]+>/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
+      return decodeHtmlEntities(str.replace(/<[^>]+>/g, "").replace(/\s+/g, " "));
     };
 
     const details: FullMatchDetails = {
@@ -1294,8 +1287,8 @@ export class NerdyTipsScraper {
         const timeMatch = block.match(/class="hw-match__time">([^<]+)(?:<span class="hw-match__day">([^<]+)<\/span>)?/);
 
         const teamMatches = Array.from(block.matchAll(/<a class="hw-team"[^>]*>(?:<img[^>]*src="([^"]*)"[^>]*>)?<span>([^<]+)<\/span><\/a>/g));
-        const homeTeam = teamMatches[0] ? { name: teamMatches[0][2].trim(), logo: teamMatches[0][1] || null } : { name: "Home Team", logo: null };
-        const awayTeam = teamMatches[1] ? { name: teamMatches[1][2].trim(), logo: teamMatches[1][1] || null } : { name: "Away Team", logo: null };
+        const homeTeam = teamMatches[0] ? { name: decodeHtmlEntities(teamMatches[0][2]), logo: teamMatches[0][1] || null } : { name: "Home Team", logo: null };
+        const awayTeam = teamMatches[1] ? { name: decodeHtmlEntities(teamMatches[1][2]), logo: teamMatches[1][1] || null } : { name: "Away Team", logo: null };
 
         const idMatch = block.match(/name="pick\[(\d+)\]"/);
         const matchId = idMatch ? idMatch[1] : `hw_${idx + 1}`;

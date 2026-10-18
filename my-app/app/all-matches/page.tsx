@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
 import { normalizeCountryName } from "@/lib/flags";
+import { decodeHtmlEntities } from "@/lib/utils";
 
 // Module-level persistent cache across page navigations with auth token scoping
 export const clientAllMatchesCache = new Map<
@@ -130,12 +131,31 @@ export default function AllMatchesPage() {
         setFreeTipsLimit(fLimit);
         setFreeTipsUsed(fUsed);
 
+        const cleanMatches = data.matches.map((m: MatchData) => ({
+          ...m,
+          homeTeam: decodeHtmlEntities(m.homeTeam),
+          awayTeam: decodeHtmlEntities(m.awayTeam),
+          leagueName: decodeHtmlEntities(m.leagueName),
+          country: decodeHtmlEntities(m.country),
+          predictions: m.predictions
+            ? {
+                ...m.predictions,
+                bestTip: m.predictions.bestTip
+                  ? {
+                      ...m.predictions.bestTip,
+                      pick: m.predictions.bestTip.pick ? decodeHtmlEntities(m.predictions.bestTip.pick) : m.predictions.bestTip.pick,
+                    }
+                  : m.predictions.bestTip,
+              }
+            : m.predictions,
+        }));
+
         // Always accept authoritative server state without preserving stale unlocked predictions
-        setMatches(data.matches);
+        setMatches(cleanMatches);
 
         // Store into client memory cache scoped to current auth token
         clientAllMatchesCache.set(dayVal, {
-          matches: data.matches,
+          matches: cleanMatches,
           userTier: uTier,
           freeTipsLimit: fLimit,
           freeTipsUsed: fUsed,

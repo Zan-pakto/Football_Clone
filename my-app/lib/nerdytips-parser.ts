@@ -133,17 +133,11 @@ export interface FullMatchDetails {
   };
 }
 
+import { decodeHtmlEntities } from "./utils";
+
 export function cleanText(str?: string | null): string {
   if (!str) return "";
-  return str
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return decodeHtmlEntities(str.replace(/<[^>]+>/g, "").replace(/\s+/g, " "));
 }
 
 export function parseNerdyMatchHtml(html: string, matchId: string): FullMatchDetails {

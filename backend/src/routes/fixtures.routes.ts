@@ -3,6 +3,7 @@ import { fixtureService } from "../lib/football/fixture-service";
 import { authService } from "../lib/auth/auth-service";
 import { accessControlService } from "../lib/subscriptions/access-service";
 import { toCachedLogoUrl } from "../lib/logo-utils";
+import { decodeHtmlEntities } from "../lib/utils";
 
 const router = Router();
 
@@ -103,24 +104,24 @@ router.get("/", async (req: Request, res: Response) => {
           leagueId: m.leagueId || m.leagueName,
           league: {
             id: m.leagueId || m.leagueName,
-            name: m.leagueName,
+            name: decodeHtmlEntities(m.leagueName),
             externalId: m.leagueName,
             isActive: true,
             country: {
-              id: m.country.toLowerCase().replace(/\s+/g, "-"),
-              name: m.country,
+              id: (m.country || "").toLowerCase().replace(/\s+/g, "-"),
+              name: decodeHtmlEntities(m.country),
               flag: m.flagUrl,
             },
           },
           homeTeam: {
             id: m.homeTeam,
-            name: m.homeTeam,
+            name: decodeHtmlEntities(m.homeTeam),
             externalId: m.homeTeam,
             logo: toCachedLogoUrl(m.homeLogo),
           },
           awayTeam: {
             id: m.awayTeam,
-            name: m.awayTeam,
+            name: decodeHtmlEntities(m.awayTeam),
             externalId: m.awayTeam,
             logo: toCachedLogoUrl(m.awayLogo),
           },

@@ -14,6 +14,7 @@ import { cookies } from "next/headers";
 import { Flame, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
+import { decodeHtmlEntities } from "@/lib/utils";
 import feedStyles from "@/components/HomeMatchesFeed.module.css";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,9 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 function mapRawFixtureGroups(groups: any[]): LeagueGroupItem[] {
   return (groups || []).map((g: any) => ({
-    leagueName: g.league.name,
-    country: g.country.name,
-    flagUrl: g.country.flag || null,
+    leagueName: decodeHtmlEntities(g.league?.name || g.leagueName),
+    country: decodeHtmlEntities(g.country?.name || g.country),
+    flagUrl: g.country?.flag || g.flagUrl || null,
     matches: (g.fixtures || []).map((f: any) => {
       const p1x2 = f.predictions?.find((p: any) => p.market === "1X2" || p.market === "DOUBLE_CHANCE");
       const pGoals = f.predictions?.find((p: any) => p.market === "OVER_UNDER");
@@ -49,11 +50,11 @@ function mapRawFixtureGroups(groups: any[]): LeagueGroupItem[] {
       return {
         id: f.id,
         url: `/match/${f.id}`,
-        leagueName: g.league.name,
-        country: g.country.name,
-        flagUrl: g.country.flag || null,
-        homeTeam: f.homeTeam.name,
-        awayTeam: f.awayTeam.name,
+        leagueName: decodeHtmlEntities(g.league?.name || g.leagueName || f.leagueName),
+        country: decodeHtmlEntities(g.country?.name || g.country || f.country),
+        flagUrl: g.country?.flag || g.flagUrl || null,
+        homeTeam: decodeHtmlEntities(f.homeTeam?.name || f.homeTeam),
+        awayTeam: decodeHtmlEntities(f.awayTeam?.name || f.awayTeam),
         homeLogo: toCachedLogoUrl(f.homeTeam?.logo || f.homeLogo),
         awayLogo: toCachedLogoUrl(f.awayTeam?.logo || f.awayLogo),
         kickTime: f.kickTime || (f.kickoffTime?.includes("T") ? new Date(f.kickoffTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : f.kickoffTime) || "00:00",

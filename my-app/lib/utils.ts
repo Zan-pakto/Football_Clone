@@ -1,9 +1,51 @@
 /**
- * Clean text value (remove arrows, symbols, extra whitespace)
+ * Safely decode HTML entities (e.g. &#039; -> ', &amp; -> &, &quot; -> ", etc.)
+ */
+export function decodeHtmlEntities(str?: string | null): string {
+  if (!str) return "";
+  let decoded = String(str);
+  for (let i = 0; i < 2; i++) {
+    const prev = decoded;
+    decoded = decoded
+      .replace(/&#(\d+);/g, (_, dec) => {
+        try {
+          const code = parseInt(dec, 10);
+          return code > 0 ? String.fromCodePoint(code) : _;
+        } catch {
+          return _;
+        }
+      })
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        try {
+          const code = parseInt(hex, 16);
+          return code > 0 ? String.fromCodePoint(code) : _;
+        } catch {
+          return _;
+        }
+      })
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&bull;/g, "•")
+      .replace(/&middot;/g, "·")
+      .replace(/&copy;/g, "©")
+      .replace(/&trade;/g, "™")
+      .replace(/&reg;/g, "®");
+    if (prev === decoded) break;
+  }
+  return decoded.trim();
+}
+
+/**
+ * Clean text value (remove arrows, symbols, extra whitespace, decode HTML entities)
  */
 export function cleanValue(val: string | undefined | null): string | null {
   if (!val) return null;
-  const cleaned = val.replace(/[▴▾✓\n\r\t]/g, "").trim();
+  const decoded = decodeHtmlEntities(val);
+  const cleaned = decoded.replace(/[▴▾✓\n\r\t]/g, "").trim();
   if (!cleaned || /^[\.\-\*\s•\u2022]+$/.test(cleaned) || cleaned === "..." || cleaned === "•••") return null;
   return cleaned;
 }
