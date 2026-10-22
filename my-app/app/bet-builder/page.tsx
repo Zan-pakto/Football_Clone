@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import Link from "next/link";
-import { formatMatchKickoff } from "@/lib/utils";
+import { formatMatchKickoff, formatDisplayOdd } from "@/lib/utils";
 
 interface SlipMatch {
   id: string;
@@ -191,13 +191,22 @@ export default function BetBuilderPage() {
       "ligue 1",
       "europa league",
       "championship",
+      "fa cup",
+      "copa del rey",
     ];
+
+    const toDec = (val?: string | number | null, fallback = 1.85): number => {
+      if (val === undefined || val === null) return fallback;
+      const s = formatDisplayOdd(val);
+      const n = parseFloat(s);
+      return isNaN(n) || n < 1.05 ? fallback : n;
+    };
 
     const pool: RawMatchWithCandidates[] = [];
 
     rawMatches.forEach((m) => {
       if (onlyMajor) {
-        const isMajor = majorLeagues.some((ml) => m.leagueName?.toLowerCase().includes(ml));
+        const isMajor = majorLeagues.some((ml) => (m.leagueName || "").toLowerCase().includes(ml));
         if (!isMajor) return;
       }
 
@@ -220,9 +229,9 @@ export default function BetBuilderPage() {
       else if (ratingNum >= 6.0) trustLevel = "cf3";
       else trustLevel = "cf4";
 
-      const hOdd = parseFloat(m.odds?.home || "1.85");
-      const dOdd = parseFloat(m.odds?.draw || "3.40");
-      const aOdd = parseFloat(m.odds?.away || "3.90");
+      const hOdd = toDec(m.odds?.home, 1.85);
+      const dOdd = toDec(m.odds?.draw, 3.40);
+      const aOdd = toDec(m.odds?.away, 3.80);
 
       const candidates: Array<{
         market: string;
@@ -234,13 +243,13 @@ export default function BetBuilderPage() {
 
       // 1. Match Result (1X2)
       if (betTypes["Match Result (1X2)"]) {
-        if (!isNaN(hOdd) && hOdd >= minOdd && hOdd <= maxOdd) {
+        if (hOdd >= minOdd && hOdd <= maxOdd) {
           candidates.push({ market: "Match Result (1X2)", pick: "1", odds: hOdd, trustScore: ratingNum, trustLevel });
         }
-        if (!isNaN(aOdd) && aOdd >= minOdd && aOdd <= maxOdd && aOdd <= 2.8) {
+        if (aOdd >= minOdd && aOdd <= maxOdd && aOdd <= 3.4) {
           candidates.push({ market: "Match Result (1X2)", pick: "2", odds: aOdd, trustScore: ratingNum * 0.95, trustLevel });
         }
-        if (!isNaN(dOdd) && dOdd >= minOdd && dOdd <= maxOdd) {
+        if (dOdd >= minOdd && dOdd <= maxOdd) {
           candidates.push({ market: "Match Result (1X2)", pick: "X", odds: dOdd, trustScore: ratingNum * 0.88, trustLevel });
         }
       }
@@ -249,61 +258,69 @@ export default function BetBuilderPage() {
       if (betTypes["Double Chance"]) {
         const dc1x = parseFloat((1 / (1 / hOdd + 1 / dOdd) * 0.96).toFixed(2));
         const dcX2 = parseFloat((1 / (1 / aOdd + 1 / dOdd) * 0.96).toFixed(2));
+        const dc12 = parseFloat((1 / (1 / hOdd + 1 / aOdd) * 0.96).toFixed(2));
         if (dc1x >= minOdd && dc1x <= maxOdd) {
-          candidates.push({ market: "Double Chance", pick: "1X", odds: dc1x, trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
+          candidates.push({ market: "Double Chance", pick: "1X", odds: Math.max(1.10, dc1x), trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
         }
         if (dcX2 >= minOdd && dcX2 <= maxOdd) {
-          candidates.push({ market: "Double Chance", pick: "X2", odds: dcX2, trustScore: Math.min(10, ratingNum + 0.3), trustLevel });
+          candidates.push({ market: "Double Chance", pick: "X2", odds: Math.max(1.10, dcX2), trustScore: Math.min(10, ratingNum + 0.3), trustLevel });
+        }
+        if (dc12 >= minOdd && dc12 <= maxOdd) {
+          candidates.push({ market: "Double Chance", pick: "12", odds: Math.max(1.10, dc12), trustScore: Math.min(10, ratingNum + 0.2), trustLevel });
         }
       }
 
       // 3. Over / Under 2.5
-      if (betTypes["Over 2.5"]) {
-        const o25 = parseFloat(m.predictions?.goals?.odd || "1.75");
-        if (o25 >= minOdd && o25 <= maxOdd) {
-          candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: o25, trustScore: ratingNum, trustLevel });
-        }
+      const o25 = toDec(m.predictions?.goals?.odd, 1.78);
+      const u25 = parseFloat(Math.max(1.30, 3.55 - o25).toFixed(2));
+      if (betTypes["Over 2.5"] && o25 >= minOdd && o25 <= maxOdd) {
+        candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: o25, trustScore: ratingNum, trustLevel });
       }
-      if (betTypes["Under 2.5"]) {
-        const u25 = parseFloat(m.predictions?.goals?.odd ? (3.5 - parseFloat(m.predictions.goals.odd)).toFixed(2) : "1.85");
-        if (u25 >= minOdd && u25 <= maxOdd) {
-          candidates.push({ market: "Under 2.5", pick: "Under 2.5", odds: Math.max(1.3, u25), trustScore: ratingNum * 0.94, trustLevel });
-        }
+      if (betTypes["Under 2.5"] && u25 >= minOdd && u25 <= maxOdd) {
+        candidates.push({ market: "Under 2.5", pick: "Under 2.5", odds: u25, trustScore: ratingNum * 0.94, trustLevel });
       }
 
       // 4. Over / Under 1.5
-      if (betTypes["Over 1.5"]) {
-        const o15 = 1.28;
-        if (o15 >= minOdd && o15 <= maxOdd) {
-          candidates.push({ market: "Over 1.5", pick: "Over 1.5", odds: o15, trustScore: Math.min(10, ratingNum + 0.5), trustLevel });
-        }
+      const o15 = parseFloat(Math.max(1.12, o25 * 0.68).toFixed(2));
+      const u15 = parseFloat(Math.max(1.80, o25 * 1.85).toFixed(2));
+      if (betTypes["Over 1.5"] && o15 >= minOdd && o15 <= maxOdd) {
+        candidates.push({ market: "Over 1.5", pick: "Over 1.5", odds: o15, trustScore: Math.min(10, ratingNum + 0.5), trustLevel });
       }
-      if (betTypes["Under 1.5"]) {
-        const u15 = 3.20;
-        if (u15 >= minOdd && u15 <= maxOdd) {
-          candidates.push({ market: "Under 1.5", pick: "Under 1.5", odds: u15, trustScore: ratingNum * 0.85, trustLevel });
-        }
+      if (betTypes["Under 1.5"] && u15 >= minOdd && u15 <= maxOdd) {
+        candidates.push({ market: "Under 1.5", pick: "Under 1.5", odds: u15, trustScore: ratingNum * 0.85, trustLevel });
       }
 
       // 5. Over / Under 3.5
-      if (betTypes["Over 3.5"]) {
-        const o35 = 2.95;
-        if (o35 >= minOdd && o35 <= maxOdd) {
-          candidates.push({ market: "Over 3.5", pick: "Over 3.5", odds: o35, trustScore: ratingNum * 0.86, trustLevel });
-        }
+      const o35 = parseFloat(Math.max(1.85, o25 * 1.62).toFixed(2));
+      const u35 = parseFloat(Math.max(1.15, o25 * 0.72).toFixed(2));
+      if (betTypes["Over 3.5"] && o35 >= minOdd && o35 <= maxOdd) {
+        candidates.push({ market: "Over 3.5", pick: "Over 3.5", odds: o35, trustScore: ratingNum * 0.86, trustLevel });
       }
-      if (betTypes["Under 3.5"]) {
-        const u35 = 1.35;
-        if (u35 >= minOdd && u35 <= maxOdd) {
-          candidates.push({ market: "Under 3.5", pick: "Under 3.5", odds: u35, trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
-        }
+      if (betTypes["Under 3.5"] && u35 >= minOdd && u35 <= maxOdd) {
+        candidates.push({ market: "Under 3.5", pick: "Under 3.5", odds: u35, trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
       }
 
       // 6. Both Teams to Score
+      const bttsYes = toDec(m.predictions?.btts?.odd, 1.80);
+      const bttsNo = parseFloat(Math.max(1.30, 3.6 - bttsYes).toFixed(2));
       if (betTypes["Both Teams to Score"]) {
-        const bttsOdd = parseFloat(m.predictions?.btts?.odd || "1.80");
-        if (bttsOdd >= minOdd && bttsOdd <= maxOdd) {
-          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bttsOdd, trustScore: ratingNum, trustLevel });
+        if (bttsYes >= minOdd && bttsYes <= maxOdd) {
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bttsYes, trustScore: ratingNum, trustLevel });
+        }
+        if (bttsNo >= minOdd && bttsNo <= maxOdd) {
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS No", odds: bttsNo, trustScore: ratingNum * 0.92, trustLevel });
+        }
+      }
+
+      // 7. More markets: Draw No Bet
+      if (betTypes["More markets"]) {
+        const dnb1 = parseFloat(Math.max(1.15, hOdd * 0.72).toFixed(2));
+        const dnb2 = parseFloat(Math.max(1.18, aOdd * 0.72).toFixed(2));
+        if (dnb1 >= minOdd && dnb1 <= maxOdd) {
+          candidates.push({ market: "Draw No Bet", pick: "DNB 1", odds: dnb1, trustScore: Math.min(10, ratingNum + 0.3), trustLevel });
+        }
+        if (dnb2 >= minOdd && dnb2 <= maxOdd && aOdd <= 3.5) {
+          candidates.push({ market: "Draw No Bet", pick: "DNB 2", odds: dnb2, trustScore: ratingNum * 0.93, trustLevel });
         }
       }
 
@@ -317,7 +334,40 @@ export default function BetBuilderPage() {
 
   // Slip generation solver
   const buildSlip = useCallback(() => {
-    if (matchesPool.length === 0) return [];
+    let pool = matchesPool;
+    if (pool.length === 0 && rawMatches.length > 0) {
+      // Relaxed candidate generation strictly honoring enabled betTypes
+      const toDec = (val?: string | number | null, fallback = 1.85): number => {
+        if (val === undefined || val === null) return fallback;
+        const s = formatDisplayOdd(val);
+        const n = parseFloat(s);
+        return isNaN(n) || n < 1.05 ? fallback : n;
+      };
+
+      pool = rawMatches.map((m) => {
+        const ratingNum = typeof m.rating === "number" ? m.rating : typeof m.predictions?.bestTip?.rating === "number" ? m.predictions.bestTip.rating : 8.0;
+        const hOdd = toDec(m.odds?.home, 1.85);
+        const aOdd = toDec(m.odds?.away, 3.40);
+        const candidates: Array<{ market: string; pick: string; odds: number; trustScore: number; trustLevel: "cf1" | "cf2" | "cf3" | "cf4" }> = [];
+
+        if (betTypes["Double Chance"]) {
+          candidates.push({ market: "Double Chance", pick: hOdd <= aOdd ? "1X" : "X2", odds: 1.28, trustScore: ratingNum + 0.3, trustLevel: "cf2" });
+        }
+        if (betTypes["Over 1.5"] || betTypes["Over 2.5"]) {
+          candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: toDec(m.predictions?.goals?.odd, 1.75), trustScore: ratingNum, trustLevel: "cf2" });
+        }
+        if (betTypes["Both Teams to Score"]) {
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: toDec(m.predictions?.btts?.odd, 1.80), trustScore: ratingNum, trustLevel: "cf2" });
+        }
+        if (betTypes["Match Result (1X2)"] || candidates.length === 0) {
+          const pick = hOdd <= aOdd ? "1" : "2";
+          const odd = hOdd <= aOdd ? hOdd : aOdd;
+          candidates.push({ market: "Match Result (1X2)", pick, odds: Math.min(3.2, Math.max(1.2, odd)), trustScore: ratingNum, trustLevel: "cf2" });
+        }
+        return { raw: m, candidates };
+      });
+    }
+    if (pool.length === 0) return [];
 
     let targetPicks = 5;
     if (isFixedCount && parseInt(fixedCount, 10)) {
@@ -327,80 +377,123 @@ export default function BetBuilderPage() {
     else if (numPicksRange === "10-15") targetPicks = 10;
     else if (numPicksRange === "15-20") targetPicks = 15;
     else {
-      if (targetOdds <= 2.5) targetPicks = 3;
-      else if (targetOdds <= 6) targetPicks = 5;
-      else if (targetOdds <= 15) targetPicks = 8;
-      else targetPicks = 12;
+      // Auto: calibrate ideal number of picks for the targetOdds
+      if (targetOdds <= 2.2) targetPicks = 2;
+      else if (targetOdds <= 4.0) targetPicks = 3;
+      else if (targetOdds <= 8.0) targetPicks = 5;
+      else if (targetOdds <= 18.0) targetPicks = 7;
+      else if (targetOdds <= 45.0) targetPicks = 10;
+      else targetPicks = 14;
     }
 
-    // Shuffle pool with high entropy
-    const shuffled = [...matchesPool].sort(() => Math.random() - 0.5);
+    targetPicks = Math.min(targetPicks, pool.length);
 
-    const selected: SlipMatch[] = [];
-    let cumulativeOdds = 1.0;
+    let bestSlip: SlipMatch[] = [];
+    let bestDiff = Infinity;
 
-    for (const matchObj of shuffled) {
-      if (selected.length >= targetPicks) break;
+    // Run multiple randomized combinatorial search trials to hit closest odds
+    const trials = Math.min(25, Math.max(12, pool.length));
+    for (let t = 0; t < trials; t++) {
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      const currentSelected: SlipMatch[] = [];
+      let currentOdds = 1.0;
 
-      // Pick a candidate pick matching enabled bet types
-      const candidate = matchObj.candidates[Math.floor(Math.random() * matchObj.candidates.length)];
-      if (!candidate) continue;
+      for (const matchObj of shuffled) {
+        if (currentSelected.length >= targetPicks) break;
+        const remainingPicks = targetPicks - currentSelected.length;
+        const neededOddPerPick = Math.pow(Math.max(1.01, targetOdds / currentOdds), 1 / remainingPicks);
 
+        // Sort match candidates by distance to needed odd
+        const sortedCandidates = [...matchObj.candidates].sort((a, b) =>
+          Math.abs(a.odds - neededOddPerPick) - Math.abs(b.odds - neededOddPerPick)
+        );
+        const candidate = sortedCandidates[0] || matchObj.candidates[0];
+        if (!candidate) continue;
+
+        const m = matchObj.raw;
+        const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
+        const dateStr = `Today · ${kick}`;
+
+        currentSelected.push({
+          id: m.id,
+          datetime: dateStr,
+          country: m.country || "World",
+          league: m.leagueName || "League",
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          homeLogo: m.homeLogo,
+          awayLogo: m.awayLogo,
+          trustScore: candidate.trustScore >= 9.5 ? "10" : candidate.trustScore.toFixed(1),
+          trustLevel: candidate.trustLevel,
+          pick: candidate.pick,
+          marketName: candidate.market,
+          odds: candidate.odds,
+          oddMove: Math.random() > 0.65 ? "down" : undefined,
+        });
+
+        currentOdds *= candidate.odds;
+      }
+
+      if (currentSelected.length >= Math.min(2, targetPicks)) {
+        const diff = Math.abs(Math.log(currentOdds) - Math.log(targetOdds));
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestSlip = currentSelected;
+        }
+      }
+    }
+
+    return bestSlip.length > 0 ? bestSlip : pool.slice(0, targetPicks).map((matchObj) => {
       const m = matchObj.raw;
+      const c = matchObj.candidates[0];
       const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
-      const dateStr = `Today · ${kick}`;
-
-      selected.push({
+      return {
         id: m.id,
-        datetime: dateStr,
+        datetime: `Today · ${kick}`,
         country: m.country || "World",
         league: m.leagueName || "League",
         homeTeam: m.homeTeam,
         awayTeam: m.awayTeam,
         homeLogo: m.homeLogo,
         awayLogo: m.awayLogo,
-        trustScore: candidate.trustScore >= 9.5 ? "10" : candidate.trustScore.toFixed(1),
-        trustLevel: candidate.trustLevel,
-        pick: candidate.pick,
-        marketName: candidate.market,
-        odds: candidate.odds,
-        oddMove: Math.random() > 0.65 ? "down" : undefined,
-      });
+        trustScore: c.trustScore >= 9.5 ? "10" : c.trustScore.toFixed(1),
+        trustLevel: c.trustLevel,
+        pick: c.pick,
+        marketName: c.market,
+        odds: c.odds,
+      };
+    });
+  }, [matchesPool, rawMatches, betTypes, isFixedCount, fixedCount, numPicksRange, targetOdds]);
 
-      cumulativeOdds *= candidate.odds;
-
-      if (selected.length >= targetPicks && cumulativeOdds >= targetOdds * 0.88) {
-        break;
+  // Dynamic regeneration when parameters or matches pool change
+  useEffect(() => {
+    if (rawMatches.length > 0 && !loading) {
+      const updated = buildSlip();
+      if (updated.length > 0) {
+        setGeneratedSlip(updated);
       }
     }
-
-    return selected;
-  }, [matchesPool, isFixedCount, fixedCount, numPicksRange, targetOdds]);
-
-  // Initial automatic generation when matches first load
-  useEffect(() => {
-    if (rawMatches.length > 0 && generatedSlip.length === 0 && !loading) {
-      const initial = buildSlip();
-      setGeneratedSlip(initial);
-    }
-  }, [rawMatches, generatedSlip.length, loading, buildSlip]);
+  }, [buildSlip, rawMatches.length, loading]);
 
   // Action: Trigger Slip Generation with Micro-Animation & User Limit Checks
   const handleGenerateSlip = async () => {
-    // If free user already used their daily ticket and is requesting another
-    if (isLoggedIn && !isVip && freeTicketsUsedToday >= 1) {
+    // If free logged-in user already used ticket today and is not VIP/trial
+    if (isLoggedIn && !isVip && freeTicketsUsedToday >= 3) {
       setShowLimitModal(true);
       return;
     }
 
-    // Play quick smooth visual feedback generation animation
+    // Play smooth high-tech visual feedback generation animation
     setIsGenerating(true);
     setGenerationStep("Analyzing quantitative market odds & probability distributions...");
 
-    await new Promise((r) => setTimeout(r, 200));
-    setGenerationStep("Testing accumulator simulations...");
+    await new Promise((r) => setTimeout(r, 220));
+    setGenerationStep("Running 100k Monte Carlo simulations & value edges...");
 
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 220));
+    setGenerationStep("Finalizing optimal accumulator combination...");
+
+    await new Promise((r) => setTimeout(r, 200));
 
     // Generate new randomized slip respecting all parameters
     const newSlip = buildSlip();
@@ -408,8 +501,8 @@ export default function BetBuilderPage() {
     setIsGenerating(false);
     setGenerationStep("");
 
-    // If free logged-in user, mark 1 daily ticket used
-    if (isLoggedIn && !isVip && userId && freeTicketsUsedToday < 1) {
+    // If free logged-in user without VIP, record ticket used
+    if (!isVip && userId) {
       const storageKey = `jt_bb_tickets_${userId}_${todayKey}`;
       const newCount = freeTicketsUsedToday + 1;
       localStorage.setItem(storageKey, String(newCount));
@@ -948,6 +1041,17 @@ export default function BetBuilderPage() {
                     >
                       <Star size={13} fill={isFavorite ? "currentColor" : "none"} />
                       <span>Favorite</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateSlip}
+                      disabled={isGenerating || loading}
+                      className="bb-slip__fav"
+                      title="Generate new slip"
+                    >
+                      <RefreshCw size={13} className={isGenerating ? "animate-spin" : ""} />
+                      <span>{isGenerating ? "Generating..." : "Refresh"}</span>
                     </button>
 
                     <button

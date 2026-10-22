@@ -4,7 +4,7 @@ import { MatchData } from "@/lib/types";
 import { Check, X, Shield, Sparkles, Flame, Target, Lock, Radio } from "lucide-react";
 import Link from "next/link";
 import TeamLogo from "@/components/TeamLogo";
-import { formatMatchKickoff, formatStackedKickoff } from "@/lib/utils";
+import { formatMatchKickoff, formatStackedKickoff, formatDisplayOdd } from "@/lib/utils";
 
 interface MatchRowProps {
   match: MatchData;
@@ -179,9 +179,12 @@ export default function MatchRow({ match }: MatchRowProps) {
   const isBestWon = hasScores && isFinished ? checkPredictionWon(pBestClean, match.homeScore, match.awayScore) : null;
 
   // 1X2 odds favorite calculation
-  const oddsHome = parseFloat(match.odds.home || "0");
-  const oddsDraw = parseFloat(match.odds.draw || "0");
-  const oddsAway = parseFloat(match.odds.away || "0");
+  const formattedOddHome = formatDisplayOdd(match.odds.home);
+  const formattedOddDraw = formatDisplayOdd(match.odds.draw);
+  const formattedOddAway = formatDisplayOdd(match.odds.away);
+  const oddsHome = parseFloat(formattedOddHome || "0");
+  const oddsDraw = parseFloat(formattedOddDraw || "0");
+  const oddsAway = parseFloat(formattedOddAway || "0");
   const minOdd = Math.min(...[oddsHome, oddsDraw, oddsAway].filter((o) => o > 1.0));
 
   // Determine which market won "Best Pick" for this match
@@ -377,7 +380,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             }}
           >
             {oddsHome === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
-            <span>{match.odds.home || "1.80"}</span>
+            <span>{formattedOddHome || "1.80"}</span>
           </div>
 
           {/* Draw Odd */}
@@ -398,7 +401,7 @@ export default function MatchRow({ match }: MatchRowProps) {
               color: oddsDraw === minOdd ? "#ffffff" : "#a79fff",
             }}
           >
-            <span>{match.odds.draw || "3.50"}</span>
+            <span>{formattedOddDraw || "3.50"}</span>
           </div>
 
           {/* Away Odd */}
@@ -420,7 +423,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             }}
           >
             {oddsAway === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
-            <span>{match.odds.away || "4.20"}</span>
+            <span>{formattedOddAway || "4.20"}</span>
           </div>
         </div>
 
@@ -596,7 +599,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             </span>
             {match.predictions.bestTip.odd && (
               <span style={{ fontSize: 12, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
-                @{match.predictions.bestTip.odd}
+                @{formatDisplayOdd(match.predictions.bestTip.odd)}
               </span>
             )}
           </div>
@@ -773,7 +776,7 @@ function NerdyTipPill({
         position: "relative",
         transition: "all 0.15s ease",
       }}
-      title={isBest ? `★ Top Rated Pick: ${marketTag || ""} (${pick}) @ ${odd}` : undefined}
+      title={isBest ? `★ Top Rated Pick: ${marketTag || ""} (${pick}) @ ${formatDisplayOdd(odd)}` : undefined}
     >
       {/* Best Pick Tag Indicator on Winning Market Pill */}
       {isBest && !isHighlightPill && (
@@ -818,7 +821,7 @@ function NerdyTipPill({
       </span>
 
       {/* Odd indicator */}
-      {odd && (
+      {odd && formatDisplayOdd(odd) && (
         <span
           style={{
             fontSize: 9.5,
@@ -831,7 +834,7 @@ function NerdyTipPill({
             marginTop: 1,
           }}
         >
-          <span style={{ fontSize: 7 }}>{isBest ? "▴" : "▾"}</span> {odd}
+          <span style={{ fontSize: 7 }}>{isBest ? "▴" : "▾"}</span> {formatDisplayOdd(odd)}
         </span>
       )}
     </div>

@@ -16,6 +16,7 @@ import {
   Trophy,
   ChevronRight,
   Zap,
+  Crown,
 } from "lucide-react";
 
 const RECENT_PREDICTIONS = [
@@ -103,9 +104,29 @@ function WelcomeContent() {
             Hi, {userName}!
           </h1>
 
-          <p style={{ fontSize: 16, color: "var(--text-secondary)", margin: "10px 0 28px" }}>
+          <p style={{ fontSize: 16, color: "var(--text-secondary)", margin: "10px 0 20px" }}>
             Thank you for joining <strong style={{ color: "var(--gold)" }}>JollofTips</strong>. Your smart prediction journey begins now.
           </p>
+
+          {/* 7-Day Free Premium Trial Notification */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 18px",
+              borderRadius: 12,
+              background: "rgba(124, 108, 245, 0.16)",
+              border: "1px solid rgba(124, 108, 245, 0.35)",
+              color: "#e0d9fc",
+              fontSize: 13.5,
+              fontWeight: 700,
+              marginBottom: 26,
+            }}
+          >
+            <Crown size={16} color="var(--gold)" />
+            <span>🎉 Your <strong>7-Day Free Premium Trial</strong> is now active with full VIP access unlocked!</span>
+          </div>
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <Link

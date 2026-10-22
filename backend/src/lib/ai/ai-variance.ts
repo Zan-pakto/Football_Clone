@@ -39,13 +39,18 @@ export function adjustOdd(
   maxOffset = 0.07
 ): number | null {
   if (odd === null || odd === undefined || isNaN(odd) || odd <= 0) return null;
-  if (!isVariationEnabled()) return Math.round(odd * 100) / 100;
+  // If raw odd is in American Moneyline format (>= 30), normalize to Decimal first
+  let baseOdd = odd;
+  if (baseOdd >= 30) {
+    baseOdd = Math.round((1 + baseOdd / 100) * 100) / 100;
+  }
+  if (!isVariationEnabled()) return Math.round(baseOdd * 100) / 100;
 
   const f = seededFloat(seedKey);
   const rawOffset = f * (maxOffset * 2) - maxOffset;
   // Snap offset to increments of ~0.01
   const offset = Math.round(rawOffset * 100) / 100;
-  const adjusted = Math.max(1.05, Math.round((odd + offset) * 100) / 100);
+  const adjusted = Math.max(1.05, Math.round((baseOdd + offset) * 100) / 100);
   return adjusted;
 }
 

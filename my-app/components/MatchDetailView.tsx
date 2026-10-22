@@ -20,7 +20,7 @@ import {
   Clock,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
-import { formatMatchKickoff } from "@/lib/utils";
+import { formatMatchKickoff, formatDisplayOdd } from "@/lib/utils";
 
 interface MatchDetailViewProps {
   fixture: any;
@@ -790,7 +790,7 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
                 }}
               >
                 <TrendingUp size={16} />
-                {tips.bestTip.odd}
+                {formatDisplayOdd(tips.bestTip.odd) || tips.bestTip.odd}
               </span>
             </div>
 
@@ -899,7 +899,7 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
                     </span>
                     {card.odd && (
                       <span style={{ fontSize: 15, fontWeight: 700, color: "#a78bfa" }}>
-                        {card.odd}
+                        {formatDisplayOdd(card.odd) || card.odd}
                       </span>
                     )}
                   </div>

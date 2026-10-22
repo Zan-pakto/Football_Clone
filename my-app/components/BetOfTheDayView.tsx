@@ -28,6 +28,7 @@ import {
 import { getCountryFlagUrl, normalizeCountryName } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
 import { cleanPickLabel } from "@/components/MatchRow";
+import { formatDisplayOdd } from "@/lib/utils";
 import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 
 export interface BotdMatch {
@@ -872,7 +873,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                 const rawBestTip = match.predictions?.bestTip?.pick || match.bestTip || "1";
                 const bestTip = cleanPickLabel(rawBestTip) || rawBestTip;
                 const rawBestOdd = match.predictions?.bestTip?.odd || match.tipOdds || match.odds.home || 1.8;
-                const bestOdd = typeof rawBestOdd === "number" ? rawBestOdd.toFixed(2) : (parseFloat(String(rawBestOdd)) || 1.80).toFixed(2);
+                const bestOdd = formatDisplayOdd(rawBestOdd) || "1.80";
                 const ratingVal = match.rating ? match.rating.toFixed(1) : "8.5";
 
                 const matchKey = match.id || `botd-${idx}`;
@@ -887,25 +888,28 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                       transition: "background 0.15s ease",
                     }}
                   >
-                    {/* Clickable Header Row */}
+                    {/* Clickable Match Row */}
                     <div
                       onClick={(e) => {
                         const target = e.target as HTMLElement;
-                        if (target.closest("a")) return;
+                        if (target.closest("a") || target.closest("button")) return;
                         if (match.isLocked) {
                           router.push("/pricing");
                           return;
                         }
-                        setExpandedMatchId(isExpanded ? null : matchKey);
+                        if (match.id) {
+                          router.push(`/match/${match.id}`);
+                        } else {
+                          setExpandedMatchId(isExpanded ? null : matchKey);
+                        }
                       }}
                       role="button"
                       tabIndex={0}
-                      aria-expanded={isExpanded}
-                      aria-label={`View analysis for ${match.homeTeam} vs ${match.awayTeam}`}
+                      aria-label={`View match details for ${match.homeTeam} vs ${match.awayTeam}`}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           if (match.isLocked) router.push("/pricing");
-                          else setExpandedMatchId(isExpanded ? null : matchKey);
+                          else if (match.id) router.push(`/match/${match.id}`);
                         }
                       }}
                       style={{ cursor: "pointer" }}
@@ -1022,7 +1026,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             textAlign: "center",
                           }}
                         >
-                          {match.odds.home ? match.odds.home.toFixed(2) : "-"}
+                          {formatDisplayOdd(match.odds.home) || "-"}
                         </div>
                         <div
                           style={{
@@ -1037,7 +1041,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             textAlign: "center",
                           }}
                         >
-                          {match.odds.draw ? match.odds.draw.toFixed(2) : "-"}
+                          {formatDisplayOdd(match.odds.draw) || "-"}
                         </div>
                         <div
                           style={{
@@ -1052,7 +1056,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             textAlign: "center",
                           }}
                         >
-                          {match.odds.away ? match.odds.away.toFixed(2) : "-"}
+                          {formatDisplayOdd(match.odds.away) || "-"}
                         </div>
                       </div>
 

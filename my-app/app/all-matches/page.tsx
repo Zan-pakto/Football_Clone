@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import DateSelector from "@/components/DateSelector";
-import MatchRow, { checkPredictionWon } from "@/components/MatchRow";
+import MatchRow, { checkPredictionWon, cleanPickLabel } from "@/components/MatchRow";
 import LeagueGroupCard from "@/components/LeagueGroupCard";
 import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 import { MatchData } from "@/lib/types";
@@ -252,7 +252,7 @@ export default function AllMatchesPage() {
       const isFin   = isPastDay || m.status === "won" || m.status === "lost" || m.status === "fin" || m.status === "finished" || m.elapsed === "FT" || hasScores;
       const isWon   = !isFutureDay && (m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true));
       const isUp    = isFutureDay || (!isLiveM && !isFin);
-      const isFree  = !m.isLocked && !m.predictions?.bestTip?.isLocked;
+      const isFree  = Boolean((m as any).isFreeTip || (!m.isLocked && !m.predictions?.bestTip?.isLocked && !m.predictions?.isLocked));
 
       if (m.predictions?.bestTip?.pick || m.confidence) predicted++;
       if (isUp) upcoming++;
@@ -268,7 +268,7 @@ export default function AllMatchesPage() {
       won: isFutureDay ? 0 : won,
       free,
     };
-  }, [matches, d]);
+  }, [matches, d, userTier]);
 
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -320,41 +320,123 @@ export default function AllMatchesPage() {
         }
       }
 
+      const isPastDay = parseInt(d, 10) < 0;
+      const isFutureDay = parseInt(d, 10) > 0;
+      const isMatchFree = Boolean(
+        (m as any).isFreeTip || (!m.isLocked && !m.predictions?.bestTip?.isLocked && !m.predictions?.isLocked)
+      );
+
+      // Category Filter (Modal Toolbar)
+      if (modalFilters.category !== "all") {
+        const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
+        const rawR = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
+        const bestRating = parseFloat(String(rawR)) || 7.5;
+        const rawOdd = parseFloat(String(m.predictions?.bestTip?.odd || "1.75"));
+        const bestOdd = isNaN(rawOdd) ? 1.75 : (rawOdd >= 30 ? 1 + rawOdd / 100 : rawOdd);
+
+        if (modalFilters.category === "free_tips") {
+          if (!isMatchFree) return false;
+        }
+        if (modalFilters.category === "top_tips") {
+          const isTop = bestRating >= 8.0 || Boolean(m.predictions?.bestTip?.isBest && bestRating >= 7.6);
+          if (!isTop) return false;
+        }
+        if (modalFilters.category === "safe_picks") {
+          if (bestRating < 7.8 || bestOdd > 1.95) return false;
+        }
+        if (modalFilters.category === "value_bets") {
+          if (bestOdd < 1.90) return false;
+        }
+        if (modalFilters.category === "high_scoring") {
+          const gClean = cleanPickLabel(m.predictions?.goals?.pick) || "";
+          const rawG = m.predictions?.goals?.pick || "";
+          const isOver = gClean.startsWith("O") || /over|at\s*least|\+|^o[0-9]/i.test(rawG);
+          if (!isOver) return false;
+        }
+        if (modalFilters.category === "live") {
+          if (!m.isLive && m.status !== "live") return false;
+        }
+        if (modalFilters.category === "won") {
+          if (m.status !== "won") return false;
+        }
+      }
+
       // Market Filter
       if (modalFilters.market !== "all") {
-        if (modalFilters.market === "1x2" && !m.predictions?.pickScore?.pick) return false;
-        if (modalFilters.market === "over15" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
-        if (modalFilters.market === "over25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over 2.5"))) return false;
-        if (modalFilters.market === "under25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Under"))) return false;
-        if (modalFilters.market === "btts" && (!m.predictions?.btts?.pick || m.predictions.btts.pick !== "Yes")) return false;
-        if (modalFilters.market === "double_chance" && (!m.predictions?.pickScore?.pick || !["1X", "X2", "12"].includes(m.predictions.pickScore.pick))) return false;
+        if (modalFilters.market === "1x2") {
+          const p1 = cleanPickLabel(m.predictions?.pickScore?.pick);
+          const pBest = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const is1x2 =
+            ["1", "X", "2", "1X", "X2", "12"].includes(p1 || "") ||
+            (m.predictions?.bestTip?.market === "pickScore" && ["1", "X", "2", "1X", "X2", "12"].includes(pBest || "")) ||
+            m.predictions?.bestTip?.marketLabel === "1X2 Winner" ||
+            Boolean(m.predictions?.pickScore?.pick);
+          if (!is1x2) return false;
+        }
+        if (modalFilters.market === "over15") {
+          const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+          const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const rawG = m.predictions?.goals?.pick || "";
+          const isOver15 =
+            gClean === "O1.5" || btClean === "O1.5" ||
+            /over\s*1\.5|at\s*least\s*2|\+1\.5|^o1\.5/i.test(rawG) ||
+            /over\s*1\.5|at\s*least\s*2|\+1\.5|^o1\.5/i.test(m.predictions?.bestTip?.pick || "");
+          if (!isOver15) return false;
+        }
+        if (modalFilters.market === "over25") {
+          const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+          const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const rawG = m.predictions?.goals?.pick || "";
+          const isOver25 =
+            gClean === "O2.5" || btClean === "O2.5" ||
+            /over\s*2\.5|at\s*least\s*3|\+2\.5|^o2\.5/i.test(rawG) ||
+            /over\s*2\.5|at\s*least\s*3|\+2\.5|^o2\.5/i.test(m.predictions?.bestTip?.pick || "");
+          if (!isOver25) return false;
+        }
+        if (modalFilters.market === "under25") {
+          const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+          const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const rawG = m.predictions?.goals?.pick || "";
+          const isUnder25 =
+            gClean === "U2.5" || btClean === "U2.5" ||
+            /under\s*2\.5|maximum\s*2|\-2\.5|^u2\.5/i.test(rawG) ||
+            /under\s*2\.5|maximum\s*2|\-2\.5|^u2\.5/i.test(m.predictions?.bestTip?.pick || "");
+          if (!isUnder25) return false;
+        }
+        if (modalFilters.market === "btts") {
+          const bClean = cleanPickLabel(m.predictions?.btts?.pick);
+          const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const rawB = m.predictions?.btts?.pick || "";
+          const isBtts =
+            bClean === "Yes" || btClean === "Yes" ||
+            /^(yes|gg|both\s*teams?\s*(?:to\s*)?score)/i.test(rawB.trim()) ||
+            /^(yes|gg|both\s*teams?\s*(?:to\s*)?score)/i.test(m.predictions?.bestTip?.pick || "") ||
+            m.predictions?.bestTip?.market === "btts";
+          if (!isBtts) return false;
+        }
+        if (modalFilters.market === "double_chance") {
+          const p1 = cleanPickLabel(m.predictions?.pickScore?.pick);
+          const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+          const rawP = m.predictions?.pickScore?.pick || "";
+          const isDC =
+            ["1X", "X2", "12"].includes(p1 || "") ||
+            ["1X", "X2", "12"].includes(btClean || "") ||
+            m.predictions?.bestTip?.marketLabel === "Double Chance" ||
+            /^(1x|x2|12)\b/i.test(rawP.trim()) ||
+            /^(1x|x2|12)\b/i.test(m.predictions?.bestTip?.pick || "");
+          if (!isDC) return false;
+        }
       }
 
       // Rating Filter
       if (modalFilters.minRating > 0) {
         const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-        const r = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
-        if (r < modalFilters.minRating) return false;
-      }
-
-      // Category Filter (Modal)
-      if (modalFilters.category !== "all") {
-        const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-        const bestRating = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
-        const bestOdd = parseFloat(m.predictions?.bestTip?.odd || "1.75");
-
-        if (modalFilters.category === "top_tips" && bestRating < 8.2) return false;
-        if (modalFilters.category === "safe_picks" && (bestRating < 8.0 || bestOdd > 1.85)) return false;
-        if (modalFilters.category === "value_bets" && bestOdd < 2.0) return false;
-        if (modalFilters.category === "high_scoring" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
-        if (modalFilters.category === "live" && (!m.isLive && m.status !== "live")) return false;
-        if (modalFilters.category === "won" && m.status !== "won") return false;
+        const rawR = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
+        const r = parseFloat(String(rawR));
+        if (isNaN(r) || r < modalFilters.minRating) return false;
       }
 
       // Top Stat Cards Filter
-      const isPastDay = parseInt(d, 10) < 0;
-      const isFutureDay = parseInt(d, 10) > 0;
-
       if (activeFilter === "predicted") {
         return Boolean(m.predictions?.bestTip?.pick || m.confidence);
       }
@@ -377,11 +459,11 @@ export default function AllMatchesPage() {
         return m.status === "won" || (isFin && checkPredictionWon(m.predictions?.bestTip?.pick, m.homeScore, m.awayScore) === true);
       }
       if (activeFilter === "free") {
-        return !m.isLocked && !m.predictions?.bestTip?.isLocked;
+        return isMatchFree;
       }
       return true;
     });
-  }, [matches, selectedCountry, searchTerm, activeFilter, modalFilters, d]);
+  }, [matches, selectedCountry, searchTerm, activeFilter, modalFilters, d, userTier]);
 
   const groupedByLeague = useMemo(() => {
     const map = new Map<string, { leagueName: string; country: string; flagUrl: string | null; matches: MatchData[] }>();

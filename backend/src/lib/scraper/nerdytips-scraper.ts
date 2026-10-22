@@ -122,12 +122,21 @@ export class NerdyTipsScraper {
         }
       }
 
+      // Helper to ensure odds are in decimal format (converts American odds like 121.94 to 2.22)
+      const toDecOdd = (val: number | null | undefined): number | null => {
+        if (val === null || val === undefined || isNaN(val) || val <= 0) return null;
+        if (val >= 30) {
+          return Math.round((1 + val / 100) * 100) / 100;
+        }
+        return Math.round(val * 100) / 100;
+      };
+
       // Extract Odds
       const oddsMatch = srOnly.match(/Odds:\s*([\d\.]+)\s*home,\s*([\d\.]+)\s*draw,\s*([\d\.]+)\s*away/i);
       if (oddsMatch) {
-        odds.home = parseFloat(oddsMatch[1]);
-        odds.draw = parseFloat(oddsMatch[2]);
-        odds.away = parseFloat(oddsMatch[3]);
+        odds.home = toDecOdd(parseFloat(oddsMatch[1]));
+        odds.draw = toDecOdd(parseFloat(oddsMatch[2]));
+        odds.away = toDecOdd(parseFloat(oddsMatch[3]));
       }
 
       // Extract True Trust / Rating from NerdyTips (exact match from HTML data-rating or tb-trust)
@@ -146,33 +155,33 @@ export class NerdyTipsScraper {
       // 1. PickScore (1X2)
       const psTt = innerHtml.match(/tbm-pickscore[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
       const psPick = psTt ? psTt[1] : innerHtml.match(/tbm-pickscore[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
-      const psOdd = psTt ? parseFloat(psTt[3]) : parseFloat(innerHtml.match(/tbm-pickscore[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const psOdd = toDecOdd(psTt ? parseFloat(psTt[3]) : parseFloat(innerHtml.match(/tbm-pickscore[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0"));
       const psRating = psTt ? parseFloat(psTt[2]) : null;
 
       // 2. Goals (O/U)
       const gTt = innerHtml.match(/tbm-goals[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
       const gPick = gTt ? gTt[1] : innerHtml.match(/tbm-goals[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
-      const gOdd = gTt ? parseFloat(gTt[3]) : parseFloat(innerHtml.match(/tbm-goals[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const gOdd = toDecOdd(gTt ? parseFloat(gTt[3]) : parseFloat(innerHtml.match(/tbm-goals[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0"));
       const gRating = gTt ? parseFloat(gTt[2]) : null;
 
       // 3. BTTS
       const bTt = innerHtml.match(/tbm-btts[\s\S]*?data-tt=["']The trust for ([^'"]+) is ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
       const bPick = bTt ? bTt[1] : innerHtml.match(/tbm-btts[\s\S]*?<span class="disp tb-mcell__pick">([\s\S]*?)<\/span>/i)?.[1]?.trim()?.replace(/&bull;/g, "") || null;
-      const bOdd = bTt ? parseFloat(bTt[3]) : parseFloat(innerHtml.match(/tbm-btts[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0");
+      const bOdd = toDecOdd(bTt ? parseFloat(bTt[3]) : parseFloat(innerHtml.match(/tbm-btts[\s\S]*?<span class="num tb-mcell__odd">[\s\S]*?([\d\.]+)<\/span>/i)?.[1] || "0"));
       const bRating = bTt ? parseFloat(bTt[2]) : null;
 
       // 4. Best Tip
       const btTt = innerHtml.match(/tbm-besttip[\s\S]*?data-tt=["']The best tip is ([^'"]+) with a trust of ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
       if (btTt) {
         bestTip = btTt[1];
-        tipOdds = parseFloat(btTt[3]);
+        tipOdds = toDecOdd(parseFloat(btTt[3]));
         rating = parseFloat(btTt[2]);
         confidence = Math.round(rating * 10);
       } else {
         const tipMatch = srOnly.match(/Best tip:\s*(.*?),\s*odds\s*([\d\.]+),\s*confidence\s*([\d\.]+)\/10/i);
         if (tipMatch) {
           bestTip = tipMatch[1].trim();
-          tipOdds = parseFloat(tipMatch[2]);
+          tipOdds = toDecOdd(parseFloat(tipMatch[2]));
           rating = parseFloat(tipMatch[3]);
           confidence = Math.round(rating * 10);
         }
@@ -336,7 +345,7 @@ export class NerdyTipsScraper {
   ): Promise<ScrapedMatch[]> {
     const url = `${this.baseUrl}/all-matches?d=${dParam}`;
     const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "0");
-    const tzCookie = `tz_offset_v2=${activeTz}; timezone_manual=1;`;
+    const tzCookie = `odds_format=EU; odds_format_v2=EU; tz_offset_v2=${activeTz}; timezone_manual=1;`;
 
     const headers: Record<string, string> = {
       "User-Agent": this.userAgent,
@@ -492,7 +501,7 @@ export class NerdyTipsScraper {
     }
 
     const url = dParam === "0" || dParam === "" ? `${this.baseUrl}/bet-of-the-day` : `${this.baseUrl}/bet-of-the-day?d=${dParam}`;
-    const tzCookie = `tz_offset_v2=${activeTz}; timezone_manual=1;`;
+    const tzCookie = `odds_format=EU; odds_format_v2=EU; tz_offset_v2=${activeTz}; timezone_manual=1;`;
 
     const headers: Record<string, string> = {
       "User-Agent": this.userAgent,
@@ -804,7 +813,7 @@ export class NerdyTipsScraper {
       if (!rawOdd) return null;
       let num = parseFloat(rawOdd);
       if (isNaN(num) || num <= 0) return null;
-      if (num >= 50) {
+      if (num >= 30) {
         num = Math.round((1 + num / 100) * 100) / 100;
       }
       const adjusted = adjustOdd(num, seedKey);

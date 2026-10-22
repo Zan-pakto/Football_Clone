@@ -167,3 +167,21 @@ export function formatStackedKickoff(
   return { top: formatted, bottom: "" };
 }
 
+/**
+ * Safely format odds to standard European Decimal (e.g. "1.85", "2.22").
+ * Automatically converts American Moneyline odds (e.g. "121.94" or "+154.02") to decimal:
+ * Decimal = 1 + (American / 100).
+ */
+export function formatDisplayOdd(rawOdd?: string | number | null): string {
+  if (rawOdd === undefined || rawOdd === null) return "";
+  const str = String(rawOdd).trim();
+  if (!str || str === "-" || str === "–") return "";
+  const num = parseFloat(str.replace(/[^0-9.-]/g, ""));
+  if (isNaN(num) || num <= 0) return str;
+  // If in American format without plus or with plus (e.g. 121.94, +154.02, 105.06)
+  if (num >= 30) {
+    return (1 + num / 100).toFixed(2);
+  }
+  return num.toFixed(2);
+}
+

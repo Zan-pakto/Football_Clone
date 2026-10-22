@@ -245,7 +245,7 @@ function normalizeOdd(rawOdd?: string | null): string | null {
   const cleaned = cleanText(rawOdd);
   let num = parseFloat(cleaned);
   if (isNaN(num) || num <= 0) return cleaned || null;
-  if (num >= 50) {
+  if (num >= 30) {
     num = Math.round((1 + num / 100) * 100) / 100;
   }
   return num.toFixed(2);

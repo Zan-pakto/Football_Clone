@@ -260,9 +260,12 @@ router.get("/", async (req: Request, res: Response) => {
 
       // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT unlocked for today)
       convertedMatches = filtered.map((m, idx) => {
-        const isLocked = !isPastDay && !isPremiumUser && idx >= FREE_DAILY_TIPS_LIMIT;
+        const isFreeTip = idx < FREE_DAILY_TIPS_LIMIT;
+        const isLocked = !isPastDay && !isPremiumUser && !isFreeTip;
         return {
           ...m,
+          isFreeTip,
+          freeTipIndex: isFreeTip ? idx : undefined,
           isLocked,
           lockReason: isLocked ? "free_limit_reached" : null,
           predictions: {

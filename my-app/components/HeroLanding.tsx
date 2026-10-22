@@ -582,74 +582,13 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
             Top 10 daily football predictions are <span style={{ color: "#2fd08a", fontWeight: 800 }}>100% free</span> — no card required.
           </p>
 
-          {/* Top Free Bets Preview Strip (Quick glimpse of top free games) */}
-          {todayMatches && todayMatches.length > 0 && (
-            <div
-              style={{
-                width: "100%",
-                maxWidth: 680,
-                background: "rgba(18, 15, 45, 0.8)",
-                border: "1px solid rgba(167, 159, 255, 0.22)",
-                borderRadius: 14,
-                padding: "9px 14px",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    background: "rgba(47, 208, 138, 0.15)",
-                    border: "1px solid rgba(47, 208, 138, 0.35)",
-                    color: "#2fd08a",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  <Sparkles size={11} /> 10 Free Bets Today
-                </span>
-                <span style={{ fontSize: 12, color: "#d4cde3", fontWeight: 600 }}>
-                  Active fixtures simulated
-                </span>
-              </div>
-
-              <a
-                href="#matches-feed"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 11.5,
-                  fontWeight: 800,
-                  color: "#c4b5fd",
-                  textDecoration: "none",
-                  padding: "4px 9px",
-                  borderRadius: 6,
-                  background: "rgba(124, 108, 245, 0.18)",
-                  border: "1px solid rgba(124, 108, 245, 0.3)",
-                }}
-              >
-                <span>Jump to Free Bets</span>
-                <ChevronDown size={13} />
-              </a>
-            </div>
-          )}
-
-          {/* Action Buttons Row */}
+          {/* Primary Action Buttons Row */}
           <div className={styles.heroActions}>
             <a href="#matches-feed" className={styles.heroPrimaryBtn}>
-              <span>View 10 Free Bets of the Day</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Sparkles size={15} color="#2fd08a" />
+                <span>View 10 Free Bets of the Day</span>
+              </span>
               <ChevronDown size={16} />
             </a>
 

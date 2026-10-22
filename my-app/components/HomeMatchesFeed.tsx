@@ -8,6 +8,7 @@ import MatchFilterModal, { FilterState, DEFAULT_FILTERS } from "@/components/Mat
 import { RotateCcw, CheckCircle2, ShieldCheck, Flame, Calendar, RefreshCw, Crown, Lock, ArrowRight } from "lucide-react";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
 import { decodeHtmlEntities } from "@/lib/utils";
+import { cleanPickLabel } from "@/components/MatchRow";
 import styles from "./HomeMatchesFeed.module.css";
 
 export interface LeagueGroupItem {
@@ -291,34 +292,115 @@ export default function HomeMatchesFeed({
 
           // Market filter
           if (filters.market !== "all") {
-            if (filters.market === "1x2" && !m.predictions?.pickScore?.pick) return false;
-            if (filters.market === "over15" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
-            if (filters.market === "over25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over 2.5"))) return false;
-            if (filters.market === "under25" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Under"))) return false;
-            if (filters.market === "btts" && (!m.predictions?.btts?.pick || m.predictions.btts.pick !== "Yes")) return false;
-            if (filters.market === "double_chance" && (!m.predictions?.pickScore?.pick || !["1X", "X2", "12"].includes(m.predictions.pickScore.pick))) return false;
+            if (filters.market === "1x2") {
+              const p1 = cleanPickLabel(m.predictions?.pickScore?.pick);
+              const pBest = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const is1x2 =
+                ["1", "X", "2", "1X", "X2", "12"].includes(p1 || "") ||
+                (m.predictions?.bestTip?.market === "pickScore" && ["1", "X", "2", "1X", "X2", "12"].includes(pBest || "")) ||
+                m.predictions?.bestTip?.marketLabel === "1X2 Winner" ||
+                Boolean(m.predictions?.pickScore?.pick);
+              if (!is1x2) return false;
+            }
+            if (filters.market === "over15") {
+              const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+              const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const rawG = m.predictions?.goals?.pick || "";
+              const isOver15 =
+                gClean === "O1.5" || btClean === "O1.5" ||
+                /over\s*1\.5|at\s*least\s*2|\+1\.5|^o1\.5/i.test(rawG) ||
+                /over\s*1\.5|at\s*least\s*2|\+1\.5|^o1\.5/i.test(m.predictions?.bestTip?.pick || "");
+              if (!isOver15) return false;
+            }
+            if (filters.market === "over25") {
+              const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+              const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const rawG = m.predictions?.goals?.pick || "";
+              const isOver25 =
+                gClean === "O2.5" || btClean === "O2.5" ||
+                /over\s*2\.5|at\s*least\s*3|\+2\.5|^o2\.5/i.test(rawG) ||
+                /over\s*2\.5|at\s*least\s*3|\+2\.5|^o2\.5/i.test(m.predictions?.bestTip?.pick || "");
+              if (!isOver25) return false;
+            }
+            if (filters.market === "under25") {
+              const gClean = cleanPickLabel(m.predictions?.goals?.pick);
+              const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const rawG = m.predictions?.goals?.pick || "";
+              const isUnder25 =
+                gClean === "U2.5" || btClean === "U2.5" ||
+                /under\s*2\.5|maximum\s*2|\-2\.5|^u2\.5/i.test(rawG) ||
+                /under\s*2\.5|maximum\s*2|\-2\.5|^u2\.5/i.test(m.predictions?.bestTip?.pick || "");
+              if (!isUnder25) return false;
+            }
+            if (filters.market === "btts") {
+              const bClean = cleanPickLabel(m.predictions?.btts?.pick);
+              const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const rawB = m.predictions?.btts?.pick || "";
+              const isBtts =
+                bClean === "Yes" || btClean === "Yes" ||
+                /^(yes|gg|both\s*teams?\s*(?:to\s*)?score)/i.test(rawB.trim()) ||
+                /^(yes|gg|both\s*teams?\s*(?:to\s*)?score)/i.test(m.predictions?.bestTip?.pick || "") ||
+                m.predictions?.bestTip?.market === "btts";
+              if (!isBtts) return false;
+            }
+            if (filters.market === "double_chance") {
+              const p1 = cleanPickLabel(m.predictions?.pickScore?.pick);
+              const btClean = cleanPickLabel(m.predictions?.bestTip?.pick);
+              const rawP = m.predictions?.pickScore?.pick || "";
+              const isDC =
+                ["1X", "X2", "12"].includes(p1 || "") ||
+                ["1X", "X2", "12"].includes(btClean || "") ||
+                m.predictions?.bestTip?.marketLabel === "Double Chance" ||
+                /^(1x|x2|12)\b/i.test(rawP.trim()) ||
+                /^(1x|x2|12)\b/i.test(m.predictions?.bestTip?.pick || "");
+              if (!isDC) return false;
+            }
           }
 
           // Rating filter
           if (filters.minRating > 0) {
             const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-            const r = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
-            if (r < filters.minRating) return false;
+            const rawR = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
+            const r = parseFloat(String(rawR));
+            if (isNaN(r) || r < filters.minRating) return false;
           }
 
           // Category filter
           if (filters.category !== "all") {
             const numericConf = parseInt(m.confidence?.replace("%", "") || "0", 10);
-            const bestRating = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
-            const bestOdd = parseFloat(m.predictions?.bestTip?.odd || "1.75");
+            const rawR = typeof m.rating === "number" ? m.rating : (m.predictions?.bestTip?.rating || (numericConf > 0 ? numericConf / 10 : 7.5));
+            const bestRating = parseFloat(String(rawR)) || 7.5;
+            const rawOdd = parseFloat(String(m.predictions?.bestTip?.odd || "1.75"));
+            const bestOdd = isNaN(rawOdd) ? 1.75 : (rawOdd >= 30 ? 1 + rawOdd / 100 : rawOdd);
+            const isMatchFree = Boolean(
+              (m as any).isFreeTip || (!m.isLocked && !m.predictions?.bestTip?.isLocked && !m.predictions?.isLocked)
+            );
 
-            if (filters.category === "free_tips" && (m.isLocked || m.predictions?.bestTip?.isLocked || m.predictions?.pickScore?.isLocked)) return false;
-            if (filters.category === "top_tips" && bestRating < 8.2) return false;
-            if (filters.category === "safe_picks" && (bestRating < 8.0 || bestOdd > 1.85)) return false;
-            if (filters.category === "value_bets" && bestOdd < 2.0) return false;
-            if (filters.category === "high_scoring" && (!m.predictions?.goals?.pick || !m.predictions.goals.pick.includes("Over"))) return false;
-            if (filters.category === "live" && (!m.isLive && m.status !== "live")) return false;
-            if (filters.category === "won" && m.status !== "won") return false;
+            if (filters.category === "free_tips") {
+              if (!isMatchFree) return false;
+            }
+            if (filters.category === "top_tips") {
+              const isTop = bestRating >= 8.0 || Boolean(m.predictions?.bestTip?.isBest && bestRating >= 7.6);
+              if (!isTop) return false;
+            }
+            if (filters.category === "safe_picks") {
+              if (bestRating < 7.8 || bestOdd > 1.95) return false;
+            }
+            if (filters.category === "value_bets") {
+              if (bestOdd < 1.90) return false;
+            }
+            if (filters.category === "high_scoring") {
+              const gClean = cleanPickLabel(m.predictions?.goals?.pick) || "";
+              const rawG = m.predictions?.goals?.pick || "";
+              const isOver = gClean.startsWith("O") || /over|at\s*least|\+|^o[0-9]/i.test(rawG);
+              if (!isOver) return false;
+            }
+            if (filters.category === "live") {
+              if (!m.isLive && m.status !== "live") return false;
+            }
+            if (filters.category === "won") {
+              if (m.status !== "won") return false;
+            }
           }
 
           return true;
@@ -345,10 +427,47 @@ export default function HomeMatchesFeed({
     // Pro VIP users or visitors viewing previous day's results get all matches unlocked for free
     if (isVip || activeDay === "yesterday") return filteredGroups;
 
+    // For today's free picks, prioritize UPCOMING / LIVE high-confidence games over finished midnight games
+    const prioritizedGroups = filteredGroups
+      .map((g) => {
+        const live = g.matches.filter((m) => m.isLive || m.status === "live");
+        const upcoming = g.matches.filter(
+          (m) =>
+            !m.isLive &&
+            m.status !== "live" &&
+            m.status !== "won" &&
+            m.status !== "lost" &&
+            m.status !== "finished" &&
+            m.status !== "fin"
+        );
+        const finished = g.matches.filter(
+          (m) =>
+            m.status === "won" ||
+            m.status === "lost" ||
+            m.status === "finished" ||
+            m.status === "fin"
+        );
+        return {
+          ...g,
+          matches: [...live, ...upcoming, ...finished],
+        };
+      })
+      .sort((a, b) => {
+        const aHasPlayable = a.matches.some(
+          (m) => m.status !== "won" && m.status !== "lost" && m.status !== "finished" && m.status !== "fin"
+        );
+        const bHasPlayable = b.matches.some(
+          (m) => m.status !== "won" && m.status !== "lost" && m.status !== "finished" && m.status !== "fin"
+        );
+        if (aHasPlayable && !bHasPlayable) return -1;
+        if (!aHasPlayable && bHasPlayable) return 1;
+        return 0;
+      });
+
     let matchCounter = 0;
     const limitedGroups: LeagueGroupItem[] = [];
 
-    for (const group of filteredGroups) {
+    for (const group of prioritizedGroups) {
       if (matchCounter >= FREE_PREDICTIONS_LIMIT) break;
 
       const remainingSlots = FREE_PREDICTIONS_LIMIT - matchCounter;

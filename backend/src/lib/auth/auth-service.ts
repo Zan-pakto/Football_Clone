@@ -11,6 +11,7 @@ export interface AuthUser {
   isPremium?: boolean;
   subscriptionPlan?: string;
   subscriptionStatus?: string;
+  trialEndsAt?: string | null;
   createdAt?: string;
 }
 
@@ -44,7 +45,10 @@ export class AuthService {
 
     const passwordHash = await hashPassword(password);
     const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const nowIso = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trialEndsAtIso = trialEndsAt.toISOString();
 
     let user: AuthUser;
 
@@ -58,14 +62,32 @@ export class AuthService {
           role: role as any,
         },
       });
+
+      // Grant 7-day free premium trial subscription for any signup
+      await prisma.subscription.create({
+        data: {
+          userId: created.id,
+          plan: role === "ADMIN" ? "VIP_PRO" : "7_DAY_TRIAL",
+          status: role === "ADMIN" ? "ACTIVE" : "TRIALING",
+          provider: "trial",
+          providerSubId: `trial_${created.id}`,
+          startedAt: now,
+          expiresAt: role === "ADMIN" ? new Date(now.getTime() + 10 * 365 * 86400000) : trialEndsAt,
+          currentPeriodEnd: role === "ADMIN" ? new Date(now.getTime() + 10 * 365 * 86400000) : trialEndsAt,
+        },
+      }).catch((e) => {
+        console.warn("[AuthService] Notice creating trial subscription:", e.message);
+      });
+
       user = {
         id: created.id,
         email: created.email,
         name: created.name,
         role: created.role as any,
-        isPremium: created.role === "ADMIN",
-        subscriptionPlan: created.role === "ADMIN" ? "VIP_PRO" : "FREE",
-        subscriptionStatus: created.role === "ADMIN" ? "ACTIVE" : "FREE",
+        isPremium: true, // 7-day free premium trial is active
+        subscriptionPlan: role === "ADMIN" ? "VIP_PRO" : "7_DAY_TRIAL",
+        subscriptionStatus: role === "ADMIN" ? "ACTIVE" : "TRIALING",
+        trialEndsAt: role === "ADMIN" ? null : trialEndsAtIso,
         createdAt: created.createdAt.toISOString(),
       };
     } catch {
@@ -83,9 +105,10 @@ export class AuthService {
         email: emailLower,
         name: name || emailLower.split("@")[0],
         role,
-        isPremium: role === "ADMIN",
-        subscriptionPlan: role === "ADMIN" ? "VIP_PRO" : "FREE",
-        subscriptionStatus: role === "ADMIN" ? "ACTIVE" : "FREE",
+        isPremium: true, // 7-day free premium trial
+        subscriptionPlan: role === "ADMIN" ? "VIP_PRO" : "7_DAY_TRIAL",
+        subscriptionStatus: role === "ADMIN" ? "ACTIVE" : "TRIALING",
+        trialEndsAt: role === "ADMIN" ? null : trialEndsAtIso,
         createdAt: nowIso,
       };
     }
@@ -203,7 +226,10 @@ export class AuthService {
     }
 
     const activeSub = findActiveValidSubscription(dbUser.subscriptions);
-    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN");
+    const isWithin7DaysOfSignup = dbUser.createdAt && (Date.now() - new Date(dbUser.createdAt).getTime() < 7 * 86400000);
+    const isTrialActive = Boolean(activeSub?.status === "TRIALING" || (!activeSub && isWithin7DaysOfSignup && dbUser.role !== "ADMIN"));
+    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN" || isWithin7DaysOfSignup);
+    const trialEndsAt = activeSub?.expiresAt ? new Date(activeSub.expiresAt).toISOString() : (isWithin7DaysOfSignup ? new Date(new Date(dbUser.createdAt).getTime() + 7 * 86400000).toISOString() : null);
 
     const user: AuthUser = {
       id: dbUser.id,
@@ -211,8 +237,9 @@ export class AuthService {
       name: dbUser.name || dbUser.email.split("@")[0],
       role: dbUser.role,
       isPremium,
-      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "FREE",
+      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")),
+      subscriptionStatus: activeSub ? activeSub.status : (dbUser.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")),
+      trialEndsAt,
       createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
     };
 
@@ -257,7 +284,10 @@ export class AuthService {
       dbUser = memoryUsers.get(emailLower);
     }
 
-    const nowIso = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trialEndsAtIso = trialEndsAt.toISOString();
 
     if (!dbUser) {
       // Generate a secure random password hash for OAuth users
@@ -276,6 +306,22 @@ export class AuthService {
             role,
           },
           include: { subscriptions: true },
+        });
+
+        // Grant 7-day free premium trial subscription for new Google signups
+        await prisma.subscription.create({
+          data: {
+            userId: dbUser.id,
+            plan: role === "ADMIN" ? "VIP_PRO" : "7_DAY_TRIAL",
+            status: role === "ADMIN" ? "ACTIVE" : "TRIALING",
+            provider: "trial",
+            providerSubId: `trial_${dbUser.id}`,
+            startedAt: now,
+            expiresAt: role === "ADMIN" ? new Date(now.getTime() + 10 * 365 * 86400000) : trialEndsAt,
+            currentPeriodEnd: role === "ADMIN" ? new Date(now.getTime() + 10 * 365 * 86400000) : trialEndsAt,
+          },
+        }).catch((e) => {
+          console.warn("[AuthService] Google signup trial notice:", e.message);
         });
       } catch {
         dbUser = {
@@ -301,7 +347,10 @@ export class AuthService {
     }
 
     const activeSub = findActiveValidSubscription(dbUser.subscriptions);
-    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN");
+    const isWithin7DaysOfSignup = dbUser.createdAt && (Date.now() - new Date(dbUser.createdAt).getTime() < 7 * 86400000);
+    const isTrialActive = Boolean(activeSub?.status === "TRIALING" || (!activeSub && isWithin7DaysOfSignup && dbUser.role !== "ADMIN"));
+    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN" || isWithin7DaysOfSignup);
+    const userTrialEnds = activeSub?.expiresAt ? new Date(activeSub.expiresAt).toISOString() : (isWithin7DaysOfSignup ? new Date(new Date(dbUser.createdAt).getTime() + 7 * 86400000).toISOString() : trialEndsAtIso);
 
     const user: AuthUser = {
       id: dbUser.id,
@@ -309,8 +358,9 @@ export class AuthService {
       name: dbUser.name || dbUser.email.split("@")[0],
       role: dbUser.role,
       isPremium,
-      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "FREE",
+      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")),
+      subscriptionStatus: activeSub ? activeSub.status : (dbUser.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")),
+      trialEndsAt: userTrialEnds,
       createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : nowIso,
     };
 
@@ -353,7 +403,10 @@ export class AuthService {
     }
 
     const activeSub = findActiveValidSubscription(dbUser?.subscriptions);
-    const isPremium = payload.role === "ADMIN" || Boolean(activeSub);
+    const isWithin7DaysOfSignup = dbUser?.createdAt && (Date.now() - new Date(dbUser.createdAt).getTime() < 7 * 86400000);
+    const isTrialActive = Boolean(activeSub?.status === "TRIALING" || (!activeSub && isWithin7DaysOfSignup && payload.role !== "ADMIN"));
+    const isPremium = payload.role === "ADMIN" || Boolean(activeSub) || Boolean(isWithin7DaysOfSignup);
+    const trialEndsAt = activeSub?.expiresAt ? new Date(activeSub.expiresAt).toISOString() : (isWithin7DaysOfSignup ? new Date(new Date(dbUser.createdAt).getTime() + 7 * 86400000).toISOString() : null);
 
     return {
       id: payload.userId,
@@ -361,8 +414,9 @@ export class AuthService {
       name: dbUser?.name || payload.email.split("@")[0],
       role: payload.role,
       isPremium,
-      subscriptionPlan: activeSub ? activeSub.plan : (payload.role === "ADMIN" ? "VIP_PRO" : "FREE"),
-      subscriptionStatus: activeSub ? activeSub.status : "FREE",
+      subscriptionPlan: activeSub ? activeSub.plan : (payload.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")),
+      subscriptionStatus: activeSub ? activeSub.status : (payload.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")),
+      trialEndsAt,
       createdAt: dbUser?.createdAt ? new Date(dbUser.createdAt).toISOString() : undefined,
     };
   }

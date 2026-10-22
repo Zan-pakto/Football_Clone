@@ -86,6 +86,7 @@ export async function GET(
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            Cookie: "odds_format=EU; odds_format_v2=EU; tz_offset_v2=0; timezone_manual=1;",
           },
           next: { revalidate: 1800 },
         });
@@ -171,12 +172,22 @@ export async function GET(
           }
         }
 
+        function toDecimalOdd(raw: string | number | null | undefined): string {
+          if (!raw) return "1.85";
+          const num = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+          if (isNaN(num) || num <= 0) return "1.85";
+          if (num >= 30) {
+            return (1 + num / 100).toFixed(2);
+          }
+          return num.toFixed(2);
+        }
+
         const odds = { home: "1.75", draw: "3.50", away: "4.20" };
         const oddsMatch = srOnly.match(/Odds:\s*([\d\.]+)\s*home,\s*([\d\.]+)\s*draw,\s*([\d\.]+)\s*away/i);
         if (oddsMatch) {
-          odds.home = oddsMatch[1];
-          odds.draw = oddsMatch[2];
-          odds.away = oddsMatch[3];
+          odds.home = toDecimalOdd(oddsMatch[1]);
+          odds.draw = toDecimalOdd(oddsMatch[2]);
+          odds.away = toDecimalOdd(oddsMatch[3]);
         }
 
         const logos = Array.from(innerHtml.matchAll(/<img[^>]*(?:src|data-src)=["']([^"']*logos\/[^"']+)["'][^>]*>/gi)).map((m) => m[1]);
@@ -197,7 +208,8 @@ export async function GET(
         // Predictions
         const btTt = innerHtml.match(/tbm-besttip[\s\S]*?data-tt=["']The best tip is ([^'"]+) with a trust of ([\d\.]+)\/10 and the odd is ([\d\.]+)["']/i);
         const bestTipPick = btTt ? btTt[1] : (srOnly.match(/Best tip:\s*(.*?),\s*odds/i)?.[1] || "1");
-        const bestTipOdd = btTt ? btTt[3] : (srOnly.match(/odds\s*([\d\.]+)/i)?.[1] || "1.85");
+        const rawBestTipOdd = btTt ? btTt[3] : (srOnly.match(/odds\s*([\d\.]+)/i)?.[1] || "1.85");
+        const bestTipOdd = toDecimalOdd(rawBestTipOdd);
         const bestTipRating = btTt ? parseFloat(btTt[2]) : 7.8;
 
         const isFinished = rawStatus.toLowerCase() === "won" || rawStatus.toLowerCase() === "lost" || rawStatus.toLowerCase() === "finished";

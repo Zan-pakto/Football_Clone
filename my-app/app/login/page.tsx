@@ -20,6 +20,7 @@ import {
   Shield,
   Check,
   X,
+  Crown,
 } from "lucide-react";
 
 function AuthContent() {
@@ -368,6 +369,25 @@ function AuthContent() {
               </div>
             ) : (
               <>
+                {/* 7-Day Free Premium Trial Announcement */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    background: "rgba(124, 108, 245, 0.14)",
+                    border: "1px solid rgba(124, 108, 245, 0.35)",
+                    marginBottom: 16,
+                  }}
+                >
+                  <Sparkles size={14} color="#c4b5fd" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 12.5, color: "#e0d9fc", fontWeight: 700 }}>
+                    🎁 Sign up today and get <strong style={{ color: "var(--gold)" }}>7 Days Free Premium VIP</strong> access automatically!
+                  </span>
+                </div>
+
                 {/* Mode Selector Tabs */}
                 <div
                   style={{
@@ -686,6 +706,33 @@ function AuthContent() {
               </p>
 
               <div className="auth-value-features" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "rgba(124, 108, 245, 0.22)",
+                      border: "1px solid rgba(124, 108, 245, 0.5)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#c4b5fd",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Crown size={16} />
+                  </div>
+                  <div>
+                    <span style={{ color: "#ffffff", fontSize: 13.5, fontWeight: 800, lineHeight: 1.35, display: "block" }}>
+                      7-Day Free Premium Trial on Any Signup
+                    </span>
+                    <span style={{ color: "var(--gold)", fontSize: 11.5, fontWeight: 600 }}>
+                      Instant full access &bull; $0 charged today
+                    </span>
+                  </div>
+                </div>
+
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{

@@ -708,18 +708,40 @@ export default function PricingPage() {
                 <span style={{ fontSize: 13, color: "var(--text-dim)" }}>/month</span>
               </div>
 
+              {/* 7-Day Free Premium Trial Callout */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "rgba(124, 108, 245, 0.16)",
+                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                  color: "#c4b5fd",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  marginBottom: 18,
+                }}
+              >
+                <Sparkles size={14} color="#a79fff" />
+                <span>Includes 7-Day Free Premium Trial on Any Signup</span>
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
-                  "10 Free Daily Match Tips",
+                  "7-Day Free Premium Trial on Any Signup ($0 Charged)",
+                  "Instant Full VIP Banker & Algorithm Access for 7 Days",
+                  "10 Free Daily Match Tips Thereafter",
                   "2 Free Bankers Daily",
-                  "1 Free Bet Builder Slip Daily",
+                  "Free Bet Builder Slips",
                   "Previous Day Selections & Results 100% Free",
                   "Standard 1X2 Match Predictions",
                   "Live Match Scores & Minutes",
                   "Public Track Record Access",
-                ].map((feat) => (
-                  <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-secondary)" }}>
-                    <Check size={16} color="var(--accent-green)" />
+                ].map((feat, idx) => (
+                  <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: idx < 2 ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: idx < 2 ? 700 : 500 }}>
+                    <Check size={16} color={idx < 2 ? "var(--gold)" : "var(--accent-green)"} />
                     <span>{feat}</span>
                   </div>
                 ))}
