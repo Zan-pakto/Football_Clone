@@ -73,14 +73,14 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
  */
 export function checkPredictionWon(
   pickText: string | null | undefined,
-  homeScoreStr: string | null | undefined,
-  awayScoreStr: string | null | undefined
+  homeScoreVal: number | string | null | undefined,
+  awayScoreVal: number | string | null | undefined
 ): boolean | null {
-  if (!pickText || homeScoreStr === null || homeScoreStr === undefined || awayScoreStr === null || awayScoreStr === undefined) {
+  if (!pickText || homeScoreVal === null || homeScoreVal === undefined || awayScoreVal === null || awayScoreVal === undefined) {
     return null;
   }
-  const h = parseInt(homeScoreStr, 10);
-  const a = parseInt(awayScoreStr, 10);
+  const h = typeof homeScoreVal === "number" ? homeScoreVal : parseInt(String(homeScoreVal), 10);
+  const a = typeof awayScoreVal === "number" ? awayScoreVal : parseInt(String(awayScoreVal), 10);
   if (isNaN(h) || isNaN(a)) return null;
 
   const pick = pickText.trim();
@@ -134,12 +134,11 @@ export default function MatchRow({ match }: MatchRowProps) {
   const isFinished = match.status === "won" || match.status === "lost" || match.status === "FINISHED";
   const isLocked = Boolean(match.isLocked);
 
-  // Per-market pill locks: if match is locked (free limit reached), all pills are locked.
-  // If match is unlocked (Pro account or free quota), pills with available picks are never locked.
-  const is1x2Locked = isLocked || Boolean(match.predictions.pickScore.isLocked && !match.predictions.pickScore.pick);
-  const isGoalsLocked = isLocked || Boolean(match.predictions.goals.isLocked && !match.predictions.goals.pick);
-  const isBttsLocked = isLocked || Boolean(match.predictions.btts.isLocked && !match.predictions.btts.pick);
-  const isBestLocked = isLocked || Boolean(match.predictions.bestTip.isLocked && !match.predictions.bestTip.pick);
+  // Per-market pill locks: if match is locked (free limit reached) or prediction is locked, lock pill.
+  const is1x2Locked = isLocked || Boolean(match.predictions.pickScore.isLocked) || !match.predictions.pickScore.pick;
+  const isGoalsLocked = isLocked || Boolean(match.predictions.goals.isLocked) || !match.predictions.goals.pick;
+  const isBttsLocked = isLocked || Boolean(match.predictions.btts.isLocked) || !match.predictions.btts.pick;
+  const isBestLocked = isLocked || Boolean(match.predictions.bestTip.isLocked) || !match.predictions.bestTip.pick;
 
   const hasScores = match.homeScore !== null && match.homeScore !== undefined &&
                     match.awayScore !== null && match.awayScore !== undefined;
@@ -476,7 +475,7 @@ export default function MatchRow({ match }: MatchRowProps) {
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           {isLocked ? (
             <span style={{ fontSize: 11, fontWeight: 800, color: "#8b7ff5", display: "flex", alignItems: "center", gap: 3 }}>
-              <Lock size={10} /> VIP
+              <Lock size={10} /> PRO
             </span>
           ) : (
             <span
@@ -593,16 +592,39 @@ export default function MatchRow({ match }: MatchRowProps) {
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 900, color: "#ffffff" }}>
-              {pBestClean || "1"}
-            </span>
-            {match.predictions.bestTip.odd && (
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
-                @{formatDisplayOdd(match.predictions.bestTip.odd)}
+          {isBestLocked ? (
+            <Link
+              href="/pricing"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 8px",
+                borderRadius: 6,
+                background: "rgba(255, 176, 32, 0.15)",
+                border: "1px solid rgba(255, 176, 32, 0.4)",
+                color: "#ffb020",
+                fontSize: 11,
+                fontWeight: 800,
+                textDecoration: "none",
+              }}
+            >
+              <Lock size={11} />
+              <span>PRO</span>
+            </Link>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 900, color: "#ffffff" }}>
+                {pBestClean || "1"}
               </span>
-            )}
-          </div>
+              {match.predictions.bestTip.odd && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
+                  @{formatDisplayOdd(match.predictions.bestTip.odd)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* All 3 Market Pills in equal grid */}

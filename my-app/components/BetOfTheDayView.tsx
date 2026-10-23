@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { getCountryFlagUrl, normalizeCountryName } from "@/lib/flags";
 import TeamLogo from "@/components/TeamLogo";
-import { cleanPickLabel } from "@/components/MatchRow";
+import { cleanPickLabel, checkPredictionWon } from "@/components/MatchRow";
 import { formatDisplayOdd } from "@/lib/utils";
 import BettingTipsExplainedModal from "@/components/BettingTipsExplainedModal";
 
@@ -255,13 +255,37 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
     const base = activeTab === "bankers" ? bankers : slip;
     if (activeFilter === "all") return base;
     if (activeFilter === "upcoming") {
-      return base.filter((m) => m.status === "UPCOMING");
+      return base.filter((m) => m.status === "UPCOMING" || m.status === "LIVE");
     }
     if (activeFilter === "won") {
-      return base.filter((m) => m.status === "WON" || m.status === "FINISHED");
+      return base.filter((m) => {
+        if (m.status === "WON") return true;
+        if (m.status === "LOST") return false;
+        if (m.homeScore !== undefined && m.awayScore !== undefined) {
+          return checkPredictionWon(m.predictions?.bestTip?.pick || m.bestTip, m.homeScore, m.awayScore) === true;
+        }
+        return false;
+      });
     }
     return base;
   }, [activeTab, activeFilter, bankers, slip]);
+
+  // Dynamically reconcile Bankers success rate to perfectly match the current settled banker matches
+  const displayBankerSuccessRate = useMemo(() => {
+    const settled = bankers.filter(
+      (m) => m.status === "WON" || m.status === "LOST" || (m.homeScore !== undefined && m.awayScore !== undefined && (m.status as string) === "FINISHED")
+    );
+    if (settled.length === 0) return stats.bankers.successRate || "0%";
+    const wonCount = settled.filter((m) => {
+      if (m.status === "WON") return true;
+      if (m.status === "LOST") return false;
+      if (m.homeScore !== undefined && m.awayScore !== undefined) {
+        return checkPredictionWon(m.predictions?.bestTip?.pick || m.bestTip, m.homeScore, m.awayScore) === true;
+      }
+      return false;
+    }).length;
+    return `${Math.round((wonCount / settled.length) * 100)}%`;
+  }, [bankers, stats.bankers.successRate]);
 
   // Handle accumulator slip copy
   const handleCopySlip = () => {
@@ -365,7 +389,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
             <p style={{ margin: 0, fontSize: 13, color: "#d4cde3", flex: 1, lineHeight: 1.4 }}>
               Predictions are locked without a subscription, but you can enjoy the selection of free tips.{" "}
               <Link href="/pricing" style={{ color: "#a79fff", fontWeight: 700, textDecoration: "underline" }}>
-                Unlock VIP Access &rarr;
+                Unlock Pro Access &rarr;
               </Link>
             </p>
             <button
@@ -592,7 +616,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
               {loading
                 ? "-"
                 : activeTab === "bankers"
-                ? stats.bankers.successRate
+                ? displayBankerSuccessRate
                 : stats.slip.totalOdds.toFixed(2)}
             </b>
             <span
@@ -1271,7 +1295,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                             }}
                           >
                             <Lock size={11} />
-                            <span>VIP</span>
+                            <span>PRO</span>
                           </Link>
                         ) : (
                           <>

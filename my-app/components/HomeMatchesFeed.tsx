@@ -610,7 +610,7 @@ export default function HomeMatchesFeed({
               ) : (
                 <>
                   <Flame size={14} color="#ffd700" />
-                  <span>10 Free AI Picks • {remainingLockedCount > 0 ? `${remainingLockedCount}+ Locked (VIP)` : "VIP Access"}</span>
+                  <span>10 Free AI Picks • {remainingLockedCount > 0 ? `${remainingLockedCount}+ Locked (PRO)` : "PRO Access"}</span>
                 </>
               )}
             </div>

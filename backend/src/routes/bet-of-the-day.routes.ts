@@ -155,8 +155,22 @@ router.get("/", async (req: Request, res: Response) => {
       ? parseFloat(rawSlip.reduce((acc, m) => acc * (m.tipOdds || 1.4), 1).toFixed(2))
       : botd.stats.slip.totalOdds;
 
+    // Dynamically reconcile Bankers success rate and counts from the day's matches
+    const settledBankers = rawBankers.filter((m) => m.status === "WON" || m.status === "LOST");
+    let bankerSuccessRate = botd.stats.bankers.successRate;
+    if (settledBankers.length > 0) {
+      const wonCount = settledBankers.filter((m) => m.status === "WON").length;
+      bankerSuccessRate = `${Math.round((wonCount / settledBankers.length) * 100)}%`;
+    }
+
     const stats = {
       ...botd.stats,
+      bankers: {
+        ...botd.stats.bankers,
+        count: rawBankers.length,
+        upcoming: rawBankers.filter((m) => m.status === "UPCOMING" || m.status === "LIVE").length,
+        successRate: bankerSuccessRate,
+      },
       slip: {
         ...botd.stats.slip,
         totalOdds: adjustedSlipTotalOdds,

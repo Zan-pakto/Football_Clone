@@ -203,11 +203,14 @@ export class NerdyTipsScraper {
         country = this.extractCountryFromQ(q);
       }
 
-      // Status resolution
+      // Status resolution (inspect match status attribute as well as specific best-tip element outcomes)
       let status: ScrapedMatch["status"] = "UPCOMING";
       const sLower = rawStatus.toLowerCase();
-      if (sLower === "won") status = "WON";
-      else if (sLower === "lost") status = "LOST";
+      const isBestTipWon = /tbm-besttip[^>]*\bis-won\b/i.test(innerHtml) || /\btip\s+won\b/i.test(srOnly);
+      const isBestTipLost = /tbm-besttip[^>]*\bis-lost\b/i.test(innerHtml) || /\btip\s+lost\b/i.test(srOnly);
+
+      if (sLower === "won" || isBestTipWon) status = "WON";
+      else if (sLower === "lost" || isBestTipLost) status = "LOST";
       else if (sLower === "live" || sLower === "inprogress") status = "LIVE";
       else if (sLower === "finished" || sLower === "fin") status = "FINISHED";
       else if (sLower === "postponed") status = "POSTPONED";
@@ -260,8 +263,8 @@ export class NerdyTipsScraper {
         homeLogo,
         awayLogo,
         odds,
-        bestTip: bestTip || "Double Chance 1X",
-        tipOdds: tipOdds || odds.home || 1.85,
+        bestTip: bestTip || psPick || (odds.home && odds.away && odds.home <= odds.away ? "1" : "1X"),
+        tipOdds: tipOdds || (psOdd && psOdd > 0 ? psOdd : odds.home) || 1.85,
         confidence: `${confidence}%`,
         confidenceValue: confidence,
         rating,
@@ -541,6 +544,13 @@ export class NerdyTipsScraper {
         bankersCount = parseInt(bankersTabMatch[1], 10) || bankersCount;
         bankersUpcoming = parseInt(bankersTabMatch[2], 10) || bankersUpcoming;
         bankersSuccess = bankersTabMatch[3] || bankersSuccess;
+      }
+
+      // Reconcile Bankers success rate directly from the day's settled banker matches
+      const settledBankers = bankersMatches.filter((m) => m.status === "WON" || m.status === "LOST");
+      if (settledBankers.length > 0) {
+        const wonCount = settledBankers.filter((m) => m.status === "WON").length;
+        bankersSuccess = `${Math.round((wonCount / settledBankers.length) * 100)}%`;
       }
 
       let slipCount = slipMatches.length;
