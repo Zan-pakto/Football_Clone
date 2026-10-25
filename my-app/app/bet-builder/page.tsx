@@ -1134,15 +1134,11 @@ export default function BetBuilderPage() {
                               match.oddMove === "down" ? "has-move is-down" : ""
                             }`}
                           >
-                            <span className="bb-slip__num">
-                              {match.oddMove === "down" ? (
-                                <>
-                                  <span className="bb-slip__arrow">&#9662;</span>
-                                  {match.odds.toFixed(2)}
-                                </>
-                              ) : (
-                                `- ${match.odds.toFixed(2)}`
+                            <span className="bb-slip__num" style={{ color: match.oddMove === "down" ? "#2fd08a" : "#2fd08a", fontFamily: "var(--font-mono)" }}>
+                              {match.oddMove === "down" && (
+                                <span className="bb-slip__arrow" style={{ color: "#2fd08a" }}>&#9662;</span>
                               )}
+                              <span>@{match.odds.toFixed(2)}</span>
                             </span>
                           </span>
                         </span>
