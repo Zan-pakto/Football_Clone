@@ -17,6 +17,9 @@ export function cleanPickLabel(rawPick: string | null | undefined): string | nul
   if (!rawPick) return null;
   const p = rawPick.trim();
 
+  // Any locked/restricted placeholder string must evaluate to null pick
+  if (/lock|kickoff|vip|premium|quota/i.test(p)) return null;
+
   // Natural language double chance & explicit DC variations
   if (/(?:double\s*chance|dc)[\s\-:]*1x|^1x\b|home\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)|^draw\s+or\s+home/i.test(p)) return "1X";
   if (/(?:double\s*chance|dc)[\s\-:]*x2|^x2\b|away\s+(?:team\s+)?(?:wins?\s+or\s+draw|or\s+draw)|^draw\s+or\s+away/i.test(p)) return "X2";
@@ -132,13 +135,12 @@ function checkSinglePredictionWon(pick: string, h: number, a: number): boolean |
 export default function MatchRow({ match }: MatchRowProps) {
   const isLive = match.isLive || match.status === "live";
   const isFinished = match.status === "won" || match.status === "lost" || match.status === "FINISHED";
-  const isLocked = Boolean(match.isLocked);
+  const isLocked = Boolean(match.isLocked || match.predictions?.isLocked);
 
-  // Per-market pill locks: if match is locked (free limit reached) or prediction is locked, lock pill.
-  const is1x2Locked = isLocked || Boolean(match.predictions.pickScore.isLocked) || !match.predictions.pickScore.pick;
-  const isGoalsLocked = isLocked || Boolean(match.predictions.goals.isLocked) || !match.predictions.goals.pick;
-  const isBttsLocked = isLocked || Boolean(match.predictions.btts.isLocked) || !match.predictions.btts.pick;
-  const isBestLocked = isLocked || Boolean(match.predictions.bestTip.isLocked) || !match.predictions.bestTip.pick;
+  // Per-market pill locks: lock if match is locked or market is explicitly locked
+  const is1x2Locked = isLocked || Boolean(match.predictions?.pickScore?.isLocked);
+  const isGoalsLocked = isLocked || Boolean(match.predictions?.goals?.isLocked);
+  const isBttsLocked = isLocked || Boolean(match.predictions?.btts?.isLocked);
 
   const hasScores = match.homeScore !== null && match.homeScore !== undefined &&
                     match.awayScore !== null && match.awayScore !== undefined;
@@ -167,10 +169,12 @@ export default function MatchRow({ match }: MatchRowProps) {
   const ratingColor = numConfVal >= 7.5 ? "#2fd08a" : numConfVal >= 6.0 ? "#8b7ff5" : "#e0a75f";
 
   // Check winning status for each prediction pill
-  const p1x2Clean = cleanPickLabel(match.predictions.pickScore.pick);
-  const pGoalsClean = cleanPickLabel(match.predictions.goals.pick);
-  const pBttsClean = cleanPickLabel(match.predictions.btts.pick);
-  const pBestClean = cleanPickLabel(match.predictions.bestTip.pick);
+  const p1x2Clean = cleanPickLabel(match.predictions?.pickScore?.pick);
+  const pGoalsClean = cleanPickLabel(match.predictions?.goals?.pick);
+  const pBttsClean = cleanPickLabel(match.predictions?.btts?.pick);
+  const pBestClean = cleanPickLabel(match.predictions?.bestTip?.pick);
+
+  const isBestLocked = isLocked || Boolean(match.predictions?.bestTip?.isLocked) || !pBestClean;
 
   const is1x2Won = hasScores && isFinished ? checkPredictionWon(p1x2Clean, match.homeScore, match.awayScore) : null;
   const isGoalsWon = hasScores && isFinished ? checkPredictionWon(pGoalsClean, match.homeScore, match.awayScore) : null;
@@ -360,70 +364,130 @@ export default function MatchRow({ match }: MatchRowProps) {
 
         {/* 3. 1 X 2 ODDS PILLS */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {/* Home Odd */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              height: 32,
-              borderRadius: 7,
-              background: oddsHome === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
-              border: oddsHome === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
-              fontSize: 11,
-              fontWeight: 700,
-              fontFamily: "var(--font-mono)",
-              color: oddsHome === minOdd ? "#ffffff" : "#a79fff",
-            }}
-          >
-            {oddsHome === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
-            <span>{formattedOddHome || "1.80"}</span>
-          </div>
+          {isLocked ? (
+            <>
+              {[
+                { label: "1.85" },
+                { label: "3.40" },
+                { label: "4.20" },
+              ].map((dummy, i) => (
+                <div
+                  key={`locked_odd_${i}`}
+                  style={{
+                    flex: 1,
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: 32,
+                    borderRadius: 7,
+                    background: "rgba(25, 21, 56, 0.65)",
+                    border: "1px solid rgba(167, 159, 255, 0.12)",
+                    overflow: "hidden",
+                    backdropFilter: "blur(6px)",
+                    WebkitBackdropFilter: "blur(6px)",
+                  }}
+                >
+                  {/* Frosted blurred silhouette underneath */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fontFamily: "var(--font-mono)",
+                      color: "#a79fff",
+                      filter: "blur(3.5px)",
+                      opacity: 0.35,
+                      userSelect: "none",
+                    }}
+                  >
+                    {dummy.label}
+                  </span>
 
-          {/* Draw Odd */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              height: 32,
-              borderRadius: 7,
-              background: oddsDraw === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
-              border: oddsDraw === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
-              fontSize: 11,
-              fontWeight: 700,
-              fontFamily: "var(--font-mono)",
-              color: oddsDraw === minOdd ? "#ffffff" : "#a79fff",
-            }}
-          >
-            <span>{formattedOddDraw || "3.50"}</span>
-          </div>
+                  {/* Sleek subtle lock overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(11, 9, 31, 0.25)",
+                    }}
+                  >
+                    <Lock size={8} color="#8b7ff5" opacity={0.85} />
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              {/* Home Odd */}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  height: 32,
+                  borderRadius: 7,
+                  background: oddsHome === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+                  border: oddsHome === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color: oddsHome === minOdd ? "#ffffff" : "#a79fff",
+                }}
+              >
+                {oddsHome === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
+                <span>{formattedOddHome || "1.80"}</span>
+              </div>
 
-          {/* Away Odd */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              height: 32,
-              borderRadius: 7,
-              background: oddsAway === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
-              border: oddsAway === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
-              fontSize: 11,
-              fontWeight: 700,
-              fontFamily: "var(--font-mono)",
-              color: oddsAway === minOdd ? "#ffffff" : "#a79fff",
-            }}
-          >
-            {oddsAway === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
-            <span>{formattedOddAway || "4.20"}</span>
-          </div>
+              {/* Draw Odd */}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  height: 32,
+                  borderRadius: 7,
+                  background: oddsDraw === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+                  border: oddsDraw === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color: oddsDraw === minOdd ? "#ffffff" : "#a79fff",
+                }}
+              >
+                <span>{formattedOddDraw || "3.50"}</span>
+              </div>
+
+              {/* Away Odd */}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  height: 32,
+                  borderRadius: 7,
+                  background: oddsAway === minOdd ? "rgba(124, 108, 245, 0.2)" : "rgba(27, 24, 61, 0.6)",
+                  border: oddsAway === minOdd ? "1px solid rgba(124, 108, 245, 0.45)" : "1px solid rgba(167, 159, 255, 0.1)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color: oddsAway === minOdd ? "#ffffff" : "#a79fff",
+                }}
+              >
+                {oddsAway === minOdd && <span style={{ color: "#2fd08a", fontSize: 9 }}>▴</span>}
+                <span>{formattedOddAway || "4.20"}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 4. 1X2 TIP PILL */}
@@ -461,12 +525,12 @@ export default function MatchRow({ match }: MatchRowProps) {
 
         {/* 7. BEST TIP PILL (Prominent Star Capsule with Market Tag) */}
         <NerdyTipPill
-          pick={pBestClean}
-          odd={match.predictions.bestTip.odd}
+          pick={isBestLocked ? null : pBestClean}
+          odd={isBestLocked ? null : match.predictions?.bestTip?.odd}
           isBest={true}
           isHighlightPill={true}
-          marketTag={bestMarketLabel}
-          rating={match.predictions.bestTip.rating || (numericConfidence ? Number(numericConfidence) : 8.5)}
+          marketTag={isBestLocked ? "PRO" : bestMarketLabel}
+          rating={isBestLocked ? null : (match.predictions?.bestTip?.rating || (numericConfidence ? Number(numericConfidence) : 8.5))}
           isWon={isBestWon}
           isLocked={isBestLocked}
         />
@@ -474,9 +538,55 @@ export default function MatchRow({ match }: MatchRowProps) {
         {/* 8. CONFIDENCE RATING */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           {isLocked ? (
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#8b7ff5", display: "flex", alignItems: "center", gap: 3 }}>
-              <Lock size={10} /> PRO
-            </span>
+            <div
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "4px 8px",
+                borderRadius: 7,
+                background: "rgba(139, 127, 245, 0.12)",
+                border: "1px solid rgba(139, 127, 245, 0.28)",
+                overflow: "hidden",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#2fd08a",
+                  fontFamily: "var(--font-mono)",
+                  filter: "blur(3.5px)",
+                  opacity: 0.35,
+                  userSelect: "none",
+                  marginRight: 2,
+                }}
+              >
+                8.7
+              </span>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  fontSize: 10,
+                  fontWeight: 900,
+                  color: "#a79fff",
+                  letterSpacing: "0.04em",
+                  background: "rgba(12, 10, 32, 0.35)",
+                }}
+              >
+                <Lock size={9} color="#8b7ff5" />
+                <span>PRO</span>
+              </div>
+            </div>
           ) : (
             <span
               style={{
@@ -520,9 +630,32 @@ export default function MatchRow({ match }: MatchRowProps) {
 
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#7874a4" }}>RATING:</span>
-            <span style={{ fontSize: 13, fontWeight: 900, color: ratingColor, fontFamily: "var(--font-mono)" }}>
-              {numericConfidence ? `${numericConfidence}/10` : "8.5"}
-            </span>
+            {isLocked ? (
+              <span
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  padding: "2px 7px",
+                  borderRadius: 6,
+                  background: "rgba(139, 127, 245, 0.14)",
+                  border: "1px solid rgba(139, 127, 245, 0.3)",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  color: "#c2baff",
+                  overflow: "hidden",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
+                }}
+              >
+                <Lock size={8} color="#8b7ff5" /> PRO
+              </span>
+            ) : (
+              <span style={{ fontSize: 13, fontWeight: 900, color: ratingColor, fontFamily: "var(--font-mono)" }}>
+                {numericConfidence ? `${numericConfidence}/10` : "8.5"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -588,7 +721,7 @@ export default function MatchRow({ match }: MatchRowProps) {
               ★ BEST TIP
             </span>
             <span style={{ fontSize: 11.5, fontWeight: 800, color: "#a79fff" }}>
-              {bestMarketLabel}
+              {isBestLocked ? "PRO Tip" : bestMarketLabel}
             </span>
           </div>
 
@@ -597,28 +730,58 @@ export default function MatchRow({ match }: MatchRowProps) {
               href="/pricing"
               onClick={(e) => e.stopPropagation()}
               style={{
+                position: "relative",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
-                padding: "3px 8px",
-                borderRadius: 6,
-                background: "rgba(255, 176, 32, 0.15)",
+                justifyContent: "center",
+                padding: "4px 10px",
+                borderRadius: 7,
+                background: "rgba(255, 176, 32, 0.12)",
                 border: "1px solid rgba(255, 176, 32, 0.4)",
-                color: "#ffb020",
-                fontSize: 11,
-                fontWeight: 800,
+                overflow: "hidden",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
                 textDecoration: "none",
               }}
             >
-              <Lock size={11} />
-              <span>PRO</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  color: "#ffffff",
+                  filter: "blur(3.5px)",
+                  opacity: 0.35,
+                  userSelect: "none",
+                }}
+              >
+                1X @1.85
+              </span>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  fontSize: 10.5,
+                  fontWeight: 900,
+                  color: "#ffb020",
+                  letterSpacing: "0.04em",
+                  background: "rgba(11, 9, 31, 0.35)",
+                }}
+              >
+                <Lock size={10} color="#ffb020" />
+                <span>PRO</span>
+              </div>
             </Link>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 900, color: "#ffffff" }}>
-                {pBestClean || "1"}
+                {pBestClean || "–"}
               </span>
-              {match.predictions.bestTip.odd && (
+              {match.predictions?.bestTip?.odd && (
                 <span style={{ fontSize: 12, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
                   @{formatDisplayOdd(match.predictions.bestTip.odd)}
                 </span>
@@ -709,20 +872,79 @@ function NerdyTipPill({
   isLocked?: boolean;
 }) {
   if (isLocked) {
+    const dummyPick = marketTag === "1X2" ? "1" : marketTag === "O/U" ? "O2.5" : marketTag === "BTTS" ? "Yes" : "1X";
+    const dummyOdd = isHighlightPill ? "2.35" : "1.80";
+
     return (
       <div
         style={{
+          position: "relative",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           height: 38,
-          background: isHighlightPill ? "rgba(124, 108, 245, 0.15)" : "#1b183d",
-          border: isHighlightPill ? "1px solid rgba(124, 108, 245, 0.35)" : "1px solid rgba(167, 159, 255, 0.1)",
+          background: isHighlightPill
+            ? "linear-gradient(135deg, rgba(139, 127, 245, 0.16) 0%, rgba(25, 20, 60, 0.7) 100%)"
+            : "rgba(23, 19, 52, 0.7)",
+          border: isHighlightPill
+            ? "1px solid rgba(139, 127, 245, 0.4)"
+            : "1px solid rgba(167, 159, 255, 0.12)",
           borderRadius: 8,
-          opacity: 0.85,
+          overflow: "hidden",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
         }}
       >
-        <Lock size={11} color="#8b7ff5" />
+        {/* Realistic frosted blurred pick & odd underneath */}
+        <div
+          aria-hidden="true"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: 1.15,
+            filter: "blur(3.8px)",
+            opacity: 0.38,
+            userSelect: "none",
+            pointerEvents: "none",
+            transform: "scale(0.95)",
+          }}
+        >
+          <span style={{ fontSize: 11.5, fontWeight: 900, color: "#ffffff" }}>
+            {dummyPick}
+          </span>
+          <span style={{ fontSize: 9.5, fontWeight: 700, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
+            @{dummyOdd}
+          </span>
+        </div>
+
+        {/* Minimal frosted PRO overlay badge */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 3,
+            background: "rgba(12, 10, 32, 0.32)",
+          }}
+        >
+          <Lock size={9} color={isHighlightPill ? "#ffb020" : "#a79fff"} />
+          <span
+            style={{
+              fontSize: 8.5,
+              fontWeight: 900,
+              letterSpacing: "0.06em",
+              color: isHighlightPill ? "#ffb020" : "#c2baff",
+              textTransform: "uppercase",
+            }}
+          >
+            PRO
+          </span>
+        </div>
       </div>
     );
   }

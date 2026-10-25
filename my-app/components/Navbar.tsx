@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Crown,
+  Sparkles,
   LogOut,
   LogIn,
   X,
@@ -431,7 +432,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   e.currentTarget.style.boxShadow = "0 0 14px rgba(255, 184, 0, 0.22)";
                 }}
               >
-                <Crown size={14} fill="#ffc837" />
+                <Sparkles size={14} fill="#ffc837" />
                 <span>PRO</span>
               </Link>
             ) : (
@@ -461,8 +462,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   e.currentTarget.style.color = "#ffffff";
                 }}
               >
-                <Crown size={14} />
-                <span>VIP Access</span>
+                <Sparkles size={14} />
+                <span>PRO Access</span>
               </Link>
             )}
 
@@ -614,8 +615,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                                 fontWeight: 900,
                               }}
                             >
-                              <Crown size={8} fill="#0b091f" />
-                              VIP
+                              <Sparkles size={8} fill="#0b091f" />
+                              PRO
                             </span>
                           ) : (
                             <span
@@ -1008,8 +1009,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     className="btn-primary"
                     style={{ width: "100%", height: 44, fontSize: 14 }}
                   >
-                    <Crown size={15} />
-                    <span>Get VIP Access</span>
+                    <Sparkles size={15} />
+                    <span>Get PRO Access</span>
                   </Link>
 
                   <Link
@@ -1223,7 +1224,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>Builder</span>
         </Link>
 
-        {/* Item 4: VIP / PRO */}
+        {/* Item 4: PRO Access */}
         <Link
           href={isPro ? "/account" : "/pricing"}
           style={{
@@ -1253,7 +1254,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                 : "transparent",
             }}
           >
-            <Crown
+            <Sparkles
               size={18}
               color={isPro ? "#ffc837" : pathname === "/pricing" ? "#8b7ff5" : "#7874a4"}
               fill={isPro ? "#ffc837" : "none"}
@@ -1267,7 +1268,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               color: isPro ? "#ffc837" : undefined,
             }}
           >
-            {isPro ? "PRO" : "VIP"}
+            PRO
           </span>
         </Link>
 

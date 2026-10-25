@@ -46,6 +46,7 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
 
       const isMatchLocked = Boolean(
         pBest?.isLocked ||
+        f.isLocked ||
         (f.predictions && f.predictions.length > 0 && f.predictions.every((p: any) => p.isLocked))
       );
 
@@ -69,12 +70,12 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
         awayScore: f.awayScore !== null && f.awayScore !== undefined ? String(f.awayScore) : null,
         elapsed: f.elapsed,
         isLive: f.status === "LIVE",
-        odds: {
+        odds: isMatchLocked ? { home: null, draw: null, away: null } : {
           home: f.odds?.home ? String(f.odds.home) : "1.75",
           draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
           away: f.odds?.away ? String(f.odds.away) : "4.20",
         },
-        rating: f.rating || null,
+        rating: isMatchLocked ? null : (f.rating || null),
         predictions: {
           pickScore: {
             pick: (p1x2?.isLocked || isMatchLocked) ? null : (p1x2?.selection || null),
@@ -82,8 +83,8 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
             isLocked: Boolean(p1x2?.isLocked || isMatchLocked),
             market: "1X2",
             marketLabel: "1X2 Winner",
-            confidence: p1x2?.confidence || null,
-            rating: p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null),
+            confidence: isMatchLocked ? null : (p1x2?.confidence || null),
+            rating: isMatchLocked ? null : (p1x2?.rating ?? (p1x2?.confidence ? Number((p1x2.confidence / 10).toFixed(1)) : null)),
             isBest: is1x2Best,
           },
           goals: {
@@ -92,8 +93,8 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
             isLocked: Boolean(pGoals?.isLocked || isMatchLocked),
             market: "OVER_UNDER",
             marketLabel: "O/U Goals",
-            confidence: pGoals?.confidence || null,
-            rating: pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null,
+            confidence: isMatchLocked ? null : (pGoals?.confidence || null),
+            rating: isMatchLocked ? null : (pGoals?.rating ?? (pGoals?.confidence ? Number((pGoals.confidence / 10).toFixed(1)) : null)),
             isBest: isGoalsBest,
           },
           btts: {
@@ -102,8 +103,8 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
             isLocked: Boolean(pBtts?.isLocked || isMatchLocked),
             market: "BTTS",
             marketLabel: "Both Teams Score",
-            confidence: pBtts?.confidence || null,
-            rating: pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null,
+            confidence: isMatchLocked ? null : (pBtts?.confidence || null),
+            rating: isMatchLocked ? null : (pBtts?.rating ?? (pBtts?.confidence ? Number((pBtts.confidence / 10).toFixed(1)) : null)),
             isBest: isBttsBest,
           },
           bestTip: {
@@ -111,9 +112,9 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
             odd: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
             isLocked: Boolean(pBest?.isLocked || isMatchLocked),
             market: pBest?.market || "1X2",
-            marketLabel: bestMarketLabel,
-            confidence: pBest?.confidence || null,
-            rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5,
+            marketLabel: isMatchLocked ? "PRO Tip" : bestMarketLabel,
+            confidence: isMatchLocked ? null : (pBest?.confidence || null),
+            rating: isMatchLocked ? null : (pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5),
             isBest: true,
           },
           bestMarket,
@@ -449,7 +450,7 @@ export default function HomeMatchesFeed({
         );
         return {
           ...g,
-          matches: [...live, ...upcoming, ...finished],
+          matches: [...upcoming, ...live, ...finished],
         };
       })
       .sort((a, b) => {

@@ -76,9 +76,9 @@ function buildMatchPredictions(f: any, isMatchLocked: boolean) {
         odd: (pBest?.isLocked || isMatchLocked) ? null : (pBest?.odd ? String(pBest.odd) : p1x2?.odd ? String(p1x2.odd) : null),
         isLocked: Boolean(pBest?.isLocked || isMatchLocked),
         market: pBest?.market || "1X2",
-        marketLabel: bestMarketLabel,
-        confidence: pBest?.confidence || null,
-        rating: pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5,
+        marketLabel: isMatchLocked ? "PRO Tip" : bestMarketLabel,
+        confidence: isMatchLocked ? null : (pBest?.confidence || null),
+        rating: isMatchLocked ? null : (pBest?.confidence ? Number((pBest.confidence / 10).toFixed(1)) : 8.5),
         isBest: true,
       },
       bestMarket,
@@ -258,16 +258,21 @@ router.get("/", async (req: Request, res: Response) => {
       // Past days (yesterday d=-1 or past date) are completely free so visitors can verify track record and results
       const isPastDay = d === "-1" || parseInt(d, 10) < 0;
 
-      // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT unlocked for today)
+      // Apply subscription tier lock (free users get first FREE_DAILY_TIPS_LIMIT pre-match tips unlocked for today)
       convertedMatches = filtered.map((m, idx) => {
-        const isFreeTip = idx < FREE_DAILY_TIPS_LIMIT;
-        const isLocked = !isPastDay && !isPremiumUser && !isFreeTip;
+        const isLiveMatch = Boolean(m.isLive || m.status === "live" || m.status === "LIVE");
+        const isFreeTip = !isLiveMatch && idx < FREE_DAILY_TIPS_LIMIT;
+        const isLocked = !isPastDay && !isPremiumUser && (!isFreeTip || isLiveMatch || Boolean(m.isLocked) || Boolean((m as any).isPremium));
+        const lockReason = isLocked ? (isLiveMatch ? "live_kickoff_locked" : "free_limit_reached") : null;
         return {
           ...m,
           isFreeTip,
           freeTipIndex: isFreeTip ? idx : undefined,
           isLocked,
-          lockReason: isLocked ? "free_limit_reached" : null,
+          lockReason,
+          rating: isLocked ? null : m.rating,
+          confidence: isLocked ? null : m.confidence,
+          odds: isLocked ? { home: null, draw: null, away: null } : m.odds,
           predictions: {
             ...m.predictions,
             pickScore: {
@@ -292,6 +297,8 @@ router.get("/", async (req: Request, res: Response) => {
               ...m.predictions?.bestTip,
               pick: isLocked ? null : m.predictions?.bestTip?.pick,
               odd: isLocked ? null : m.predictions?.bestTip?.odd,
+              marketLabel: isLocked ? "PRO Tip" : m.predictions?.bestTip?.marketLabel,
+              rating: isLocked ? null : m.predictions?.bestTip?.rating,
               isLocked,
             },
             isLocked,
@@ -334,7 +341,7 @@ router.get("/", async (req: Request, res: Response) => {
           isLocked: isMatchLocked,
           lockReason,
           freeTipIndex: idx,
-          odds: {
+          odds: isMatchLocked ? { home: null, draw: null, away: null } : {
             home: f.odds?.home ? String(f.odds.home) : "1.75",
             draw: f.odds?.draw ? String(f.odds.draw) : "3.50",
             away: f.odds?.away ? String(f.odds.away) : "4.20",

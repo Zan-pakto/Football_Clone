@@ -1281,21 +1281,51 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
                           <Link
                             href="/pricing"
                             style={{
-                              padding: "6px 10px",
-                              borderRadius: 6,
-                              background: "rgba(255, 176, 32, 0.15)",
-                              border: "1px solid rgba(255, 176, 32, 0.4)",
-                              color: "#ffb020",
-                              fontSize: 11,
-                              fontWeight: 800,
-                              textDecoration: "none",
+                              position: "relative",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
+                              justifyContent: "center",
+                              padding: "5px 12px",
+                              borderRadius: 7,
+                              background: "rgba(255, 176, 32, 0.12)",
+                              border: "1px solid rgba(255, 176, 32, 0.38)",
+                              overflow: "hidden",
+                              backdropFilter: "blur(6px)",
+                              WebkitBackdropFilter: "blur(6px)",
+                              textDecoration: "none",
                             }}
                           >
-                            <Lock size={11} />
-                            <span>PRO</span>
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 900,
+                                color: "#ffffff",
+                                filter: "blur(3.5px)",
+                                opacity: 0.35,
+                                userSelect: "none",
+                              }}
+                            >
+                              1X @1.80
+                            </span>
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 4,
+                                fontSize: 10,
+                                fontWeight: 900,
+                                color: "#ffb020",
+                                letterSpacing: "0.04em",
+                                background: "rgba(11, 9, 31, 0.35)",
+                              }}
+                            >
+                              <Lock size={9} color="#ffb020" />
+                              <span>PRO</span>
+                            </div>
                           </Link>
                         ) : (
                           <>
