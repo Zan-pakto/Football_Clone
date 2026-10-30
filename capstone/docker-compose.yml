@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # 1. MediaMTX RTSP Server for live drone/helmet video feeds
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: aegis-mediamtx
+    ports:
+      - "8554:8554"   # RTSP
+      - "1935:1935"   # RTMP
+      - "8888:8888"   # HLS
+      - "8889:8889"   # WebRTC
+    volumes:
+      - ./simulator/mediamtx.yml:/mediamtx.yml:ro
+    restart: unless-stopped
+
+  # 2. Redis Real-time State & Alert Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # 3. PostgreSQL + PostGIS for spatial floorplans and survivor logs
+  postgis:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: aegis-postgis
+    environment:
+      POSTGRES_USER: rescue_admin
+      POSTGRES_PASSWORD: rescue_secret_password
+      POSTGRES_DB: aegis_rescue_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # 4. AI De-Smoking & Detection Microservice (Python FastAPI)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: aegis-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_DEVICE=cpu
+      - MODEL_CONFIDENCE=0.55
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # 5. Streaming & Ingestion Backend Gateway (Node.js TypeScript Fastify)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aegis-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_SERVICE_URL=http://ai-service:8000
+      - RTSP_STREAM_URL=rtsp://mediamtx:8554/live
+    depends_on:
+      - redis
+      - postgis
+      - ai-service
+      - mediamtx
+    restart: unless-stopped
+
+  # 6. Tactical Command Web Dashboard (Next.js 15)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aegis-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_HTTP_URL=http://localhost:4000
+      - NEXT_PUBLIC_BACKEND_WS_URL=ws://localhost:4000/ws/live
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgis_data:

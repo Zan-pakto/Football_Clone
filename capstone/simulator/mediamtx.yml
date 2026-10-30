@@ -1,0 +1,8 @@
+# MediaMTX Configuration for Aegis-Vision Drone Simulator
+# Listens on RTSP port 8554 and WebRTC port 8889
+
+paths:
+  live:
+    source: publisher
+    runOnInit: ""
+    runOnInitRestart: no
