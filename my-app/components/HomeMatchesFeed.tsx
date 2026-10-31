@@ -709,7 +709,7 @@ export default function HomeMatchesFeed({
                     lineHeight: 1.25,
                   }}
                 >
-                  Unlock <span style={{ color: "#ffd700" }}>{remainingLockedCount}+ Remaining Matches</span> Today with VIP Pro
+                  Unlock <span style={{ color: "#ffd700" }}>{remainingLockedCount}+ Remaining Matches</span> Today with Premium Pro
                 </h3>
 
                 {/* Subtext */}
@@ -721,7 +721,7 @@ export default function HomeMatchesFeed({
                     lineHeight: 1.5,
                   }}
                 >
-                  You have viewed all 10 free AI quantitative tips for today. Upgrade to VIP Pro to instantly unlock every match, live algorithmic banker picks, and real-time Telegram bot alerts.
+                  You have viewed all 10 free AI quantitative tips for today. Upgrade to Premium Pro to instantly unlock every match, live algorithmic banker picks, and real-time Telegram bot alerts.
                 </p>
 
                 {/* Features pill grid */}
@@ -836,7 +836,7 @@ export default function HomeMatchesFeed({
                     }}
                   >
                     <Crown size={17} color="#0a081d" />
-                    <span>Get VIP Pro Access — $19.99/mo</span>
+                    <span>Get Premium Pro Access — $9.99/mo</span>
                     <ArrowRight size={15} color="#0a081d" />
                   </Link>
 

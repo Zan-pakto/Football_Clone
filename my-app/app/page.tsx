@@ -188,7 +188,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <p className={feedStyles.sectionDescription}>
-              Top 10 mathematically graded quantitative tips for today • VIP Pro unlocks all {totalMatches > 0 ? `${totalMatches}+ ` : ""}matches
+              Top 10 mathematically graded quantitative tips for today • Premium Pro unlocks all {totalMatches > 0 ? `${totalMatches}+ ` : ""}matches
             </p>
           </div>
 
