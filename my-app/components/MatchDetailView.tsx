@@ -18,6 +18,10 @@ import {
   BarChart2,
   Calendar,
   Clock,
+  FileText,
+  Copy,
+  CheckCheck,
+  Sparkles,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import { formatMatchKickoff, formatDisplayOdd } from "@/lib/utils";
@@ -28,8 +32,9 @@ interface MatchDetailViewProps {
 
 export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
   const [activeTab, setActiveTab] = useState<
-    "tips" | "statistics" | "form" | "h2h" | "recent-matches" | "standings"
+    "tips" | "summary" | "statistics" | "form" | "h2h" | "recent-matches" | "standings"
   >("tips");
+  const [copiedSummary, setCopiedSummary] = useState(false);
   const [showBestTipExpl, setShowBestTipExpl] = useState(false);
   const [recentFilter, setRecentFilter] = useState<"all" | "home" | "away">("all");
   const [periodFilter, setPeriodFilter] = useState<"ft" | "ht">("ft");
@@ -259,6 +264,112 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
         behavior: "smooth",
       });
     }
+  };
+
+  // ── Match Prediction Text Summary (Plain Text) ──
+  const predictionSummary = useMemo(() => {
+    // 1. Prioritize explicit editorial/scraped summary if supplied
+    const explicitSummary =
+      fixture?.summary ||
+      matchDetails?.summary ||
+      matchDetails?.predictionSummary ||
+      fixture?.analysis ||
+      matchDetails?.analysis;
+    if (explicitSummary && typeof explicitSummary === "string" && explicitSummary.trim()) {
+      return explicitSummary.trim();
+    }
+
+    const home = hero.homeTeam.name || "Home Team";
+    const away = hero.awayTeam.name || "Away Team";
+    const league = hero.leagueName ? `${hero.leagueName}` : "this competition";
+
+    // 2. Extract best tip & individual market picks
+    const best = tips.bestTip;
+    const p1x2 = tips.cards?.find((c: any) => /1x2/i.test(c.title || ""));
+    const pGoals = tips.cards?.find((c: any) => /goal/i.test(c.title || ""));
+    const pBtts = tips.cards?.find((c: any) => /both|btts/i.test(c.title || ""));
+    const pScore = tips.cards?.find((c: any) => /correct score/i.test(c.title || ""));
+    const pBuilder = tips.cards?.find((c: any) => /builder/i.test(c.title || ""));
+
+    const pick = best?.pick || p1x2?.pick || "1";
+    const odd = best?.odd || p1x2?.odd || "1.85";
+    const confidence = best?.confidence || p1x2?.confidence || "7.5/10";
+    const cleanConf = confidence.replace(/\/10/, "").trim();
+
+    // Winner prediction interpretation
+    let winnerText = "";
+    if (pick === "1" || /home/i.test(pick)) {
+      winnerText = `${home} hold the statistical advantage playing on home ground and are backed to secure maximum points (Home Win - 1)`;
+    } else if (pick === "2" || /away/i.test(pick)) {
+      winnerText = `${away} arrive in superior tactical form and are tipped to claim an away victory (Away Win - 2)`;
+    } else if (pick === "X" || /draw|tie/i.test(pick)) {
+      winnerText = `A closely matched tactical contest is projected with neither side giving much away, pointing towards a draw (X)`;
+    } else if (pick === "1X") {
+      winnerText = `${home} are favored to avoid defeat in this fixture with a 1X Double Chance selection`;
+    } else if (pick === "X2") {
+      winnerText = `${away} are favored to avoid defeat with an X2 Double Chance selection`;
+    } else {
+      winnerText = `Our prediction engine identifies strong value on "${pick}"`;
+    }
+
+    // Goals & BTTS expectation
+    let goalsText = "";
+    const gPick = pGoals?.pick;
+    const bPick = pBtts?.pick;
+    if (gPick && bPick) {
+      goalsText = `In the goalscoring markets, the analytics suggest ${gPick} with both teams finding the net projected as "${bPick}".`;
+    } else if (gPick) {
+      goalsText = `Regarding game tempo, the model indicates a trend towards ${gPick} total goals.`;
+    } else {
+      goalsText = `A moderate goal environment is anticipated based on recent conversion rates.`;
+    }
+
+    // Form insights
+    let formText = "";
+    const homeForm = recentMatches?.home?.form?.filter(Boolean) || [];
+    const awayForm = recentMatches?.away?.form?.filter(Boolean) || [];
+    if (homeForm.length > 0 && awayForm.length > 0) {
+      const homeWins = homeForm.filter((f: string) => f === "W").length;
+      const awayWins = awayForm.filter((f: string) => f === "W").length;
+      formText = `${home} have picked up ${homeWins} win${homeWins === 1 ? "" : "s"} across their last ${homeForm.length} matches (${homeForm.join("-")}), while ${away} have recorded ${awayWins} win${awayWins === 1 ? "" : "s"} in their previous ${awayForm.length} outings (${awayForm.join("-")}).`;
+    }
+
+    // Underlying stats (xG or goals scored)
+    let statsText = "";
+    const xg = statistics?.find((s: any) => /xg|expected/i.test(s.label || ""));
+    const scored = statistics?.find((s: any) => /goals scored/i.test(s.label || ""));
+    const conceded = statistics?.find((s: any) => /goals against/i.test(s.label || ""));
+    if (xg && scored) {
+      statsText = `${home} are generating an average of ${scored.home} goals per game (xG: ${xg.home}), while ${away} produce ${scored.away} goals per game (xG: ${xg.away}).`;
+    } else if (scored && conceded) {
+      statsText = `${home} score an average of ${scored.home} and concede ${conceded.home}, whereas ${away} score ${scored.away} and concede ${conceded.away}.`;
+    }
+
+    // Projected Scoreline
+    let scoreText = "";
+    if (pScore?.score?.home !== undefined && pScore?.score?.away !== undefined) {
+      scoreText = `The most probable exact scoreline according to the simulation is ${pScore.score.home}-${pScore.score.away}.`;
+    }
+
+    // Bet Builder recommendation
+    let builderText = "";
+    if (pBuilder?.pick) {
+      builderText = `For higher return multiples, the recommended Bet Builder combination is "${pBuilder.pick}".`;
+    }
+
+    // Summary conclusion
+    const p1 = `${home} face ${away} in ${league}. ${winnerText}, carrying an AI confidence rating of ${cleanConf}/10 at odds of ${odd}.`;
+    const p2 = [formText, statsText].filter(Boolean).join(" ");
+    const p3 = [goalsText, scoreText, builderText].filter(Boolean).join(" ");
+
+    return [p1, p2, p3].filter(Boolean).join("\n\n");
+  }, [matchDetails, fixture, hero, tips, statistics, recentMatches]);
+
+  const handleCopySummary = () => {
+    if (!predictionSummary) return;
+    navigator.clipboard.writeText(predictionSummary);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2200);
   };
 
   return (
@@ -642,6 +753,7 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
       >
         {[
           { id: "tips", label: "Match Tips" },
+          { id: "summary", label: "Match Summary" },
           { id: "statistics", label: "Statistics" },
           { id: "form", label: "Form" },
           { id: "h2h", label: "H2H" },
@@ -909,6 +1021,210 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* ── 4b. Section #summary (Match Prediction Plain Text Summary) ── */}
+      <section id="summary" style={{ marginBottom: 40 }}>
+        {/* Section Title Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: "rgba(139, 92, 246, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#a78bfa",
+              }}
+            >
+              <FileText size={16} />
+            </span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+              Match Prediction Summary
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                background: "rgba(139, 92, 246, 0.14)",
+                border: "1px solid rgba(167, 139, 250, 0.3)",
+                borderRadius: 999,
+                padding: "3px 10px",
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#c4b5fd",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                letterSpacing: 0.5,
+              }}
+            >
+              <Sparkles size={12} />
+              AI Intel
+            </span>
+
+            <button
+              onClick={handleCopySummary}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                background: copiedSummary ? "rgba(47, 208, 138, 0.18)" : "rgba(161, 152, 247, 0.1)",
+                border: copiedSummary ? "1px solid rgba(47, 208, 138, 0.4)" : "1px solid rgba(161, 152, 247, 0.2)",
+                color: copiedSummary ? "#2fd08a" : "#c4b5fd",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title="Copy plain text summary to clipboard"
+            >
+              {copiedSummary ? <CheckCheck size={14} /> : <Copy size={14} />}
+              <span>{copiedSummary ? "Copied!" : "Copy Summary"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Card Body */}
+        <div
+          style={{
+            background: "rgba(18, 14, 42, 0.6)",
+            border: "1px solid rgba(161, 152, 247, 0.12)",
+            borderRadius: 16,
+            padding: "20px 24px",
+            overflow: "hidden",
+          }}
+        >
+          {/* Quick Key Takeaways Row */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              paddingBottom: 16,
+              marginBottom: 16,
+              borderBottom: "1px solid rgba(161, 152, 247, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(124, 108, 245, 0.14)",
+                border: "1px solid rgba(124, 108, 245, 0.25)",
+                borderRadius: 8,
+                padding: "5px 11px",
+                fontSize: 12,
+                color: "#e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span style={{ color: "#a78bfa", fontWeight: 700 }}>Top Pick:</span>
+              <strong style={{ color: "#2fd08a" }}>{tips.bestTip?.pick || "1"}</strong>
+              {tips.bestTip?.odd && <span style={{ color: "#94a3b8" }}>@{tips.bestTip.odd}</span>}
+            </div>
+
+            {tips.cards?.find((c: any) => /goal/i.test(c.title || ""))?.pick && (
+              <div
+                style={{
+                  background: "rgba(124, 108, 245, 0.14)",
+                  border: "1px solid rgba(124, 108, 245, 0.25)",
+                  borderRadius: 8,
+                  padding: "5px 11px",
+                  fontSize: 12,
+                  color: "#e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ color: "#a78bfa", fontWeight: 700 }}>Goals:</span>
+                <strong style={{ color: "#ffffff" }}>
+                  {tips.cards?.find((c: any) => /goal/i.test(c.title || ""))?.pick}
+                </strong>
+              </div>
+            )}
+
+            {tips.cards?.find((c: any) => /both|btts/i.test(c.title || ""))?.pick && (
+              <div
+                style={{
+                  background: "rgba(124, 108, 245, 0.14)",
+                  border: "1px solid rgba(124, 108, 245, 0.25)",
+                  borderRadius: 8,
+                  padding: "5px 11px",
+                  fontSize: 12,
+                  color: "#e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ color: "#a78bfa", fontWeight: 700 }}>BTTS:</span>
+                <strong style={{ color: "#ffffff" }}>
+                  {tips.cards?.find((c: any) => /both|btts/i.test(c.title || ""))?.pick}
+                </strong>
+              </div>
+            )}
+
+            {tips.cards?.find((c: any) => /correct score/i.test(c.title || ""))?.score && (
+              <div
+                style={{
+                  background: "rgba(124, 108, 245, 0.14)",
+                  border: "1px solid rgba(124, 108, 245, 0.25)",
+                  borderRadius: 8,
+                  padding: "5px 11px",
+                  fontSize: 12,
+                  color: "#e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ color: "#a78bfa", fontWeight: 700 }}>Expected Score:</span>
+                <strong style={{ color: "#38bdf8" }}>
+                  {tips.cards.find((c: any) => /correct score/i.test(c.title || ""))?.score?.home}-
+                  {tips.cards.find((c: any) => /correct score/i.test(c.title || ""))?.score?.away}
+                </strong>
+              </div>
+            )}
+          </div>
+
+          {/* Plain Text Body */}
+          <div
+            style={{
+              fontSize: 14.5,
+              lineHeight: 1.85,
+              color: "#d1d5db",
+            }}
+          >
+            {predictionSummary.split("\n\n").map((para, idx) => (
+              <p
+                key={idx}
+                style={{
+                  margin: idx === 0 ? "0 0 14px 0" : "14px 0",
+                  color: idx === 0 ? "#f3f4f6" : "#cbd5e1",
+                }}
+              >
+                {para}
+              </p>
+            ))}
+          </div>
         </div>
       </section>
 
