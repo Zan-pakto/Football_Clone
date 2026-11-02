@@ -23,6 +23,8 @@ import {
   Image as ImageIcon,
   Lock,
   Crown,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import { Rollover, RolloverType, RolloverStatus } from "@/lib/types";
 
@@ -32,6 +34,7 @@ export default function RolloversPage() {
   const [rollovers, setRollovers] = useState<Rollover[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
 
   // Check VIP Pro status
@@ -574,25 +577,36 @@ export default function RolloversPage() {
                           )
                         )}
 
-                        {/* Slip indicator badge */}
+                        {/* Slip indicator badge (with lightbox preview) */}
                         {rollover.imageUrl && (
-                          <span
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (isVipPro) {
+                                setLightboxImage(rollover.imageUrl!);
+                              }
+                            }}
+                            title={isVipPro ? "Click to view full game ticket slip" : "Game slip reserved for VIP Pro"}
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
-                              padding: "3px 8px",
+                              gap: 5,
+                              padding: "3px 9px",
                               borderRadius: 6,
                               fontSize: 10,
                               fontWeight: 800,
                               background: "rgba(124, 108, 245, 0.18)",
                               color: "#a79fff",
                               border: "1px solid rgba(124, 108, 245, 0.35)",
+                              cursor: isVipPro ? "pointer" : "default",
                             }}
                           >
                             <ImageIcon size={11} />
                             <span>Slip Attached</span>
-                          </span>
+                            {isVipPro && <ZoomIn size={11} />}
+                          </button>
                         )}
                       </div>
 
@@ -600,6 +614,30 @@ export default function RolloversPage() {
                         <p style={{ fontSize: 13, color: "var(--text-dim)", margin: "4px 0 0" }}>
                           {rollover.description}
                         </p>
+                      )}
+
+                      {/* Instructions & Staking Advice from Backend */}
+                      {rollover.instructions && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            padding: "10px 14px",
+                            borderRadius: 8,
+                            background: "rgba(124, 108, 245, 0.08)",
+                            border: "1px solid rgba(124, 108, 245, 0.22)",
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 8,
+                            fontSize: 12.5,
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          <Info size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 2 }} />
+                          <div style={{ lineHeight: 1.5 }}>
+                            <strong style={{ color: "var(--gold)", marginRight: 5 }}>Instructions:</strong>
+                            <span>{rollover.instructions}</span>
+                          </div>
+                        </div>
                       )}
                     </div>
 
@@ -999,6 +1037,85 @@ export default function RolloversPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Lightbox Image Modal for Game Ticket Slip ── */}
+      {lightboxImage && (
+        <div
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0, 0, 0, 0.88)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            cursor: "zoom-out",
+            animation: "fadeIn 0.2s ease-out",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              maxWidth: 720,
+              maxHeight: "90vh",
+              background: "#100d28",
+              borderRadius: 16,
+              border: "1px solid rgba(232, 195, 74, 0.5)",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.8)",
+              overflow: "hidden",
+              cursor: "default",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 18px",
+                borderBottom: "1px solid rgba(161, 152, 247, 0.15)",
+                background: "rgba(232, 195, 74, 0.08)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Ticket size={16} color="var(--gold)" />
+                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--gold)" }}>
+                  Verified Game Ticket Slip
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  padding: 4,
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ padding: 12, display: "flex", justifyContent: "center", maxHeight: "calc(90vh - 60px)", overflow: "auto" }}>
+              <img
+                src={lightboxImage}
+                alt="Ticket slip full preview"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "75vh",
+                  objectFit: "contain",
+                  borderRadius: 8,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

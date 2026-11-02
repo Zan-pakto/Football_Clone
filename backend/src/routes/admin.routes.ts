@@ -204,10 +204,15 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     if (action === "generate_ai_rollover") {
-      const { targetSteps, startingAmount } = body;
+      const { targetSteps, startingAmount, instructions, imageUrl, bookingCode } = body;
       const generated = await rolloverService.generateAIRollover(
         targetSteps ? Number(targetSteps) : 5,
-        startingAmount ? Number(startingAmount) : 500
+        startingAmount ? Number(startingAmount) : 500,
+        {
+          instructions: instructions ? String(instructions).trim() : null,
+          imageUrl: imageUrl ? String(imageUrl).trim() : null,
+          bookingCode: bookingCode ? String(bookingCode).trim() : null,
+        }
       );
       return res.json({ success: true, message: "AI Rollover plan generated successfully", rollover: generated });
     }

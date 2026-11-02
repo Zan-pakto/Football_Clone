@@ -91,6 +91,14 @@ export default function AdminDashboardPage() {
   const [createRollLoading, setCreateRollLoading] = useState(false);
   const [generateAiLoading, setGenerateAiLoading] = useState(false);
 
+  // AI Rollover Generation modal state
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiRollSteps, setAiRollSteps] = useState("5");
+  const [aiRollStart, setAiRollStart] = useState("500");
+  const [aiRollInstructions, setAiRollInstructions] = useState("");
+  const [aiRollBookingCode, setAiRollBookingCode] = useState("");
+  const [aiRollImageUrl, setAiRollImageUrl] = useState("");
+
   // Edit Rollover Details state (for expanded card)
   const [editBookingCode, setEditBookingCode] = useState("");
   const [editInstructions, setEditInstructions] = useState("");
@@ -404,7 +412,8 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleGenerateAiRollover = async () => {
+  const handleGenerateAiRollover = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     try {
       setGenerateAiLoading(true);
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
@@ -419,8 +428,11 @@ export default function AdminDashboardPage() {
         credentials: "include",
         body: JSON.stringify({
           action: "generate_ai_rollover",
-          targetSteps: 5,
-          startingAmount: 500,
+          targetSteps: Number(aiRollSteps) || 5,
+          startingAmount: Number(aiRollStart) || 500,
+          instructions: aiRollInstructions.trim() || null,
+          bookingCode: aiRollBookingCode.trim() || null,
+          imageUrl: aiRollImageUrl.trim() || null,
         }),
       });
 
@@ -429,6 +441,13 @@ export default function AdminDashboardPage() {
         showToast(`AI Rollover generated: ${json.rollover.name}!`);
         setRollovers((prev) => [json.rollover, ...prev]);
         setExpandedRolloverId(json.rollover.id);
+        setEditBookingCode(json.rollover.bookingCode || "");
+        setEditInstructions(json.rollover.instructions || "");
+        setEditImageUrl(json.rollover.imageUrl || "");
+        setShowAiModal(false);
+        setAiRollInstructions("");
+        setAiRollBookingCode("");
+        setAiRollImageUrl("");
       } else {
         showToast(json.error || "Failed to generate AI rollover", "error");
       }
@@ -1227,7 +1246,7 @@ export default function AdminDashboardPage() {
                     </button>
 
                     <button
-                      onClick={handleGenerateAiRollover}
+                      onClick={() => setShowAiModal(true)}
                       disabled={generateAiLoading}
                       style={{
                         display: "inline-flex",
@@ -1619,6 +1638,282 @@ export default function AdminDashboardPage() {
                           style={{ padding: "10px 22px", fontSize: 13 }}
                         >
                           {createRollLoading ? "Creating..." : "Save & Add Games"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* AI Rollover Generation Modal */}
+                {showAiModal && (
+                  <div
+                    style={{
+                      marginBottom: 24,
+                      padding: "24px",
+                      borderRadius: 14,
+                      background: "var(--surface-raised)",
+                      border: "1px solid rgba(124, 108, 245, 0.45)",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                      animation: "fadeIn 0.2s ease-out",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                      <div>
+                        <h3 style={{ fontSize: 17, fontWeight: 900, color: "var(--gold)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                          <Sparkles size={18} />
+                          <span>Generate AI Expert Rollover</span>
+                        </h3>
+                        <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "4px 0 0" }}>
+                          Auto-curate high probability banker fixtures with custom staking instructions and ticket slips
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowAiModal(false)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--text-dim)",
+                          cursor: "pointer",
+                          fontSize: 16,
+                          fontWeight: 800,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleGenerateAiRollover} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                            Starting Stake (₦)
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="100"
+                            value={aiRollStart}
+                            onChange={(e) => setAiRollStart(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 8,
+                              background: "var(--surface)",
+                              border: "1px solid var(--border-color)",
+                              color: "var(--text-primary)",
+                              fontSize: 13,
+                              outline: "none",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                            Target Steps
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="2"
+                            max="10"
+                            value={aiRollSteps}
+                            onChange={(e) => setAiRollSteps(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              borderRadius: 8,
+                              background: "var(--surface)",
+                              border: "1px solid var(--border-color)",
+                              color: "var(--text-primary)",
+                              fontSize: 13,
+                              outline: "none",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Instructions & Staking Advice (Textbox) */}
+                      <div>
+                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--gold)", marginBottom: 6 }}>
+                          Instructions & Staking Advice (From Backend)
+                        </label>
+                        <textarea
+                          rows={3}
+                          placeholder="e.g. Follow each step sequentially. Stake the full accumulated return each round. Target odds 1.40 - 1.65..."
+                          value={aiRollInstructions}
+                          onChange={(e) => setAiRollInstructions(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: 8,
+                            background: "var(--surface)",
+                            border: "1px solid rgba(124, 108, 245, 0.4)",
+                            color: "var(--text-primary)",
+                            fontSize: 13,
+                            outline: "none",
+                            resize: "vertical",
+                            lineHeight: 1.6,
+                          }}
+                        />
+                      </div>
+
+                      {/* Optional Booking Code & Slip Upload */}
+                      <div
+                        style={{
+                          padding: "16px",
+                          borderRadius: 10,
+                          background: "var(--surface)",
+                          border: "1px dashed rgba(124, 108, 245, 0.35)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 14,
+                        }}
+                      >
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                              Booking Code (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. SportyBet: 5K89A"
+                              value={aiRollBookingCode}
+                              onChange={(e) => setAiRollBookingCode(e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                borderRadius: 8,
+                                background: "var(--surface-raised)",
+                                border: "1px solid var(--border-color)",
+                                color: "var(--gold)",
+                                fontFamily: "monospace",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                outline: "none",
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                              Booked Game Ticket Slip (Image Upload or URL)
+                            </label>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <input
+                                type="text"
+                                placeholder="Paste image URL or choose file →"
+                                value={aiRollImageUrl}
+                                onChange={(e) => setAiRollImageUrl(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: "10px 14px",
+                                  borderRadius: 8,
+                                  background: "var(--surface-raised)",
+                                  border: "1px solid var(--border-color)",
+                                  color: "var(--text-primary)",
+                                  fontSize: 12,
+                                  outline: "none",
+                                }}
+                              />
+                              <label
+                                style={{
+                                  padding: "8px 14px",
+                                  borderRadius: 8,
+                                  background: "rgba(124, 108, 245, 0.15)",
+                                  border: "1px solid rgba(124, 108, 245, 0.35)",
+                                  color: "#8b7ff5",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <UploadCloud size={14} />
+                                <span>Upload Slip</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: "none" }}
+                                  onChange={(e) => handleImageFileChange(e, setAiRollImageUrl)}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {aiRollImageUrl && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                            <div
+                              style={{
+                                width: 80,
+                                height: 80,
+                                borderRadius: 8,
+                                overflow: "hidden",
+                                border: "1px solid var(--gold)",
+                                background: "#000",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <img
+                                src={aiRollImageUrl}
+                                alt="AI Slip preview"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "#2fd08a" }}>
+                                ✓ Booked Game Slip attached
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setAiRollImageUrl("")}
+                                style={{
+                                  background: "transparent",
+                                  border: "none",
+                                  color: "#fb7185",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: 0,
+                                }}
+                              >
+                                <X size={12} /> Remove Slip
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAiModal(false)}
+                          style={{
+                            padding: "10px 18px",
+                            borderRadius: 8,
+                            background: "transparent",
+                            border: "1px solid var(--border-color)",
+                            color: "var(--text-secondary)",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={generateAiLoading}
+                          className="gold-btn"
+                          style={{ padding: "10px 22px", fontSize: 13 }}
+                        >
+                          {generateAiLoading ? "Generating AI Plan..." : "Generate AI Rollover with Instructions"}
                         </button>
                       </div>
                     </form>
@@ -2290,6 +2585,30 @@ export default function AdminDashboardPage() {
                                           />
                                         </label>
                                       </div>
+                                    </div>
+
+                                    {/* Step Instructions Text Box */}
+                                    <div style={{ gridColumn: "1 / -1" }}>
+                                      <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-dim)", marginBottom: 4 }}>
+                                        Step Instructions & Staking Advice (Optional)
+                                      </label>
+                                      <textarea
+                                        rows={2}
+                                        placeholder="e.g. Stake accumulated balance on this pick. Avoid cashout until final whistle."
+                                        value={addStepInstructions}
+                                        onChange={(e) => setAddStepInstructions(e.target.value)}
+                                        style={{
+                                          width: "100%",
+                                          padding: "8px 12px",
+                                          borderRadius: 6,
+                                          background: "var(--surface-raised)",
+                                          border: "1px solid var(--border-color)",
+                                          color: "var(--text-primary)",
+                                          fontSize: 12,
+                                          outline: "none",
+                                          resize: "vertical",
+                                        }}
+                                      />
                                     </div>
                                   </div>
 

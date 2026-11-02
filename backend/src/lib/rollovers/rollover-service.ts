@@ -691,7 +691,15 @@ export class RolloverService {
   /**
    * Generate an automated AI Rollover plan using high-confidence fixture predictions
    */
-  async generateAIRollover(targetSteps = 5, startingAmount = 500): Promise<Rollover> {
+  async generateAIRollover(
+    targetSteps = 5,
+    startingAmount = 500,
+    meta?: {
+      instructions?: string | null;
+      imageUrl?: string | null;
+      bookingCode?: string | null;
+    }
+  ): Promise<Rollover> {
     // 1. Query today/tomorrow fixtures
     let candidateMatches: any[] = [];
     try {
@@ -747,6 +755,9 @@ export class RolloverService {
       targetSteps,
       description: "Automated high-probability progression plan curated by Jolloftips AI Confidence Engine.",
       isPublished: true,
+      bookingCode: meta?.bookingCode || null,
+      instructions: meta?.instructions || null,
+      imageUrl: meta?.imageUrl || null,
     });
 
     // Add steps
