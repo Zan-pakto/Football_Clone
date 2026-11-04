@@ -36,10 +36,26 @@ export class NerdyTipsAuthService {
     }
   }
 
+  private cachedCookieHeader: string | null = null;
+
   /**
-   * Log in to NerdyTips with configured or provided credentials
+   * Log in to NerdyTips with configured or provided credentials, or use static session cookie
    */
   async login(username?: string, password?: string): Promise<NerdyTipsAuthResult> {
+    // 1. Direct Session Cookie Override (Bypasses device limits completely)
+    const staticCookie = process.env.NERDYTIPS_COOKIE || process.env.NERDYTIPS_SESSION;
+    if (staticCookie && staticCookie.trim().length > 0) {
+      const formattedCookie = staticCookie.trim().startsWith("nt_sess=")
+        ? staticCookie.trim()
+        : `nt_sess=${staticCookie.trim()}`;
+      return { isAuthenticated: true, cookieHeader: formattedCookie };
+    }
+
+    // 2. Reuse active cached session if available
+    if (this.cachedCookieHeader) {
+      return { isAuthenticated: true, cookieHeader: this.cachedCookieHeader };
+    }
+
     const user = username || process.env.NERDYTIPS_USERNAME;
     const pass = password || process.env.NERDYTIPS_PASSWORD;
 
@@ -75,15 +91,35 @@ export class NerdyTipsAuthService {
         redirect: "manual", // Capture 302 redirect response with auth cookie
       });
 
+      const resText = await res.text();
+
+      // Check for specific NerdyTips auth rejection responses
+      if (resText.includes("device limit") || /device\s+limit/i.test(resText)) {
+        console.error("[NerdyTipsAuth] Login blocked: NerdyTips account reached device limit. Please reset devices via email or provide NERDYTIPS_COOKIE in .env.");
+        return { isAuthenticated: false, cookieHeader: null, error: "Device limit reached on NerdyTips" };
+      }
+
+      if (resText.includes("Invalid username or password")) {
+        console.error("[NerdyTipsAuth] Login failed: Invalid username or password.");
+        return { isAuthenticated: false, cookieHeader: null, error: "Invalid credentials" };
+      }
+
       // Look for updated auth cookie in set-cookie headers
       const setCookieHeader = res.headers.get("set-cookie") || "";
       const authCookieMatch = setCookieHeader.match(/nt_sess=([^;]+)/);
-      const sessionCookie = authCookieMatch ? `nt_sess=${authCookieMatch[1]}` : initialCookie;
 
-      const isRedirectSuccess = res.status === 302 || res.status === 200;
-      if (isRedirectSuccess && sessionCookie) {
+      // Successful login must redirect (302) or provide a fresh authenticated session cookie
+      if ((res.status === 302 || res.status === 303) && authCookieMatch) {
+        const sessionCookie = `nt_sess=${authCookieMatch[1]}`;
+        this.cachedCookieHeader = sessionCookie;
         console.log("[NerdyTipsAuth] Successfully authenticated with NerdyTips.");
         return { isAuthenticated: true, cookieHeader: sessionCookie };
+      }
+
+      if (res.status === 302 && initialCookie) {
+        this.cachedCookieHeader = initialCookie;
+        console.log("[NerdyTipsAuth] Authenticated via session redirect.");
+        return { isAuthenticated: true, cookieHeader: initialCookie };
       }
 
       console.warn(`[NerdyTipsAuth] Login returned HTTP ${res.status}. Falling back to unauthenticated.`);

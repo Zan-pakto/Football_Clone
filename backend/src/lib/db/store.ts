@@ -50,7 +50,8 @@ class MatchStore {
       const teamCache = new Map<string, string>();
       const leagueCache = new Map<string, string>();
 
-      const BATCH_SIZE = 15;
+      // Process in smaller batches of 4 to prevent Prisma connection pool timeouts
+      const BATCH_SIZE = 4;
       for (let i = 0; i < matches.length; i += BATCH_SIZE) {
         const batch = matches.slice(i, i + BATCH_SIZE);
         await Promise.allSettled(

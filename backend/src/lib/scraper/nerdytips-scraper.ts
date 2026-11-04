@@ -655,22 +655,15 @@ export class NerdyTipsScraper {
 
     const results: Record<string, ScrapedMatch[]> = {};
 
-    try {
-      // Step 2: Fetch all requested days with the session cookie and timezone
-      for (const d of days) {
-        console.log(`[NerdyTipsScraper] Scraping day d=${d}...`);
-        const matches = await this.scrapeDay(d, authResult.cookieHeader, tz);
-        results[d] = matches;
-        console.log(`[NerdyTipsScraper] Day d=${d}: Captured ${matches.length} matches.`);
+    // Step 2: Fetch all requested days with the session cookie and timezone
+    for (const d of days) {
+      console.log(`[NerdyTipsScraper] Scraping day d=${d}...`);
+      const matches = await this.scrapeDay(d, authResult.cookieHeader, tz);
+      results[d] = matches;
+      console.log(`[NerdyTipsScraper] Day d=${d}: Captured ${matches.length} matches.`);
 
-        // 1-second delay between days to be polite
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-    } finally {
-      // Step 3: ALWAYS automatically logout to terminate the session
-      if (authResult.isAuthenticated && authResult.cookieHeader) {
-        await nerdyTipsAuth.logout(authResult.cookieHeader);
-      }
+      // 1-second delay between days to be polite
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     console.log("[NerdyTipsScraper] Sync cycle completed successfully.");
