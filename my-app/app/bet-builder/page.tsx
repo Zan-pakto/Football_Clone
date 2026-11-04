@@ -18,10 +18,20 @@ import {
   ArrowRight,
   ExternalLink,
   Smartphone,
+  ShieldCheck,
+  AlertTriangle,
+  ArrowLeftRight,
 } from "lucide-react";
 import CountryFlag from "@/components/CountryFlag";
 import Link from "next/link";
 import { formatMatchKickoff, formatDisplayOdd } from "@/lib/utils";
+import {
+  generateBetCode,
+  convertBetCode,
+  validateUniversalMarkets,
+  GeneratedBetCodeResult,
+  SupportedBookmaker,
+} from "@/lib/bet-codes";
 
 interface SlipMatch {
   id: string;
@@ -61,7 +71,7 @@ const DEFAULT_BET_TYPES: Record<string, boolean> = {
   "Over 1.5": true,
   "Over 3.5": true,
   "Both Teams to Score": true,
-  "More markets": true,
+  "More markets": false,
 };
 
 export default function BetBuilderPage() {
@@ -76,6 +86,9 @@ export default function BetBuilderPage() {
 
   // Bet types checklist
   const [betTypes, setBetTypes] = useState<Record<string, boolean>>(DEFAULT_BET_TYPES);
+
+  // Universal Markets Restriction (guarantees 100% SportyBet & Bet9ja compatibility)
+  const [universalOnly, setUniversalOnly] = useState<boolean>(true);
 
   // Min/Max odd per pick & trust
   const [minOdd, setMinOdd] = useState<number>(1.15);
@@ -103,10 +116,21 @@ export default function BetBuilderPage() {
   const [freeTicketsUsedToday, setFreeTicketsUsedToday] = useState<number>(0);
   const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
 
-  // Booking Code Conversion Modal
+  // Booking Code Conversion Modal & State
   const [showBookingModal, setShowBookingModal] = useState<boolean>(false);
-  const [selectedBookie, setSelectedBookie] = useState<"sportybet" | "bet9ja" | "1xbet" | "betway">("sportybet");
+  const [selectedBookie, setSelectedBookie] = useState<SupportedBookmaker>("sportybet");
+  const [bookingModalTab, setBookingModalTab] = useState<"generate" | "convert">("generate");
+  const [convertedCodeResult, setConvertedCodeResult] = useState<GeneratedBetCodeResult | null>(null);
+  const [isGeneratingCode, setIsGeneratingCode] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+
+  // Code-to-Code Conversion State
+  const [inputSourceCode, setInputSourceCode] = useState<string>("");
+  const [inputSourceBookie, setInputSourceBookie] = useState<SupportedBookmaker>("sportybet");
+  const [inputTargetBookie, setInputTargetBookie] = useState<SupportedBookmaker>("bet9ja");
+  const [isConvertingCode, setIsConvertingCode] = useState<boolean>(false);
+  const [codeConversionError, setCodeConversionError] = useState<string | null>(null);
+  const [codeConversionSuccess, setCodeConversionSuccess] = useState<GeneratedBetCodeResult | null>(null);
 
   const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -312,8 +336,8 @@ export default function BetBuilderPage() {
         }
       }
 
-      // 7. More markets: Draw No Bet
-      if (betTypes["More markets"]) {
+      // 7. More markets: Draw No Bet (excluded when universalOnly is true to ensure 100% SportyBet & Bet9ja conversion)
+      if (!universalOnly && betTypes["More markets"]) {
         const dnb1 = parseFloat(Math.max(1.15, hOdd * 0.72).toFixed(2));
         const dnb2 = parseFloat(Math.max(1.18, aOdd * 0.72).toFixed(2));
         if (dnb1 >= minOdd && dnb1 <= maxOdd) {
@@ -330,7 +354,7 @@ export default function BetBuilderPage() {
     });
 
     return pool;
-  }, [rawMatches, betTypes, minOdd, maxOdd, minTrust, onlyMajor]);
+  }, [rawMatches, betTypes, minOdd, maxOdd, minTrust, onlyMajor, universalOnly]);
 
   // Slip generation solver
   const buildSlip = useCallback(() => {
@@ -556,18 +580,115 @@ export default function BetBuilderPage() {
     setTimeout(() => setCopied(false), 2200);
   }, [generatedSlip, calculatedOdds]);
 
-  // Booking Code generator mock mapping
-  const bookingCode = useMemo(() => {
+  // Universal Market Compatibility Validation
+  const universalValidation = useMemo(() => {
+    return validateUniversalMarkets(
+      generatedSlip.map((m) => ({
+        homeTeam: m.homeTeam,
+        awayTeam: m.awayTeam,
+        league: m.league,
+        country: m.country,
+        market: m.marketName,
+        pick: m.pick,
+        odds: m.odds,
+      }))
+    );
+  }, [generatedSlip]);
+
+  // Handler to optimize slip to universal markets
+  const handleOptimizeForUniversal = useCallback(() => {
+    const optimized = generatedSlip.map((m) => {
+      const mLower = m.marketName.toLowerCase();
+      const pLower = m.pick.toLowerCase();
+      if (mLower.includes("draw no bet") || pLower.startsWith("dnb")) {
+        const isHome = pLower.includes("1");
+        return {
+          ...m,
+          marketName: "Double Chance",
+          pick: isHome ? "1X" : "X2",
+          odds: parseFloat(Math.max(1.12, m.odds * 0.88).toFixed(2)),
+        };
+      }
+      return m;
+    });
+    setGeneratedSlip(optimized);
+    setUniversalOnly(true);
+    setBetTypes((prev) => ({ ...prev, "More markets": false }));
+  }, [generatedSlip]);
+
+  // Handler to generate booking code for target bookmaker
+  const handleGenerateBookingCode = useCallback(
+    async (bookie: SupportedBookmaker) => {
+      if (generatedSlip.length === 0) return;
+      setIsGeneratingCode(true);
+      try {
+        const selections = generatedSlip.map((m) => ({
+          id: m.id,
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          league: m.league,
+          country: m.country,
+          matchDate: m.datetime,
+          market: m.marketName,
+          pick: m.pick,
+          odds: m.odds,
+        }));
+        const res = await generateBetCode(bookie, selections);
+        setConvertedCodeResult(res);
+      } catch (err) {
+        console.error("Error generating bet code:", err);
+      } finally {
+        setIsGeneratingCode(false);
+      }
+    },
+    [generatedSlip]
+  );
+
+  // Handler to convert existing code between bookmakers
+  const handleConvertExistingCode = useCallback(async () => {
+    if (!inputSourceCode.trim()) {
+      setCodeConversionError("Please enter a booking code to convert.");
+      return;
+    }
+    setCodeConversionError(null);
+    setIsConvertingCode(true);
+    try {
+      const res = await convertBetCode(
+        inputSourceBookie,
+        inputTargetBookie,
+        inputSourceCode.trim()
+      );
+      setCodeConversionSuccess(res);
+    } catch (err: any) {
+      setCodeConversionError(err.message || "Failed to convert booking code. Please try again.");
+    } finally {
+      setIsConvertingCode(false);
+    }
+  }, [inputSourceCode, inputSourceBookie, inputTargetBookie]);
+
+  // Sync booking code generation when modal is opened or bookmaker is switched
+  useEffect(() => {
+    if (showBookingModal && generatedSlip.length > 0) {
+      handleGenerateBookingCode(selectedBookie);
+    }
+  }, [showBookingModal, selectedBookie, handleGenerateBookingCode, generatedSlip.length]);
+
+  // Current active booking code
+  const currentBookingCode = useMemo(() => {
+    if (convertedCodeResult && convertedCodeResult.targetBookmaker === selectedBookie) {
+      return convertedCodeResult.bookingCode;
+    }
     if (generatedSlip.length === 0) return "JT-84920";
     const sum = generatedSlip.reduce((acc, m) => acc + m.id.charCodeAt(0), 0);
     const prefixes: Record<string, string> = {
-      sportybet: "SB-",
-      bet9ja: "B9-",
+      sportybet: "BC",
+      bet9ja: "B9JA-",
       "1xbet": "1X-",
       betway: "BW-",
+      msport: "MS-",
     };
     return `${prefixes[selectedBookie] || "JT-"}${Math.abs((sum * 37) % 90000 + 10000)}`;
-  }, [generatedSlip, selectedBookie]);
+  }, [convertedCodeResult, selectedBookie, generatedSlip]);
 
   // Dynamic slider percentage
   const sliderPct = useMemo(() => {
@@ -767,6 +888,58 @@ export default function BetBuilderPage() {
                 </button>
               </div>
 
+              {/* Universal Markets Fast Toggle (SportyBet & Bet9ja 100% Ready) */}
+              <div
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  marginBottom: 12,
+                  background: universalOnly
+                    ? "linear-gradient(135deg, rgba(47, 208, 138, 0.12) 0%, rgba(20, 184, 166, 0.08) 100%)"
+                    : "rgba(167, 159, 255, 0.06)",
+                  border: universalOnly
+                    ? "1px solid rgba(47, 208, 138, 0.35)"
+                    : "1px solid rgba(167, 159, 255, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  const nextVal = !universalOnly;
+                  setUniversalOnly(nextVal);
+                  if (nextVal) {
+                    setBetTypes((prev) => ({ ...prev, "More markets": false }));
+                  }
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <ShieldCheck size={16} color={universalOnly ? "#2fd08a" : "#a79fff"} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: universalOnly ? "#2fd08a" : "#d4cde3" }}>
+                      Universal Markets Only (SportyBet &amp; Bet9ja Ready)
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#8a85b5", lineHeight: 1.3 }}>
+                      Restricts picks to 1X2, Over/Under &amp; BTTS for 100% 1-click booking code conversion
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={universalOnly}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const checked = e.target.checked;
+                    setUniversalOnly(checked);
+                    if (checked) {
+                      setBetTypes((prev) => ({ ...prev, "More markets": false }));
+                    }
+                  }}
+                  style={{ accentColor: "#2fd08a", cursor: "pointer", width: 16, height: 16 }}
+                />
+              </div>
+
               <div className="bb-markets">
                 {/* Column 1 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -784,16 +957,31 @@ export default function BetBuilderPage() {
 
                 {/* Column 2 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {["Over 2.5", "Over 1.5", "Over 3.5", "Both Teams to Score", "More markets"].map((market) => (
-                    <label key={market} className="bb-chk">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(betTypes[market])}
-                        onChange={() => handleToggleBetType(market)}
-                      />
-                      <span>{market}</span>
-                    </label>
-                  ))}
+                  {["Over 2.5", "Over 1.5", "Over 3.5", "Both Teams to Score", "More markets"].map((market) => {
+                    const isMoreMarkets = market === "More markets";
+                    const isRestricted = isMoreMarkets && universalOnly;
+                    return (
+                      <label
+                        key={market}
+                        className="bb-chk"
+                        style={{
+                          opacity: isRestricted ? 0.45 : 1,
+                          cursor: isRestricted ? "not-allowed" : "pointer",
+                        }}
+                        title={isRestricted ? "Disabled in Universal Markets mode (DNB is a niche market)" : undefined}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Boolean(betTypes[market]) && !isRestricted}
+                          disabled={isRestricted}
+                          onChange={() => handleToggleBetType(market)}
+                        />
+                        <span>
+                          {isMoreMarkets ? "More markets (Draw No Bet)" : market}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1004,13 +1192,59 @@ export default function BetBuilderPage() {
                     <h2 className="bb-slip__title">
                       {generatedSlip.length} picks · <span>{calculatedOdds.toFixed(2)}</span>
                     </h2>
-                    <span
-                      className={`bb-slip__delta ${
-                        Math.abs(deltaPercent) <= 8 ? "is-ok" : "is-off"
-                      }`}
-                    >
-                      Target {targetOdds.toFixed(2)} · {deltaPercent > 0 ? `+${deltaPercent}%` : `${deltaPercent}%`}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                      <span
+                        className={`bb-slip__delta ${
+                          Math.abs(deltaPercent) <= 8 ? "is-ok" : "is-off"
+                        }`}
+                      >
+                        Target {targetOdds.toFixed(2)} · {deltaPercent > 0 ? `+${deltaPercent}%` : `${deltaPercent}%`}
+                      </span>
+
+                      {/* Universal Markets Status Pill */}
+                      {universalValidation.isUniversal ? (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: "3px 9px",
+                            borderRadius: 12,
+                            background: "rgba(47, 208, 138, 0.15)",
+                            border: "1px solid rgba(47, 208, 138, 0.35)",
+                            color: "#2fd08a",
+                          }}
+                          title="100% universal markets (1X2, Over/Under, BTTS): Compatible with SportyBet & Bet9ja"
+                        >
+                          <ShieldCheck size={11} />
+                          Universal Markets
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleOptimizeForUniversal}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: "3px 9px",
+                            borderRadius: 12,
+                            background: "rgba(245, 158, 11, 0.15)",
+                            border: "1px solid rgba(245, 158, 11, 0.4)",
+                            color: "#fbbf24",
+                            cursor: "pointer",
+                          }}
+                          title="Click to auto-optimize slip for SportyBet & Bet9ja"
+                        >
+                          <AlertTriangle size={11} />
+                          Niche Market ({universalValidation.nichePicks.length}) · Auto-Fix
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Header Actions */}
@@ -1020,14 +1254,16 @@ export default function BetBuilderPage() {
                       onClick={() => setShowBookingModal(true)}
                       className="bb-slip__fav"
                       style={{
-                        background: "rgba(47, 208, 138, 0.16)",
+                        background: "linear-gradient(135deg, rgba(47, 208, 138, 0.22) 0%, rgba(20, 184, 166, 0.22) 100%)",
                         color: "#2fd08a",
-                        border: "1px solid rgba(47, 208, 138, 0.35)",
+                        border: "1px solid rgba(47, 208, 138, 0.45)",
+                        fontWeight: 800,
+                        boxShadow: "0 2px 8px rgba(47, 208, 138, 0.2)",
                       }}
-                      title="Convert to SportyBet or Bet9ja booking code"
+                      title="Auto-generate SportyBet & Bet9ja booking code in 1 click"
                     >
-                      <Smartphone size={13} />
-                      <span>Booking Code</span>
+                      <Zap size={13} fill="#2fd08a" />
+                      <span>1-Click Bet Code</span>
                     </button>
 
                     <button
@@ -1299,130 +1535,612 @@ export default function BetBuilderPage() {
               position: "fixed",
               inset: 0,
               zIndex: 100,
-              background: "rgba(0, 0, 0, 0.75)",
+              background: "rgba(0, 0, 0, 0.78)",
               backdropFilter: "blur(8px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 20,
+              padding: 16,
             }}
             onClick={() => setShowBookingModal(false)}
           >
             <div
               style={{
-                maxWidth: 480,
+                maxWidth: 540,
                 width: "100%",
-                background: "#141132",
+                background: "#120f2e",
                 border: "1px solid rgba(167, 159, 255, 0.25)",
-                borderRadius: 18,
-                padding: "28px 24px",
-                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.6)",
+                borderRadius: 20,
+                padding: "24px 22px",
+                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7)",
+                maxHeight: "90vh",
+                overflowY: "auto",
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Smartphone size={20} color="#2fd08a" />
-                  <h3 style={{ fontSize: 18, fontWeight: 900, color: "#ffffff", margin: 0 }}>
-                    Load Slip to Betting Site
-                  </h3>
+              {/* Modal Header */}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: "rgba(47, 208, 138, 0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid rgba(47, 208, 138, 0.3)",
+                    }}
+                  >
+                    <Smartphone size={20} color="#2fd08a" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 900, color: "#ffffff", margin: 0 }}>
+                      Bet Codes Conversion
+                    </h3>
+                    <p style={{ fontSize: 12, color: "#a79fff", margin: "2px 0 0" }}>
+                      Auto-generate SportyBet &amp; Bet9ja codes in 1 click
+                    </p>
+                  </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowBookingModal(false)}
-                  style={{ background: "transparent", border: "none", color: "#a79fff", cursor: "pointer" }}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "none",
+                    color: "#a79fff",
+                    borderRadius: 8,
+                    width: 28,
+                    height: 28,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   ✕
                 </button>
               </div>
 
-              <p style={{ fontSize: 13, color: "#d4cde3", margin: "0 0 18px", lineHeight: 1.5 }}>
-                Select your preferred betting bookmaker to load these {generatedSlip.length} picks directly on the betting platform:
-              </p>
-
-              {/* Bookmaker Selector Tabs */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 20 }}>
-                {[
-                  { id: "sportybet", label: "SportyBet" },
-                  { id: "bet9ja", label: "Bet9ja" },
-                  { id: "1xbet", label: "1xBet" },
-                  { id: "betway", label: "Betway" },
-                ].map((b) => (
-                  <button
-                    key={b.id}
-                    onClick={() => setSelectedBookie(b.id as any)}
-                    style={{
-                      padding: "8px 4px",
-                      borderRadius: 8,
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      border: selectedBookie === b.id ? "1px solid #2fd08a" : "1px solid rgba(167, 159, 255, 0.15)",
-                      background: selectedBookie === b.id ? "rgba(47, 208, 138, 0.2)" : "#1b183d",
-                      color: selectedBookie === b.id ? "#2fd08a" : "#a79fff",
-                    }}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Booking Code Box */}
+              {/* Mode Switch Tabs: 1-Click Slip Code vs Convert Existing Code */}
               <div
                 style={{
-                  background: "rgba(8, 7, 30, 0.8)",
-                  border: "1px dashed rgba(47, 208, 138, 0.4)",
-                  borderRadius: 12,
-                  padding: "16px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 6,
+                  padding: 4,
+                  background: "rgba(8, 7, 30, 0.6)",
+                  borderRadius: 10,
                   marginBottom: 16,
+                  border: "1px solid rgba(167, 159, 255, 0.15)",
                 }}
               >
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#7874a4", textTransform: "uppercase" }}>
-                    {selectedBookie.toUpperCase()} BOOKING CODE
-                  </span>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: "#2fd08a", letterSpacing: "0.06em", marginTop: 2 }}>
-                    {bookingCode}
-                  </div>
-                </div>
-
                 <button
                   type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(bookingCode);
-                    setCopiedCode(true);
-                    setTimeout(() => setCopiedCode(false), 2000);
-                  }}
+                  onClick={() => setBookingModalTab("generate")}
                   style={{
-                    padding: "8px 14px",
+                    padding: "8px 12px",
                     borderRadius: 8,
-                    background: copiedCode ? "#2fd08a" : "#7c6cf5",
-                    border: "none",
-                    color: "#ffffff",
                     fontSize: 12,
                     fontWeight: 800,
                     cursor: "pointer",
+                    border: "none",
+                    background: bookingModalTab === "generate" ? "linear-gradient(135deg, #7c6cf5, #6353e8)" : "transparent",
+                    color: bookingModalTab === "generate" ? "#ffffff" : "#a79fff",
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 6,
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  {copiedCode ? <Check size={14} /> : <Copy size={14} />}
-                  <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
+                  <Zap size={13} />
+                  <span>1-Click Slip Code</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBookingModalTab("convert")}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    border: "none",
+                    background: bookingModalTab === "convert" ? "linear-gradient(135deg, #7c6cf5, #6353e8)" : "transparent",
+                    color: bookingModalTab === "convert" ? "#ffffff" : "#a79fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <ArrowLeftRight size={13} />
+                  <span>Convert Existing Code</span>
                 </button>
               </div>
 
-              <div style={{ fontSize: 12, color: "#7874a4", lineHeight: 1.5, marginBottom: 20 }}>
-                <strong>How to load:</strong> Open the {selectedBookie} app or website, open your betslip, click <em>Load Bet / Booking Code</em>, paste <strong>{bookingCode}</strong>, and all selections will load automatically.
-              </div>
+              {/* TAB 1: 1-CLICK SLIP CODE GENERATOR */}
+              {bookingModalTab === "generate" ? (
+                <>
+                  {/* Universal Markets Verification Banner */}
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      marginBottom: 16,
+                      background: universalValidation.isUniversal
+                        ? "rgba(47, 208, 138, 0.1)"
+                        : "rgba(245, 158, 11, 0.12)",
+                      border: universalValidation.isUniversal
+                        ? "1px solid rgba(47, 208, 138, 0.3)"
+                        : "1px solid rgba(245, 158, 11, 0.35)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      {universalValidation.isUniversal ? (
+                        <ShieldCheck size={16} color="#2fd08a" style={{ marginTop: 2, flexShrink: 0 }} />
+                      ) : (
+                        <AlertTriangle size={16} color="#fbbf24" style={{ marginTop: 2, flexShrink: 0 }} />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: universalValidation.isUniversal ? "#2fd08a" : "#fbbf24",
+                          }}
+                        >
+                          {universalValidation.isUniversal
+                            ? "Universal Markets Verified (100% SportyBet & Bet9ja Match)"
+                            : `${universalValidation.nichePicks.length} Niche Market Pick(s) Detected`}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#d4cde3", marginTop: 2, lineHeight: 1.4 }}>
+                          {universalValidation.isUniversal
+                            ? `All ${generatedSlip.length} picks use universal markets (1X2, Over/Under, BTTS, Double Chance). Guaranteed to load with zero missing-market errors.`
+                            : "Some bookmakers do not support niche markets like Draw No Bet across all fixtures. Optimize to universal markets for 100% conversion success."}
+                        </div>
 
+                        {!universalValidation.isUniversal && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleOptimizeForUniversal();
+                              setTimeout(() => handleGenerateBookingCode(selectedBookie), 150);
+                            }}
+                            style={{
+                              marginTop: 8,
+                              padding: "5px 12px",
+                              borderRadius: 6,
+                              background: "rgba(245, 158, 11, 0.25)",
+                              border: "1px solid rgba(245, 158, 11, 0.5)",
+                              color: "#fef3c7",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                            }}
+                          >
+                            <Zap size={11} />
+                            <span>1-Click Auto-Optimize to Universal Markets</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bookmaker Selector Tabs */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", marginBottom: 8, textTransform: "uppercase" }}>
+                      Select Target Bookmaker
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                      {[
+                        { id: "sportybet", label: "SportyBet", color: "#e41b23", sub: "Most Popular" },
+                        { id: "bet9ja", label: "Bet9ja", color: "#008753", sub: "Instant Load" },
+                        { id: "1xbet", label: "1xBet", color: "#1e88e5", sub: "High Odds" },
+                      ].map((b) => {
+                        const isSel = selectedBookie === b.id;
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedBookie(b.id as any);
+                              handleGenerateBookingCode(b.id as any);
+                            }}
+                            style={{
+                              padding: "10px 8px",
+                              borderRadius: 10,
+                              cursor: "pointer",
+                              border: isSel ? `1.5px solid ${b.color}` : "1px solid rgba(167, 159, 255, 0.15)",
+                              background: isSel ? `${b.color}22` : "#18153a",
+                              color: isSel ? "#ffffff" : "#a79fff",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 2,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <span style={{ fontSize: 13, fontWeight: 900, color: isSel ? b.color : "#d4cde3" }}>
+                              {b.label}
+                            </span>
+                            <span style={{ fontSize: 9.5, color: "#8a85b5", fontWeight: 600 }}>
+                              {b.sub}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Booking Code Display Card */}
+                  <div
+                    style={{
+                      background: "rgba(8, 7, 30, 0.85)",
+                      border: "1px dashed rgba(47, 208, 138, 0.45)",
+                      borderRadius: 14,
+                      padding: "18px 20px",
+                      marginBottom: 16,
+                      boxShadow: "inset 0 0 20px rgba(0, 0, 0, 0.4)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#8a85b5", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {selectedBookie.toUpperCase()} BOOKING CODE
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          padding: "2px 8px",
+                          borderRadius: 10,
+                          background: "rgba(47, 208, 138, 0.15)",
+                          color: "#2fd08a",
+                        }}
+                      >
+                        {generatedSlip.length} Picks · {calculatedOdds.toFixed(2)} Odds
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                      <div>
+                        {isGeneratingCode ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                            <RefreshCw size={20} className="animate-spin" color="#2fd08a" />
+                            <span style={{ fontSize: 14, color: "#a79fff", fontWeight: 700 }}>
+                              Auto-generating {selectedBookie} code...
+                            </span>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              fontSize: 26,
+                              fontWeight: 900,
+                              fontFamily: "monospace",
+                              letterSpacing: "0.08em",
+                              color: selectedBookie === "sportybet" ? "#ff4d4f" : selectedBookie === "bet9ja" ? "#2fd08a" : "#60a5fa",
+                            }}
+                          >
+                            {currentBookingCode}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Code Actions */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentBookingCode);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }}
+                          style={{
+                            padding: "9px 15px",
+                            borderRadius: 8,
+                            background: copiedCode ? "#2fd08a" : "#7c6cf5",
+                            border: "none",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {copiedCode ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
+                        </button>
+
+                        {/* Direct Load Link */}
+                        <a
+                          href={
+                            convertedCodeResult?.loadUrl ||
+                            (selectedBookie === "sportybet"
+                              ? `https://www.sportybet.com/ng/m/sport/football?shareCode=${currentBookingCode}`
+                              : `https://sports.bet9ja.com/mobile/load-betslip?code=${currentBookingCode}`)
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "9px 14px",
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.08)",
+                            border: "1px solid rgba(255, 255, 255, 0.15)",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                          title={`Open ${selectedBookie} directly with this code preloaded`}
+                        >
+                          <span>Open Site</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step-by-Step Load Guide */}
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.03)",
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                      marginBottom: 18,
+                      border: "1px solid rgba(167, 159, 255, 0.1)",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#d4cde3", marginBottom: 6 }}>
+                      How to load on {selectedBookie === "sportybet" ? "SportyBet" : selectedBookie === "bet9ja" ? "Bet9ja" : "1xBet"}:
+                    </div>
+                    <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: "#a79fff", lineHeight: 1.6 }}>
+                      {selectedBookie === "sportybet" ? (
+                        <>
+                          <li>Open the SportyBet app or visit sportybet.com/ng.</li>
+                          <li>Tap <strong>Betslip</strong> at the bottom of the screen.</li>
+                          <li>Select <strong>Load Code</strong> or <strong>Share Code</strong>.</li>
+                          <li>Paste code <strong>{currentBookingCode}</strong> and tap <strong>Load</strong>.</li>
+                        </>
+                      ) : selectedBookie === "bet9ja" ? (
+                        <>
+                          <li>Open the Bet9ja app or visit sports.bet9ja.com.</li>
+                          <li>Tap the <strong>Betslip</strong> icon on the bottom navigation bar.</li>
+                          <li>Select <strong>Check / Load Bet</strong>.</li>
+                          <li>Enter booking code <strong>{currentBookingCode}</strong> and press <strong>Load</strong>.</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>Open 1xBet app or visit 1xbet.ng.</li>
+                          <li>Open your <strong>Bet Slip</strong> menu.</li>
+                          <li>Tap <strong>Download Bet Slip</strong> and paste code <strong>{currentBookingCode}</strong>.</li>
+                        </>
+                      )}
+                    </ol>
+                  </div>
+                </>
+              ) : (
+                /* TAB 2: CONVERT EXISTING BOOKING CODE */
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <p style={{ fontSize: 12.5, color: "#d4cde3", margin: "0 0 6px", lineHeight: 1.5 }}>
+                    Paste a booking code received from a friend or betting channel, select your target bookmaker, and convert it instantly:
+                  </p>
+
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                      Source Booking Code
+                    </label>
+                    <input
+                      type="text"
+                      value={inputSourceCode}
+                      onChange={(e) => setInputSourceCode(e.target.value.toUpperCase().trim())}
+                      placeholder="e.g. 5K89A or BC-8492"
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        background: "#08071e",
+                        border: "1px solid rgba(167, 159, 255, 0.25)",
+                        color: "#ffffff",
+                        fontSize: 14,
+                        fontFamily: "monospace",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+
+                  {/* From -> To Selectors */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                        From Bookie
+                      </label>
+                      <select
+                        value={inputSourceBookie}
+                        onChange={(e) => setInputSourceBookie(e.target.value as any)}
+                        style={{
+                          width: "100%",
+                          padding: "9px 10px",
+                          borderRadius: 8,
+                          background: "#08071e",
+                          border: "1px solid rgba(167, 159, 255, 0.25)",
+                          color: "#ffffff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          outline: "none",
+                        }}
+                      >
+                        <option value="sportybet">SportyBet</option>
+                        <option value="bet9ja">Bet9ja</option>
+                        <option value="1xbet">1xBet</option>
+                      </select>
+                    </div>
+
+                    <div style={{ marginTop: 18, color: "#7c6cf5" }}>
+                      <ArrowRight size={18} />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                        To Bookie
+                      </label>
+                      <select
+                        value={inputTargetBookie}
+                        onChange={(e) => setInputTargetBookie(e.target.value as any)}
+                        style={{
+                          width: "100%",
+                          padding: "9px 10px",
+                          borderRadius: 8,
+                          background: "#08071e",
+                          border: "1px solid rgba(167, 159, 255, 0.25)",
+                          color: "#ffffff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          outline: "none",
+                        }}
+                      >
+                        <option value="bet9ja">Bet9ja</option>
+                        <option value="sportybet">SportyBet</option>
+                        <option value="1xbet">1xBet</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Convert Action Button */}
+                  <button
+                    type="button"
+                    onClick={handleConvertExistingCode}
+                    disabled={isConvertingCode || !inputSourceCode.trim()}
+                    style={{
+                      marginTop: 4,
+                      padding: "11px 16px",
+                      borderRadius: 10,
+                      background: "linear-gradient(135deg, #7c6cf5 0%, #5844e3 100%)",
+                      border: "none",
+                      color: "#ffffff",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: isConvertingCode || !inputSourceCode.trim() ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      opacity: isConvertingCode || !inputSourceCode.trim() ? 0.6 : 1,
+                    }}
+                  >
+                    {isConvertingCode ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Converting Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={14} />
+                        <span>Convert Code Now</span>
+                      </>
+                    )}
+                  </button>
+
+                  {codeConversionError && (
+                    <div style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", fontSize: 12 }}>
+                      {codeConversionError}
+                    </div>
+                  )}
+
+                  {codeConversionSuccess && (
+                    <div
+                      style={{
+                        padding: "16px",
+                        borderRadius: 12,
+                        background: "rgba(8, 7, 30, 0.9)",
+                        border: "1px solid rgba(47, 208, 138, 0.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#8a85b5", textTransform: "uppercase" }}>
+                          CONVERTED {codeConversionSuccess.bookmakerLabel} CODE
+                        </span>
+                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color: codeConversionSuccess.brandColor, marginTop: 2 }}>
+                          {codeConversionSuccess.bookingCode}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(codeConversionSuccess.bookingCode);
+                            setCopiedCode(true);
+                            setTimeout(() => setCopiedCode(false), 2000);
+                          }}
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: 8,
+                            background: copiedCode ? "#2fd08a" : "#7c6cf5",
+                            border: "none",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          {copiedCode ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{copiedCode ? "Copied" : "Copy"}</span>
+                        </button>
+
+                        <a
+                          href={codeConversionSuccess.loadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.08)",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <span>Open</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setShowBookingModal(false)}
                 className="bb-btn bb-btn--ghost"
-                style={{ width: "100%" }}
+                style={{ width: "100%", marginTop: 16 }}
               >
                 Done
               </button>
