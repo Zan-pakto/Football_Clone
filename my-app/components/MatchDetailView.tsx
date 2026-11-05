@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
+  ChevronRight,
+  Crown,
   Info,
   Star,
   AlertTriangle,

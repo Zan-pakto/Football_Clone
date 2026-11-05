@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import { MatchData } from "@/lib/types";
 import { Check, X, Shield, Sparkles, Flame, Target, Lock, Radio } from "lucide-react";
 import Link from "next/link";

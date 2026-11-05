@@ -700,7 +700,7 @@ export default function BetBuilderPage() {
       const stored = localStorage.getItem("jt_favorite_slips");
       if (stored) {
         const list = JSON.parse(stored);
-        const slipSig = generatedSlip.map((m) => `${m.id}_${m.market}_${m.pick}`).join("|");
+        const slipSig = generatedSlip.map((m) => `${m.id}_${m.marketName}_${m.pick}`).join("|");
         setIsFavorite(list.some((item: any) => item.sig === slipSig));
       }
     } catch {
@@ -713,7 +713,7 @@ export default function BetBuilderPage() {
     try {
       const stored = localStorage.getItem("jt_favorite_slips");
       let list: any[] = stored ? JSON.parse(stored) : [];
-      const slipSig = generatedSlip.map((m) => `${m.id}_${m.market}_${m.pick}`).join("|");
+      const slipSig = generatedSlip.map((m) => `${m.id}_${m.marketName}_${m.pick}`).join("|");
       const existsIndex = list.findIndex((item) => item.sig === slipSig);
 
       if (existsIndex >= 0) {
