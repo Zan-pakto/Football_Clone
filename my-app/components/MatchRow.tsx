@@ -495,7 +495,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={p1x2Clean}
           odd={match.predictions.pickScore.odd}
           isWon={is1x2Won}
-          isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
+          isBest={false}
           marketTag="1X2"
           rating={match.predictions.pickScore.rating}
           isLocked={is1x2Locked}
@@ -506,7 +506,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={pGoalsClean}
           odd={match.predictions.goals.odd}
           isWon={isGoalsWon}
-          isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
+          isBest={false}
           marketTag="O/U"
           rating={match.predictions.goals.rating}
           isLocked={isGoalsLocked}
@@ -517,7 +517,7 @@ export default function MatchRow({ match }: MatchRowProps) {
           pick={pBttsClean}
           odd={match.predictions.btts.odd}
           isWon={isBttsWon}
-          isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
+          isBest={false}
           marketTag="BTTS"
           rating={match.predictions.btts.rating}
           isLocked={isBttsLocked}
@@ -800,7 +800,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             pick={p1x2Clean}
             odd={match.predictions.pickScore.odd}
             isWon={is1x2Won}
-            isBest={bestMarket === "pickScore" || Boolean(match.predictions.pickScore.isBest)}
+            isBest={false}
             marketTag="1X2"
             rating={match.predictions.pickScore.rating}
             isLocked={is1x2Locked}
@@ -809,7 +809,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             pick={pGoalsClean}
             odd={match.predictions.goals.odd}
             isWon={isGoalsWon}
-            isBest={bestMarket === "goals" || Boolean(match.predictions.goals.isBest)}
+            isBest={false}
             marketTag="O/U"
             rating={match.predictions.goals.rating}
             isLocked={isGoalsLocked}
@@ -818,7 +818,7 @@ export default function MatchRow({ match }: MatchRowProps) {
             pick={pBttsClean}
             odd={match.predictions.btts.odd}
             isWon={isBttsWon}
-            isBest={bestMarket === "btts" || Boolean(match.predictions.btts.isBest)}
+            isBest={false}
             marketTag="BTTS"
             rating={match.predictions.btts.rating}
             isLocked={isBttsLocked}
@@ -1082,27 +1082,7 @@ function NerdyTipPill({
         </div>
       )}
 
-      {/* Best Pick Tag Indicator on Winning Market Pill */}
-      {isBest && !isHighlightPill && (
-        <span
-          style={{
-            position: "absolute",
-            top: -6,
-            right: -4,
-            background: "linear-gradient(135deg, #ffb020 0%, #ff8800 100%)",
-            color: "#000000",
-            fontSize: 7.5,
-            fontWeight: 900,
-            borderRadius: 3,
-            padding: "1px 3px",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.6)",
-          }}
-        >
-          ★ BEST
-        </span>
-      )}
+
 
       {/* Main Pick (Clean & Bold) */}
       <span
