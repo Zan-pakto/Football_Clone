@@ -387,6 +387,58 @@ export default function RolloverDetailPage({ params }: PageProps) {
                   {rollover.description}
                 </p>
               )}
+
+              {/* Instructions & Staking Advice from Backend */}
+              {rollover.instructions && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: "rgba(124, 108, 245, 0.09)",
+                    border: "1px solid rgba(124, 108, 245, 0.28)",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
+                    maxWidth: 700,
+                  }}
+                >
+                  <Info size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ lineHeight: 1.55 }}>
+                    <strong style={{ color: "var(--gold)", marginRight: 6 }}>Admin & Staking Instructions:</strong>
+                    <span>{rollover.instructions}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Game Slip Screenshot Preview */}
+              {rollover.imageUrl && (
+                <div style={{ marginTop: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxImage(rollover.imageUrl!)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 14px",
+                      borderRadius: 8,
+                      background: "rgba(255, 255, 255, 0.06)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      color: "#ffffff",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <ImageIcon size={15} color="#ffd700" />
+                    <span>View Staked Slip Screenshot</span>
+                    <ZoomIn size={13} color="#a79fff" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <button

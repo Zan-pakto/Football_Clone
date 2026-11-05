@@ -690,6 +690,70 @@ export default function BetBuilderPage() {
     return `${prefixes[selectedBookie] || "JT-"}${Math.abs((sum * 37) % 90000 + 10000)}`;
   }, [convertedCodeResult, selectedBookie, generatedSlip]);
 
+  // Check if current slip is in favorites
+  useEffect(() => {
+    if (generatedSlip.length === 0) {
+      setIsFavorite(false);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem("jt_favorite_slips");
+      if (stored) {
+        const list = JSON.parse(stored);
+        const slipSig = generatedSlip.map((m) => `${m.id}_${m.market}_${m.pick}`).join("|");
+        setIsFavorite(list.some((item: any) => item.sig === slipSig));
+      }
+    } catch {
+      setIsFavorite(false);
+    }
+  }, [generatedSlip]);
+
+  const handleToggleFavoriteSlip = () => {
+    if (generatedSlip.length === 0) return;
+    try {
+      const stored = localStorage.getItem("jt_favorite_slips");
+      let list: any[] = stored ? JSON.parse(stored) : [];
+      const slipSig = generatedSlip.map((m) => `${m.id}_${m.market}_${m.pick}`).join("|");
+      const existsIndex = list.findIndex((item) => item.sig === slipSig);
+
+      if (existsIndex >= 0) {
+        list.splice(existsIndex, 1);
+        setIsFavorite(false);
+      } else {
+        const newFav = {
+          id: `fav_${Date.now()}`,
+          sig: slipSig,
+          createdAt: new Date().toISOString(),
+          matchesCount: generatedSlip.length,
+          totalOdds: parseFloat(calculatedOdds.toFixed(2)),
+          slip: generatedSlip,
+          sportyBetCode: currentBookingCode,
+        };
+        list = [newFav, ...list];
+        setIsFavorite(true);
+      }
+      localStorage.setItem("jt_favorite_slips", JSON.stringify(list));
+      window.dispatchEvent(new Event("jt_favorites_updated"));
+    } catch (e) {
+      console.warn("Failed to persist favorite slip:", e);
+    }
+  };
+
+  const [copiedSelections, setCopiedSelections] = useState(false);
+  const handleCopyAllSelections = () => {
+    if (generatedSlip.length === 0) return;
+    const lines = [
+      `🎯 JollofTips Slip (${generatedSlip.length} Picks · Combined Odds: ${calculatedOdds.toFixed(2)})`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      ...generatedSlip.map((m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} — Pick: ${m.pick} (@${m.odds.toFixed(2)})`),
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Booking Code (${selectedBookie.toUpperCase()}): ${currentBookingCode}`,
+    ];
+    navigator.clipboard.writeText(lines.join("\n"));
+    setCopiedSelections(true);
+    setTimeout(() => setCopiedSelections(false), 2200);
+  };
+
   // Dynamic slider percentage
   const sliderPct = useMemo(() => {
     const min = 1.5;
@@ -1109,6 +1173,38 @@ export default function BetBuilderPage() {
                 <RefreshCw size={15} className={isGenerating ? "animate-spin" : ""} />
               </button>
             </div>
+
+            {/* Prominent "Get Betting Code / Convert Codes" Button right under Generate Slip */}
+            <button
+              type="button"
+              onClick={() => {
+                if (generatedSlip.length === 0) {
+                  handleGenerateSlip();
+                }
+                setShowBookingModal(true);
+              }}
+              style={{
+                marginTop: 10,
+                width: "100%",
+                padding: "13px 18px",
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                color: "#ffffff",
+                fontWeight: 800,
+                fontSize: 14,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.28)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Ticket size={16} />
+              <span>Get Betting Code / Convert Codes</span>
+            </button>
           </form>
 
           {/* ════════════════════════════════════════════════════════════
@@ -1268,15 +1364,17 @@ export default function BetBuilderPage() {
 
                     <button
                       type="button"
-                      onClick={() => setIsFavorite((p) => !p)}
+                      onClick={handleToggleFavoriteSlip}
                       className="bb-slip__fav"
                       style={{
-                        background: isFavorite ? "rgba(124, 108, 245, 0.25)" : undefined,
-                        color: isFavorite ? "#ffffff" : undefined,
+                        background: isFavorite ? "rgba(255, 215, 0, 0.18)" : undefined,
+                        color: isFavorite ? "#ffd700" : undefined,
+                        border: isFavorite ? "1px solid rgba(255, 215, 0, 0.45)" : undefined,
                       }}
+                      title="Add to Favorite Slips (tracks in Favorites drawer near profile)"
                     >
-                      <Star size={13} fill={isFavorite ? "currentColor" : "none"} />
-                      <span>Favorite</span>
+                      <Star size={13} fill={isFavorite ? "#ffd700" : "none"} color={isFavorite ? "#ffd700" : "currentColor"} />
+                      <span>{isFavorite ? "Favorited ★" : "Favorite"}</span>
                     </button>
 
                     <button
@@ -1891,6 +1989,33 @@ export default function BetBuilderPage() {
                           <ExternalLink size={12} />
                         </a>
                       </div>
+                    </div>
+
+                    {/* Copy All Selections Fallback Button */}
+                    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed rgba(255, 255, 255, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                        Having code loading issues on bookmaker apps?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyAllSelections}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 7,
+                          background: copiedSelections ? "rgba(47, 208, 138, 0.2)" : "rgba(255, 255, 255, 0.08)",
+                          border: copiedSelections ? "1px solid #2fd08a" : "1px solid rgba(255, 255, 255, 0.15)",
+                          color: copiedSelections ? "#2fd08a" : "#cbd5e1",
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        {copiedSelections ? <Check size={12} /> : <Copy size={12} />}
+                        <span>{copiedSelections ? "All Selections Copied!" : "Copy All Slip Selections (Text)"}</span>
+                      </button>
                     </div>
                   </div>
 

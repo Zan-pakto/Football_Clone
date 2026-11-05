@@ -78,34 +78,44 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
 
   // Tips section
   const tips = useMemo(() => {
-    if (matchDetails?.tips && (matchDetails.tips.bestTip || matchDetails.tips.cards?.length > 0)) {
-      return matchDetails.tips;
+    // 1. Determine canonical Best Tip across all data sources
+    const bestFromDetails = matchDetails?.tips?.bestTip;
+    const bestFromFixture = fixture.predictions?.bestTip;
+    const bestFromArr = Array.isArray(fixture.predictions) ? fixture.predictions[0] : null;
+
+    let canonicalBest = bestFromDetails || bestFromFixture;
+    if (!canonicalBest && bestFromArr) {
+      const pickLabel =
+        bestFromArr.selection === "1"
+          ? `${hero.homeTeam.name} to win`
+          : bestFromArr.selection === "2"
+          ? `${hero.awayTeam.name} to win`
+          : "Match draw (X)";
+
+      canonicalBest = {
+        pick: bestFromArr.selection || "1",
+        odd: String(bestFromArr.odd || 1.85),
+        explanation: pickLabel,
+        confidence: `${((bestFromArr.confidence || 75) / 10).toFixed(1)}/10`,
+      };
     }
 
-    const best = fixture.predictions?.[0];
-    const pickLabel =
-      best?.selection === "1"
-        ? `${hero.homeTeam.name} to win`
-        : best?.selection === "2"
-        ? `${hero.awayTeam.name} to win`
-        : "Match draw (X)";
+    if (matchDetails?.tips && (matchDetails.tips.bestTip || matchDetails.tips.cards?.length > 0)) {
+      return {
+        ...matchDetails.tips,
+        bestTip: canonicalBest || matchDetails.tips.bestTip,
+      };
+    }
 
     return {
       warning: null,
-      bestTip: best
-        ? {
-            pick: best.selection || "1",
-            odd: String(best.odd || 1.85),
-            explanation: pickLabel,
-            confidence: `${((best.confidence || 75) / 10).toFixed(1)}/10`,
-          }
-        : undefined,
+      bestTip: canonicalBest,
       cards: [
         {
           title: "1x2 Tip",
-          pick: best?.selection || "1",
-          odd: String(best?.odd || 1.85),
-          confidence: "7.5/10",
+          pick: canonicalBest?.pick || "1",
+          odd: String(canonicalBest?.odd || 1.85),
+          confidence: canonicalBest?.confidence || "7.5/10",
           score: null,
         },
         {
@@ -609,6 +619,40 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
           </div>
         </div>
 
+        {/* Canonical Single Best Tip Hero Banner */}
+        {tips.bestTip && (
+          <div style={{ display: "flex", justifyContent: "center", padding: "0 16px 14px" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 18px",
+                borderRadius: 24,
+                background: "linear-gradient(135deg, rgba(255, 176, 32, 0.18) 0%, rgba(139, 127, 245, 0.22) 100%)",
+                border: "1px solid rgba(255, 176, 32, 0.45)",
+                boxShadow: "0 4px 18px rgba(255, 176, 32, 0.16)",
+              }}
+            >
+              <Crown size={15} color="#ffb020" />
+              <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "#ffb020" }}>
+                Official Best Tip:
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: "#ffffff" }}>
+                {tips.bestTip.pick}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#2fd08a", fontFamily: "var(--font-mono)" }}>
+                @{formatDisplayOdd(tips.bestTip.odd) || tips.bestTip.odd}
+              </span>
+              {tips.bestTip.confidence && (
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: "#cbd5e1", marginLeft: 4 }}>
+                  ({tips.bestTip.confidence.includes("/10") ? tips.bestTip.confidence : `${tips.bestTip.confidence}/10`})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 1X2 Odds Strip */}
         {hero.odds1x2 && hero.odds1x2.length > 0 && (
           <div
@@ -622,7 +666,8 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             }}
           >
             {hero.odds1x2.map((item: any, idx: number) => {
-              const isTip = item.isTip;
+              const isCanonicalBest = tips.bestTip?.pick?.trim().toLowerCase() === item.label?.trim().toLowerCase();
+              const isTip = isCanonicalBest || item.isTip;
               return (
                 <div
                   key={idx}
@@ -633,16 +678,24 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
                     justifyContent: "space-between",
                     padding: "8px 14px",
                     borderRadius: 10,
-                    background: isTip
+                    background: isCanonicalBest
+                      ? "linear-gradient(135deg, rgba(255, 176, 32, 0.22) 0%, rgba(124, 58, 237, 0.25) 100%)"
+                      : isTip
                       ? "linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(99, 102, 241, 0.15) 100%)"
                       : "rgba(255, 255, 255, 0.03)",
-                    border: isTip
+                    border: isCanonicalBest
+                      ? "1px solid rgba(255, 176, 32, 0.55)"
+                      : isTip
                       ? "1px solid rgba(167, 139, 250, 0.4)"
                       : "1px solid rgba(161, 152, 247, 0.1)",
-                    boxShadow: isTip ? "0 0 12px rgba(124, 58, 237, 0.25)" : "none",
+                    boxShadow: isCanonicalBest
+                      ? "0 0 14px rgba(255, 176, 32, 0.25)"
+                      : isTip
+                      ? "0 0 12px rgba(124, 58, 237, 0.25)"
+                      : "none",
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: 700, color: isTip ? "#c4b5fd" : "#94a3b8" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: isCanonicalBest ? "#ffb020" : isTip ? "#c4b5fd" : "#94a3b8" }}>
                     {item.label}
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 800, color: isTip ? "#ffffff" : "#cbd5e1" }}>
@@ -923,6 +976,66 @@ export default function MatchDetailView({ fixture }: MatchDetailViewProps) {
             )}
 
             {renderConfidencePips(tips.bestTip.confidence)}
+          </div>
+        )}
+
+        {/* Instant AI Plain Text Summary Teaser Box in Tips section */}
+        {predictionSummary && (
+          <div
+            style={{
+              padding: "16px 20px",
+              borderRadius: 14,
+              background: "rgba(124, 108, 245, 0.08)",
+              border: "1px solid rgba(124, 108, 245, 0.25)",
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 800, color: "#c4b5fd" }}>
+                <Sparkles size={15} color="#a78bfa" />
+                <span>AI MATCH PREDICTION SUMMARY</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopySummary}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: copiedSummary ? "#2fd08a" : "#94a3b8",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                {copiedSummary ? <CheckCheck size={13} /> : <Copy size={13} />}
+                <span>{copiedSummary ? "Copied" : "Copy"}</span>
+              </button>
+            </div>
+            <p style={{ fontSize: 13.5, lineHeight: 1.7, color: "#cbd5e1", margin: "0 0 10px 0" }}>
+              {predictionSummary.split("\n\n")[0]}
+            </p>
+            <button
+              type="button"
+              onClick={() => scrollToSection("summary")}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "#a78bfa",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <span>Read complete statistical match prediction & team stats</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
         )}
 

@@ -22,6 +22,11 @@ import {
   ChevronRight,
   ChevronDown,
   ShieldCheck,
+  Star,
+  Trash2,
+  Copy,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
@@ -83,18 +88,95 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Favorites Slips Drawer
+  const [favoriteSlips, setFavoriteSlips] = useState<any[]>([]);
+  const [showFavoritesDrawer, setShowFavoritesDrawer] = useState<boolean>(false);
+  const [copiedSlipId, setCopiedSlipId] = useState<string | null>(null);
+
+  // Admin POV state
+  const [adminPov, setAdminPov] = useState<"admin" | "vip" | "free">("admin");
+
+  const loadFavorites = useCallback(() => {
+    try {
+      const stored = localStorage.getItem("jt_favorite_slips");
+      if (stored) {
+        setFavoriteSlips(JSON.parse(stored));
+      } else {
+        setFavoriteSlips([]);
+      }
+    } catch {
+      setFavoriteSlips([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFavorites();
+    const handleFavUpdate = () => loadFavorites();
+    window.addEventListener("jt_favorites_updated", handleFavUpdate);
+    window.addEventListener("storage", handleFavUpdate);
+    return () => {
+      window.removeEventListener("jt_favorites_updated", handleFavUpdate);
+      window.removeEventListener("storage", handleFavUpdate);
+    };
+  }, [loadFavorites]);
+
+  useEffect(() => {
+    const pov = localStorage.getItem("jt_admin_view_pov") as any;
+    if (pov === "vip" || pov === "free" || pov === "admin") {
+      setAdminPov(pov);
+    }
+  }, []);
+
+  const handleSwitchAdminPov = (newPov: "admin" | "vip" | "free") => {
+    setAdminPov(newPov);
+    localStorage.setItem("jt_admin_view_pov", newPov);
+    window.dispatchEvent(new Event("jt_auth_change"));
+  };
+
+  const handleDeleteFavorite = (favId: string) => {
+    try {
+      const updated = favoriteSlips.filter((s: any) => s.id !== favId);
+      setFavoriteSlips(updated);
+      localStorage.setItem("jt_favorite_slips", JSON.stringify(updated));
+      window.dispatchEvent(new Event("jt_favorites_updated"));
+    } catch (e) {
+      console.warn("Failed to delete favorite slip:", e);
+    }
+  };
+
+  const handleCopyFavSlip = (slip: any) => {
+    if (!slip || !Array.isArray(slip.slip)) return;
+    const lines = [
+      `🎯 JollofTips Saved Slip (${slip.matchesCount} Picks · @${slip.totalOdds})`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      ...slip.slip.map((m: any, i: number) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} — Pick: ${m.pick} (@${Number(m.odds).toFixed(2)})`),
+      `━━━━━━━━━━━━━━━━━━━━`,
+      slip.sportyBetCode ? `SportyBet Code: ${slip.sportyBetCode}` : "",
+    ].filter(Boolean);
+    navigator.clipboard.writeText(lines.join("\n"));
+    setCopiedSlipId(slip.id);
+    setTimeout(() => setCopiedSlipId(null), 2000);
+  };
+
+  const isAdmin = currentUser?.role === "ADMIN";
+
   // Check if current authenticated user has active Pro/VIP/Admin subscription
-  const isPro = Boolean(
-    currentUser && (
-      currentUser.isPremium ||
-      currentUser.role === "ADMIN" ||
-      currentUser.subscriptionPlan === "VIP_PRO" ||
-      currentUser.subscriptionPlan === "PRO" ||
-      currentUser.subscriptionPlan === "PREMIUM" ||
-      currentUser.subscriptionPlan === "VIP" ||
-      currentUser.subscriptionStatus === "ACTIVE"
-    )
-  );
+  const isPro =
+    adminPov === "free"
+      ? false
+      : adminPov === "vip"
+      ? true
+      : Boolean(
+          currentUser && (
+            currentUser.isPremium ||
+            currentUser.role === "ADMIN" ||
+            currentUser.subscriptionPlan === "VIP_PRO" ||
+            currentUser.subscriptionPlan === "PRO" ||
+            currentUser.subscriptionPlan === "PREMIUM" ||
+            currentUser.subscriptionPlan === "VIP" ||
+            currentUser.subscriptionStatus === "ACTIVE"
+          )
+        );
 
   // Fetch current auth status
   const checkAuthStatus = useCallback(async () => {
@@ -399,6 +481,115 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             >
               <Search size={16} />
             </button>
+
+            {/* ⭐ Favorites Tab Button */}
+            <button
+              type="button"
+              onClick={() => setShowFavoritesDrawer(true)}
+              aria-label="View Favorite Bet Slips"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 8,
+                background: favoriteSlips.length > 0 ? "rgba(255, 215, 0, 0.12)" : "#141132",
+                border: favoriteSlips.length > 0 ? "1px solid rgba(255, 215, 0, 0.4)" : "1px solid rgba(167, 159, 255, 0.15)",
+                color: favoriteSlips.length > 0 ? "#ffd700" : "#a79fff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title="View Favorite Generated Bet Slips"
+            >
+              <Star size={14} fill={favoriteSlips.length > 0 ? "#ffd700" : "none"} color="#ffd700" />
+              <span className="navbar-desktop-only">Favorites</span>
+              {favoriteSlips.length > 0 && (
+                <span
+                  style={{
+                    background: "#ffd700",
+                    color: "#0b091f",
+                    fontSize: 10,
+                    fontWeight: 900,
+                    padding: "1px 5px",
+                    borderRadius: 10,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {favoriteSlips.length}
+                </span>
+              )}
+            </button>
+
+            {/* Admin POV Perspective Switcher */}
+            {isAdmin && (
+              <div
+                className="navbar-desktop-only"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  padding: "3px 6px",
+                  borderRadius: 20,
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  fontSize: 11,
+                  fontWeight: 800,
+                }}
+                title="Admin POV Switcher: preview the site as Admin, VIP Pro, or Free User"
+              >
+                <span style={{ color: "#ef4444", fontSize: 10, paddingLeft: 4 }}>POV:</span>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchAdminPov("admin")}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: adminPov === "admin" ? "#ef4444" : "transparent",
+                    color: adminPov === "admin" ? "#ffffff" : "#fca5a5",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchAdminPov("vip")}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: adminPov === "vip" ? "#ffd700" : "transparent",
+                    color: adminPov === "vip" ? "#0b091f" : "#fef08a",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  VIP Pro
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchAdminPov("free")}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: adminPov === "free" ? "#a79fff" : "transparent",
+                    color: adminPov === "free" ? "#0b091f" : "#c4b5fd",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Free
+                </button>
+              </div>
+            )}
 
             {/* Desktop VIP Access or PRO Active Badge */}
             {isPro ? (
@@ -1464,6 +1655,252 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   </Link>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⭐ Favorites Slips Drawer */}
+      {showFavoritesDrawer && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+          onClick={() => setShowFavoritesDrawer(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              height: "100vh",
+              background: "#141132",
+              borderLeft: "1px solid rgba(167, 159, 255, 0.2)",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "-10px 0 40px rgba(0, 0, 0, 0.7)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "20px 22px",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Star size={18} fill="#ffd700" color="#ffd700" />
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                  Favorite Bet Slips ({favoriteSlips.length})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFavoritesDrawer(false)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+              {favoriteSlips.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "60px 20px",
+                    color: "#94a3b8",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: "rgba(255, 215, 0, 0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 16px",
+                      color: "#ffd700",
+                    }}
+                  >
+                    <Star size={26} />
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", marginBottom: 8 }}>
+                    No favorite slips saved
+                  </h4>
+                  <p style={{ fontSize: 13, lineHeight: 1.6, color: "#94a3b8", marginBottom: 20 }}>
+                    After generating an accumulator slip in the Bet Builder, click the <strong>Favorite</strong> button to save it here so you can easily track it anytime!
+                  </p>
+                  <Link
+                    href="/bet-builder"
+                    onClick={() => setShowFavoritesDrawer(false)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "10px 18px",
+                      borderRadius: 10,
+                      background: "linear-gradient(135deg, #7c6cf5, #6353e8)",
+                      color: "#ffffff",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <Zap size={14} />
+                    <span>Open Bet Builder</span>
+                  </Link>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {favoriteSlips.map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.04)",
+                        border: "1px solid rgba(167, 159, 255, 0.18)",
+                        borderRadius: 14,
+                        padding: 16,
+                      }}
+                    >
+                      {/* Slip Card Header */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8" }}>
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : `Slip #${idx + 1}`}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              background: "rgba(47, 208, 138, 0.15)",
+                              color: "#2fd08a",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                            }}
+                          >
+                            @{item.totalOdds}
+                          </span>
+                          <span
+                            style={{
+                              background: "rgba(124, 108, 245, 0.2)",
+                              color: "#c4b5fd",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                            }}
+                          >
+                            {item.matchesCount} Picks
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Picks Mini List */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                        {item.slip?.slice(0, 4).map((m: any, mIdx: number) => (
+                          <div
+                            key={mIdx}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              fontSize: 12,
+                              color: "#e2e8f0",
+                              padding: "4px 0",
+                              borderBottom: mIdx < 3 ? "1px solid rgba(255, 255, 255, 0.04)" : "none",
+                            }}
+                          >
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>
+                              {m.homeTeam} vs {m.awayTeam}
+                            </span>
+                            <span style={{ fontWeight: 800, color: "#2fd08a", flexShrink: 0 }}>
+                              {m.pick} (@{m.odds})
+                            </span>
+                          </div>
+                        ))}
+                        {item.slip?.length > 4 && (
+                          <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", paddingTop: 2 }}>
+                            + {item.slip.length - 4} more matches
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Slip Card Actions */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 8, borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyFavSlip(item)}
+                          style={{
+                            flex: 1,
+                            padding: "7px 12px",
+                            borderRadius: 8,
+                            background: copiedSlipId === item.id ? "rgba(47, 208, 138, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                            border: copiedSlipId === item.id ? "1px solid #2fd08a" : "1px solid rgba(255, 255, 255, 0.12)",
+                            color: copiedSlipId === item.id ? "#2fd08a" : "#cbd5e1",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                          }}
+                        >
+                          {copiedSlipId === item.id ? <Check size={12} /> : <Copy size={12} />}
+                          <span>{copiedSlipId === item.id ? "Copied!" : "Copy Slip"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFavorite(item.id)}
+                          style={{
+                            padding: "7px 10px",
+                            borderRadius: 8,
+                            background: "rgba(239, 68, 68, 0.1)",
+                            border: "1px solid rgba(239, 68, 68, 0.25)",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                          }}
+                          title="Delete from favorites"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -595,9 +595,13 @@ export default function MatchRow({ match }: MatchRowProps) {
                 color: ratingColor,
                 fontFamily: "var(--font-mono)",
                 letterSpacing: "-0.02em",
+                display: "inline-flex",
+                alignItems: "baseline",
+                gap: 1,
               }}
             >
-              {numericConfidence}
+              <span>{numericConfidence}</span>
+              <span style={{ fontSize: 9.5, color: "var(--text-muted)", fontWeight: 700 }}>/10</span>
             </span>
           )}
         </div>
@@ -871,6 +875,16 @@ function NerdyTipPill({
   isWon?: boolean | null;
   isLocked?: boolean;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const displayRating = (() => {
+    if (typeof rating === "number" && !isNaN(rating) && rating > 0) {
+      return rating > 10 ? (rating / 10).toFixed(1) : rating.toFixed(1);
+    }
+    return "8.3";
+  })();
+  const displayOdd = formatDisplayOdd(odd) || odd || "1.75";
+
   if (isLocked) {
     const dummyPick = marketTag === "1X2" ? "1" : marketTag === "O/U" ? "O2.5" : marketTag === "BTTS" ? "Yes" : "1X";
     const dummyOdd = isHighlightPill ? "2.35" : "1.80";
@@ -1005,6 +1019,8 @@ function NerdyTipPill({
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -1019,9 +1035,53 @@ function NerdyTipPill({
         lineHeight: 1.15,
         position: "relative",
         transition: "all 0.15s ease",
+        cursor: "default",
       }}
-      title={isBest ? `★ Top Rated Pick: ${marketTag || ""} (${pick}) @ ${formatDisplayOdd(odd)}` : undefined}
     >
+      {/* Tooltip on Hover matching NerdyTips exact styling */}
+      {isHovered && !isLocked && pick && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 9px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 999,
+            background: "#1f1b3e",
+            border: "1px solid #6b5cd8",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.65), 0 0 12px rgba(107, 92, 216, 0.35)",
+            borderRadius: 8,
+            padding: "6px 12px",
+            whiteSpace: "nowrap",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#f1f0fb",
+            pointerEvents: "none",
+            letterSpacing: "0.01em",
+          }}
+        >
+          <span>
+            The trust for <strong>{pick}</strong> is{" "}
+            <strong style={{ color: "#2fd08a" }}>{displayRating}/10</strong> and the odd is{" "}
+            <strong style={{ color: "#38bdf8" }}>{displayOdd}</strong>
+          </span>
+          {/* Arrow pointing down to pill */}
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 0,
+              height: 0,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderTop: "6px solid #6b5cd8",
+            }}
+          />
+        </div>
+      )}
+
       {/* Best Pick Tag Indicator on Winning Market Pill */}
       {isBest && !isHighlightPill && (
         <span

@@ -93,7 +93,14 @@ router.get("/live", async (req: Request, res: Response) => {
     const d = (req.query.d as string) ?? "0";
     const token = getAuthToken(req);
     const user = await authService.getCurrentUser(token);
-    const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
+    // Support Admin POV Switcher (Item 4): Admin can toggle POV between 'free', 'vip', and 'admin'
+    const adminPov = (req.headers["x-admin-view-as"] as string) || (req.query.pov as string);
+    const isAdmin = Boolean(user && user.role === "ADMIN");
+    const isPremiumUser = isAdmin
+      ? adminPov === "free"
+        ? false
+        : true
+      : Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
     const rawLiveFixtures = await fixtureService.getLiveFixtures();
     const sanitizedFixtures = accessControlService.filterFixturesList(rawLiveFixtures, user);
@@ -211,7 +218,14 @@ router.get("/", async (req: Request, res: Response) => {
 
     const token = getAuthToken(req);
     const user = await authService.getCurrentUser(token);
-    const isPremiumUser = Boolean(user && (user.isPremium || user.role === "ADMIN"));
+    // Support Admin POV Switcher (Item 4): Admin can toggle POV between 'free', 'vip', and 'admin'
+    const adminPov = (req.headers["x-admin-view-as"] as string) || (req.query.pov as string);
+    const isAdmin = Boolean(user && user.role === "ADMIN");
+    const isPremiumUser = isAdmin
+      ? adminPov === "free"
+        ? false
+        : true
+      : Boolean(user && (user.isPremium || user.role === "ADMIN"));
 
     const forceSync = req.query.sync === "true" || req.query.refresh === "true";
     if (forceSync) {
@@ -270,9 +284,9 @@ router.get("/", async (req: Request, res: Response) => {
           freeTipIndex: isFreeTip ? idx : undefined,
           isLocked,
           lockReason,
-          rating: isLocked ? null : m.rating,
-          confidence: isLocked ? null : m.confidence,
-          odds: isLocked ? { home: null, draw: null, away: null } : m.odds,
+          rating: isLocked ? m.rating || 7.5 : m.rating,
+          confidence: isLocked ? m.confidence || "75%" : m.confidence,
+          odds: m.odds,
           predictions: {
             ...m.predictions,
             pickScore: {
@@ -297,8 +311,8 @@ router.get("/", async (req: Request, res: Response) => {
               ...m.predictions?.bestTip,
               pick: isLocked ? null : m.predictions?.bestTip?.pick,
               odd: isLocked ? null : m.predictions?.bestTip?.odd,
-              marketLabel: isLocked ? "PRO Tip" : m.predictions?.bestTip?.marketLabel,
-              rating: isLocked ? null : m.predictions?.bestTip?.rating,
+              marketLabel: isLocked ? "VIP PRO" : m.predictions?.bestTip?.marketLabel,
+              rating: isLocked ? m.predictions?.bestTip?.rating || 7.5 : m.predictions?.bestTip?.rating,
               isLocked,
             },
             isLocked,

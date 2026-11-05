@@ -20,7 +20,13 @@ import {
   Activity,
   Plus,
   ChevronDown,
+  Info,
+  X,
+  Crown,
+  Ticket,
+  HelpCircle,
 } from "lucide-react";
+import WalkthroughTutorial from "./WalkthroughTutorial";
 import { toCachedLogoUrl } from "@/lib/logo-utils";
 import { MatchData } from "@/lib/types";
 import { formatMatchKickoff } from "@/lib/utils";
@@ -494,6 +500,8 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
   const [isSimulating, setIsSimulating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [addedToSlip, setAddedToSlip] = useState(false);
+  const [infoModalTopic, setInfoModalTopic] = useState<"poisson" | "monte_carlo" | null>(null);
+  const [showTour, setShowTour] = useState(false);
 
   const activeSim = useMemo(() => {
     if (selectedId) {
@@ -596,6 +604,147 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
               <span>All Matches</span>
               <ArrowRight size={15} />
             </Link>
+          </div>
+
+          {/* Key Featured Capabilities (Item 7) */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 18,
+              marginBottom: 4,
+            }}
+          >
+            <Link
+              href="/rollovers"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.35)",
+                color: "#fef3c7",
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <TrendingUp size={12} color="#f59e0b" />
+              <span>Expert Rollover</span>
+            </Link>
+
+            <Link
+              href="/bet-builder"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(16, 185, 129, 0.12)",
+                border: "1px solid rgba(16, 185, 129, 0.35)",
+                color: "#d1fae5",
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Zap size={12} color="#10b981" />
+              <span>AI Bet Builder</span>
+            </Link>
+
+            <Link
+              href="/bet-builder"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(56, 189, 248, 0.12)",
+                border: "1px solid rgba(56, 189, 248, 0.35)",
+                color: "#e0f2fe",
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Ticket size={12} color="#38bdf8" />
+              <span>Code Gen & Conversion</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setInfoModalTopic("poisson")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(139, 127, 245, 0.14)",
+                border: "1px solid rgba(139, 127, 245, 0.35)",
+                color: "#ede9fe",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <TrendingUp size={12} color="#8b7ff5" />
+              <span>Poisson +EV Edge</span>
+              <Info size={11} color="#a78bfa" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInfoModalTopic("monte_carlo")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(167, 139, 250, 0.14)",
+                border: "1px solid rgba(167, 139, 250, 0.35)",
+                color: "#ede9fe",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <BarChart3 size={12} color="#c4b5fd" />
+              <span>Monte Carlo Acca</span>
+              <Info size={11} color="#c4b5fd" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowTour(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <HelpCircle size={12} color="#cbd5e1" />
+              <span>How to Use Site (Tour)</span>
+            </button>
           </div>
 
           {/* Micro Telemetry Indicators matching futuristic AI HUD */}
@@ -841,6 +990,31 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
                   {sim.tabIcon === "value" && <TrendingUp size={13} color={isActive ? "#fff" : "#8b7ff5"} />}
                   {sim.tabIcon === "monte" && <BarChart3 size={13} color={isActive ? "#fff" : "#a79fff"} />}
                   <span>{sim.tabTitle}</span>
+                  {(sim.tabTitle.includes("Poisson") || sim.tabTitle.includes("Monte")) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoModalTopic(sim.tabTitle.includes("Poisson") ? "poisson" : "monte_carlo");
+                      }}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.16)",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 16,
+                        height: 16,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        cursor: "pointer",
+                        marginLeft: 4,
+                      }}
+                      title="What is this mathematical model?"
+                    >
+                      <Info size={10} />
+                    </button>
+                  )}
                 </button>
               );
             })}
@@ -1212,6 +1386,132 @@ export default function HeroLanding({ totalMatches = 198, todayMatches, children
         </div>
       </div>
       {children}
+
+      {/* Information Modal for Poisson +EV Edge and Monte Carlo Acca (Item 2) */}
+      {infoModalTopic && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0, 0, 0, 0.8)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+          onClick={() => setInfoModalTopic(null)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 500,
+              background: "#161334",
+              border: "1px solid rgba(139, 127, 245, 0.35)",
+              borderRadius: 18,
+              padding: "24px 26px",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.7)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {infoModalTopic === "poisson" ? (
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139, 127, 245, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b7ff5" }}>
+                    <TrendingUp size={20} />
+                  </div>
+                ) : (
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(167, 139, 250, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c4b5fd" }}>
+                    <BarChart3 size={20} />
+                  </div>
+                )}
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 900, color: "#ffffff", margin: 0 }}>
+                    {infoModalTopic === "poisson" ? "Poisson +EV Edge Explained" : "Monte Carlo Acca Explained"}
+                  </h3>
+                  <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
+                    Quantitative Probability Model
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInfoModalTopic(null)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {infoModalTopic === "poisson" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13, lineHeight: 1.6, color: "#cbd5e1" }}>
+                <p style={{ margin: 0 }}>
+                  The <strong>Poisson +EV (Positive Expected Value)</strong> model calculates the exact mathematical probability of goal counts and match outcomes based on each team&apos;s attacking intensity and defensive concession rate.
+                </p>
+                <div style={{ background: "rgba(0, 0, 0, 0.3)", borderRadius: 10, padding: "12px 14px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <strong style={{ color: "#2fd08a", display: "block", marginBottom: 4 }}>Why it gives you an advantage:</strong>
+                  Bookmakers price games with commercial margins. When our Poisson engine calculates that a team has a 66% true win probability while the bookmaker&apos;s odds imply only 54%, a <strong>+22.4% +EV Edge</strong> is confirmed!
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>
+                  Over large sample sizes, betting on consistently positive expected value (+EV) selections is the mathematically proven route to sports trading profitability.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13, lineHeight: 1.6, color: "#cbd5e1" }}>
+                <p style={{ margin: 0 }}>
+                  <strong>Monte Carlo Accumulator Simulation</strong> runs 10,000 to 100,000 independent match permutations per accumulator slip to determine real-world joint survivability.
+                </p>
+                <div style={{ background: "rgba(0, 0, 0, 0.3)", borderRadius: 10, padding: "12px 14px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <strong style={{ color: "#c4b5fd", display: "block", marginBottom: 4 }}>Joint Acca Compounding:</strong>
+                  Standard odds multiplication hides tail-risk variance. Monte Carlo simulates red cards, late equalizers, and form variance across every leg simultaneously to select combinations with the lowest compounding collapse rate (e.g. 91.8% survivability).
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>
+                  Accas generated through Monte Carlo simulations protect accumulators against random black-swan match collapses.
+                </p>
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, paddingTop: 14, borderTop: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setInfoModalTopic(null)}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg, #7c6cf5, #6353e8)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Walkthrough Tour Trigger from Hero */}
+      {showTour && (
+        <WalkthroughTutorial
+          forceOpen={true}
+          onClose={() => setShowTour(false)}
+        />
+      )}
     </div>
   );
 }

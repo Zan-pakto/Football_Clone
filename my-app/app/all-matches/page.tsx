@@ -19,6 +19,8 @@ import {
   HelpCircle,
   Radio,
   Crown,
+  X,
+  Filter,
 } from "lucide-react";
 import Link from "next/link";
 import CountryFlag from "@/components/CountryFlag";
@@ -52,6 +54,8 @@ export default function AllMatchesPage() {
   const [sortField, setSortField] = useState<"default" | "time" | "rating">("default");
   const [showTipsExplained, setShowTipsExplained] = useState(false);
   const [isLiveRefreshing, setIsLiveRefreshing] = useState(false);
+  const [showMobileCountryDrawer, setShowMobileCountryDrawer] = useState(false);
+  const [mobileCountrySearch, setMobileCountrySearch] = useState("");
 
   // Validate initial cache against current stored token
   const getValidInitialCache = () => {
@@ -254,7 +258,7 @@ export default function AllMatchesPage() {
       const isUp    = isFutureDay || (!isLiveM && !isFin);
       const isFree  = Boolean((m as any).isFreeTip || (!m.isLocked && !m.predictions?.bestTip?.isLocked && !m.predictions?.isLocked));
 
-      if (m.predictions?.bestTip?.pick || m.confidence) predicted++;
+      if (m.predictions?.bestTip?.pick || m.confidence || m.isLocked) predicted++;
       if (isUp) upcoming++;
       if (isLiveM) live++;
       if (isWon) won++;
@@ -438,7 +442,7 @@ export default function AllMatchesPage() {
 
       // Top Stat Cards Filter
       if (activeFilter === "predicted") {
-        return Boolean(m.predictions?.bestTip?.pick || m.confidence);
+        return Boolean(m.predictions?.bestTip?.pick || m.confidence || m.isLocked);
       }
       if (activeFilter === "upcoming") {
         if (isPastDay) return false;
@@ -629,6 +633,123 @@ export default function AllMatchesPage() {
 
           {/* ════ RIGHT MAIN COLUMN ════ */}
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* ── Mobile Country Selector Bar (< 960px) ── */}
+            <div className="mobile-country-bar" style={{ display: "none", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileCountryDrawer(true)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: selectedCountry === "all" ? "var(--surface)" : "rgba(124, 108, 245, 0.18)",
+                    border: selectedCountry === "all" ? "1px solid var(--border-color)" : "1px solid #8b7ff5",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>
+                    <Globe size={15} color="#8b7ff5" />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {selectedCountry === "all" ? "All Countries & Leagues" : selectedCountry}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: 4, color: "#cbd5e1" }}>
+                      {selectedCountry === "all" ? matches.length : (countryCounts[selectedCountry] || 0)} matches
+                    </span>
+                    <ChevronDown size={14} color="#94a3b8" />
+                  </div>
+                </button>
+              </div>
+
+              {/* Horizontal quick-scroll top country pills */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  overflowX: "auto",
+                  paddingBottom: 4,
+                  scrollbarWidth: "none",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedCountry("all")}
+                  style={{
+                    flexShrink: 0,
+                    padding: "6px 12px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: selectedCountry === "all" ? 800 : 600,
+                    background: selectedCountry === "all" ? "var(--accent-indigo)" : "var(--surface)",
+                    color: selectedCountry === "all" ? "#ffffff" : "var(--text-secondary)",
+                    border: selectedCountry === "all" ? "1px solid var(--accent-indigo)" : "1px solid var(--border-color)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <CountryFlag country="world" size={13} />
+                  <span>All ({matches.length})</span>
+                </button>
+                {countries.slice(0, 10).map((c) => {
+                  const isSel = selectedCountry === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setSelectedCountry(c)}
+                      style={{
+                        flexShrink: 0,
+                        padding: "6px 12px",
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: isSel ? 800 : 600,
+                        background: isSel ? "var(--accent-indigo)" : "var(--surface)",
+                        color: isSel ? "#ffffff" : "var(--text-secondary)",
+                        border: isSel ? "1px solid var(--accent-indigo)" : "1px solid var(--border-color)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <CountryFlag country={c} size={13} />
+                      <span>{c} ({countryCounts[c] || 0})</span>
+                    </button>
+                  );
+                })}
+                {countries.length > 10 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileCountryDrawer(true)}
+                    style={{
+                      flexShrink: 0,
+                      padding: "6px 12px",
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      background: "rgba(124, 108, 245, 0.15)",
+                      color: "#a78bfa",
+                      border: "1px dashed rgba(124, 108, 245, 0.4)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    + More ({countries.length - 10})
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* ── 3. Top 4 Stat Filter Cards (Exact NerdyTips Design) ── */}
             <div
               style={{
@@ -918,6 +1039,190 @@ export default function AllMatchesPage() {
         </div>
       </main>
 
+      {/* ── Mobile Countries Drawer Modal ── */}
+      {showMobileCountryDrawer && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+          }}
+          onClick={() => setShowMobileCountryDrawer(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "85vh",
+              background: "#16132f",
+              borderTop: "1px solid rgba(139, 127, 245, 0.3)",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              boxShadow: "0 -10px 40px rgba(0, 0, 0, 0.6)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 20px 12px",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Globe size={18} color="#8b7ff5" />
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                  Select League / Country
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileCountryDrawer(false)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Country Search Bar */}
+            <div style={{ padding: "12px 20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                <Search size={15} color="#94a3b8" />
+                <input
+                  type="text"
+                  placeholder="Search countries or leagues..."
+                  value={mobileCountrySearch}
+                  onChange={(e) => setMobileCountrySearch(e.target.value)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    width: "100%",
+                  }}
+                />
+                {mobileCountrySearch && (
+                  <button
+                    type="button"
+                    onClick={() => setMobileCountrySearch("")}
+                    style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Countries List */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "0 12px 20px" }}>
+              {/* All Countries Option */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCountry("all");
+                  setShowMobileCountryDrawer(false);
+                }}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  marginBottom: 6,
+                  background: selectedCountry === "all" ? "rgba(124, 108, 245, 0.25)" : "rgba(255, 255, 255, 0.03)",
+                  border: selectedCountry === "all" ? "1px solid #8b7ff5" : "1px solid transparent",
+                  color: selectedCountry === "all" ? "#ffffff" : "#cbd5e1",
+                  fontSize: 13.5,
+                  fontWeight: selectedCountry === "all" ? 800 : 500,
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CountryFlag country="world" size={16} />
+                  <span>All Countries & Leagues</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#8b7ff5" }}>
+                  {matches.length}
+                </span>
+              </button>
+
+              {countries
+                .filter((c) => !mobileCountrySearch || c.toLowerCase().includes(mobileCountrySearch.toLowerCase().trim()))
+                .map((country) => {
+                  const isSel = selectedCountry === country;
+                  return (
+                    <button
+                      key={country}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCountry(country);
+                        setShowMobileCountryDrawer(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        marginBottom: 4,
+                        background: isSel ? "rgba(124, 108, 245, 0.25)" : "transparent",
+                        border: isSel ? "1px solid #8b7ff5" : "1px solid transparent",
+                        color: isSel ? "#ffffff" : "#cbd5e1",
+                        fontSize: 13,
+                        fontWeight: isSel ? 800 : 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <CountryFlag country={country} size={15} />
+                        <span>{country}</span>
+                      </div>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: isSel ? "#ffffff" : "#64748b" }}>
+                        {countryCounts[country] || 0}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Betting Tips Explained Modal */}
       <BettingTipsExplainedModal
         isOpen={showTipsExplained}
@@ -928,6 +1233,9 @@ export default function AllMatchesPage() {
         .country-sidebar { display: none !important; }
         @media (min-width: 960px) {
           .country-sidebar { display: block !important; }
+        }
+        @media (max-width: 959px) {
+          .mobile-country-bar { display: flex !important; }
         }
         @media (max-width: 768px) {
           .stat-cards-grid {

@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import HeroLanding from "@/components/HeroLanding";
 import HomeMatchesFeed, { LeagueGroupItem } from "@/components/HomeMatchesFeed";
+import WalkthroughTutorial from "@/components/WalkthroughTutorial";
 import {
   LeagueCoverageStrip,
   TrackRecordSection,
@@ -257,6 +258,9 @@ export default async function HomePage() {
         />
       </main>
       </HeroLanding>
+
+      {/* ── Walkthrough Tutorial for New Users ── */}
+      <WalkthroughTutorial />
 
       {/* ── Lower landing sections ── */}
       <LeagueCoverageStrip />
