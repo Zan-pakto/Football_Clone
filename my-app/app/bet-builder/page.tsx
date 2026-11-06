@@ -74,6 +74,44 @@ const DEFAULT_BET_TYPES: Record<string, boolean> = {
   "More markets": false,
 };
 
+// ── Helper to calculate odds-weighted trust score aligned with bookmaker implied probability ──
+function computeOddsWeightedTrust(
+  baseRating: number,
+  odd: number
+): { trustScore: number; trustLevel: "cf1" | "cf2" | "cf3" | "cf4" } {
+  const validOdd = typeof odd === "number" && !isNaN(odd) && odd > 1.0 ? odd : 1.80;
+  // Implied probability from bookmaker odds (e.g. 1.20 -> 83.3%, 1.50 -> 66.7%, 2.00 -> 50%, 4.00 -> 25%)
+  const impliedProb = 1 / validOdd;
+
+  // Odds-derived rating component (scales higher for safer, lower odds)
+  const oddsScore = 1.8 + impliedProb * 8.6;
+
+  // Blend baseline NerdyTips rating (55%) with market odds implied probability (45%)
+  const clampedBase = Math.min(10, Math.max(1, baseRating));
+  let finalScore = clampedBase * 0.55 + oddsScore * 0.45;
+
+  // Strict realistic caps based on odds: Underdogs with high odds must NEVER have high confidence
+  if (validOdd >= 4.0) {
+    finalScore = Math.min(finalScore, 4.8);
+  } else if (validOdd >= 3.0) {
+    finalScore = Math.min(finalScore, 6.2);
+  } else if (validOdd >= 2.4) {
+    finalScore = Math.min(finalScore, 7.2);
+  } else if (validOdd <= 1.25) {
+    finalScore = Math.max(finalScore, 9.1);
+  }
+
+  finalScore = parseFloat(Math.min(9.9, Math.max(2.0, finalScore)).toFixed(1));
+
+  let trustLevel: "cf1" | "cf2" | "cf3" | "cf4" = "cf2";
+  if (finalScore >= 9.0) trustLevel = "cf1";
+  else if (finalScore >= 7.5) trustLevel = "cf2";
+  else if (finalScore >= 6.0) trustLevel = "cf3";
+  else trustLevel = "cf4";
+
+  return { trustScore: finalScore, trustLevel };
+}
+
 export default function BetBuilderPage() {
   // Odds slider state
   const [targetOdds, setTargetOdds] = useState<number>(5.0);
@@ -247,15 +285,33 @@ export default function BetBuilderPage() {
       const ratingNum = isNaN(rawRating) || rawRating <= 0 ? 8.5 : Math.min(10, Math.max(1, rawRating));
       if (ratingNum < minTrust) return;
 
-      let trustLevel: "cf1" | "cf2" | "cf3" | "cf4" = "cf2";
-      if (ratingNum >= 9.0) trustLevel = "cf1";
-      else if (ratingNum >= 7.5) trustLevel = "cf2";
-      else if (ratingNum >= 6.0) trustLevel = "cf3";
-      else trustLevel = "cf4";
-
       const hOdd = toDec(m.odds?.home, 1.85);
       const dOdd = toDec(m.odds?.draw, 3.40);
       const aOdd = toDec(m.odds?.away, 3.80);
+
+      // ── Directional Consensus from NerdyTips Predictions & Odds ──
+      const raw1x2 = (m.predictions?.pickScore?.pick || "").trim();
+      const bestPick = (m.predictions?.bestTip?.pick || "").trim();
+      const bestMarket = (m.predictions?.bestTip?.market || "").trim().toUpperCase();
+
+      const isHomePredicted =
+        raw1x2 === "1" ||
+        /^home\b/i.test(raw1x2) ||
+        (bestMarket.includes("1X2") && (/^1\b/i.test(bestPick) || /^home\b/i.test(bestPick)));
+
+      const isAwayPredicted =
+        raw1x2 === "2" ||
+        /^away\b/i.test(raw1x2) ||
+        (bestMarket.includes("1X2") && (/^2\b/i.test(bestPick) || /^away\b/i.test(bestPick)));
+
+      const isDrawPredicted =
+        raw1x2 === "X" ||
+        /^draw\b/i.test(raw1x2) ||
+        (bestMarket.includes("1X2") && (/^x\b/i.test(bestPick) || /^draw\b/i.test(bestPick)));
+
+      // Clear favorite determination (prediction consensus or heavy odds tilt)
+      const homeFav = isHomePredicted || (hOdd <= 1.65 && aOdd >= 3.0 && !isAwayPredicted);
+      const awayFav = isAwayPredicted || (aOdd <= 1.65 && hOdd >= 3.0 && !isHomePredicted);
 
       const candidates: Array<{
         market: string;
@@ -265,86 +321,118 @@ export default function BetBuilderPage() {
         trustLevel: "cf1" | "cf2" | "cf3" | "cf4";
       }> = [];
 
-      // 1. Match Result (1X2)
+      // 1. Match Result (1X2) — Strictly aligned with prediction consensus
       if (betTypes["Match Result (1X2)"]) {
-        if (hOdd >= minOdd && hOdd <= maxOdd) {
-          candidates.push({ market: "Match Result (1X2)", pick: "1", odds: hOdd, trustScore: ratingNum, trustLevel });
+        if ((homeFav || (!awayFav && !isDrawPredicted && hOdd <= aOdd)) && hOdd >= minOdd && hOdd <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, hOdd);
+          candidates.push({ market: "Match Result (1X2)", pick: "1", odds: hOdd, trustScore, trustLevel });
         }
-        if (aOdd >= minOdd && aOdd <= maxOdd && aOdd <= 3.4) {
-          candidates.push({ market: "Match Result (1X2)", pick: "2", odds: aOdd, trustScore: ratingNum * 0.95, trustLevel });
+        if ((awayFav || (!homeFav && !isDrawPredicted && aOdd < hOdd)) && aOdd >= minOdd && aOdd <= maxOdd && aOdd <= 3.2) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, aOdd);
+          candidates.push({ market: "Match Result (1X2)", pick: "2", odds: aOdd, trustScore, trustLevel });
         }
-        if (dOdd >= minOdd && dOdd <= maxOdd) {
-          candidates.push({ market: "Match Result (1X2)", pick: "X", odds: dOdd, trustScore: ratingNum * 0.88, trustLevel });
+        if (isDrawPredicted && dOdd >= minOdd && dOdd <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum * 0.9, dOdd);
+          candidates.push({ market: "Match Result (1X2)", pick: "X", odds: dOdd, trustScore, trustLevel });
         }
       }
 
-      // 2. Double Chance
+      // 2. Double Chance — Strictly supports predicted winner/favorite (NEVER backs underdog against banker)
       if (betTypes["Double Chance"]) {
         const dc1x = parseFloat((1 / (1 / hOdd + 1 / dOdd) * 0.96).toFixed(2));
         const dcX2 = parseFloat((1 / (1 / aOdd + 1 / dOdd) * 0.96).toFixed(2));
         const dc12 = parseFloat((1 / (1 / hOdd + 1 / aOdd) * 0.96).toFixed(2));
-        if (dc1x >= minOdd && dc1x <= maxOdd) {
-          candidates.push({ market: "Double Chance", pick: "1X", odds: Math.max(1.10, dc1x), trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
+
+        // When Home is favored, ONLY 1X is allowed (Away X2 is completely blocked!)
+        if ((homeFav || (!awayFav && hOdd <= aOdd)) && dc1x >= minOdd && dc1x <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.5), dc1x);
+          candidates.push({ market: "Double Chance", pick: "1X", odds: Math.max(1.08, dc1x), trustScore, trustLevel });
         }
-        if (dcX2 >= minOdd && dcX2 <= maxOdd) {
-          candidates.push({ market: "Double Chance", pick: "X2", odds: Math.max(1.10, dcX2), trustScore: Math.min(10, ratingNum + 0.3), trustLevel });
+        // When Away is favored, ONLY X2 is allowed (Home 1X is completely blocked!)
+        if ((awayFav || (!homeFav && aOdd < hOdd)) && dcX2 >= minOdd && dcX2 <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.5), dcX2);
+          candidates.push({ market: "Double Chance", pick: "X2", odds: Math.max(1.08, dcX2), trustScore, trustLevel });
         }
-        if (dc12 >= minOdd && dc12 <= maxOdd) {
-          candidates.push({ market: "Double Chance", pick: "12", odds: Math.max(1.10, dc12), trustScore: Math.min(10, ratingNum + 0.2), trustLevel });
+        // Either team win (12) for competitive games
+        if (!isDrawPredicted && hOdd >= 1.70 && aOdd >= 1.70 && dc12 >= minOdd && dc12 <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, dc12);
+          candidates.push({ market: "Double Chance", pick: "12", odds: Math.max(1.10, dc12), trustScore, trustLevel });
         }
       }
 
-      // 3. Over / Under 2.5
+      // 3. Over / Under Goals — Aligned with NerdyTips goal predictions
+      const rawGoals = (m.predictions?.goals?.pick || "").trim().toLowerCase();
+      const isOverPredicted = rawGoals.includes("o") || rawGoals.includes("over") || rawGoals === "yes";
+      const isUnderPredicted = rawGoals.includes("u") || rawGoals.includes("under") || rawGoals === "no";
+
       const o25 = toDec(m.predictions?.goals?.odd, 1.78);
       const u25 = parseFloat(Math.max(1.30, 3.55 - o25).toFixed(2));
-      if (betTypes["Over 2.5"] && o25 >= minOdd && o25 <= maxOdd) {
-        candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: o25, trustScore: ratingNum, trustLevel });
-      }
-      if (betTypes["Under 2.5"] && u25 >= minOdd && u25 <= maxOdd) {
-        candidates.push({ market: "Under 2.5", pick: "Under 2.5", odds: u25, trustScore: ratingNum * 0.94, trustLevel });
-      }
-
-      // 4. Over / Under 1.5
       const o15 = parseFloat(Math.max(1.12, o25 * 0.68).toFixed(2));
       const u15 = parseFloat(Math.max(1.80, o25 * 1.85).toFixed(2));
-      if (betTypes["Over 1.5"] && o15 >= minOdd && o15 <= maxOdd) {
-        candidates.push({ market: "Over 1.5", pick: "Over 1.5", odds: o15, trustScore: Math.min(10, ratingNum + 0.5), trustLevel });
-      }
-      if (betTypes["Under 1.5"] && u15 >= minOdd && u15 <= maxOdd) {
-        candidates.push({ market: "Under 1.5", pick: "Under 1.5", odds: u15, trustScore: ratingNum * 0.85, trustLevel });
-      }
-
-      // 5. Over / Under 3.5
       const o35 = parseFloat(Math.max(1.85, o25 * 1.62).toFixed(2));
       const u35 = parseFloat(Math.max(1.15, o25 * 0.72).toFixed(2));
-      if (betTypes["Over 3.5"] && o35 >= minOdd && o35 <= maxOdd) {
-        candidates.push({ market: "Over 3.5", pick: "Over 3.5", odds: o35, trustScore: ratingNum * 0.86, trustLevel });
+
+      // Over 2.5: only if Over is predicted or odds favor Over
+      if (betTypes["Over 2.5"] && (isOverPredicted || (!isUnderPredicted && o25 <= u25)) && o25 >= minOdd && o25 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, o25);
+        candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: o25, trustScore, trustLevel });
       }
-      if (betTypes["Under 3.5"] && u35 >= minOdd && u35 <= maxOdd) {
-        candidates.push({ market: "Under 3.5", pick: "Under 3.5", odds: u35, trustScore: Math.min(10, ratingNum + 0.4), trustLevel });
+      // Under 2.5: only if Under is predicted or odds favor Under
+      if (betTypes["Under 2.5"] && (isUnderPredicted || (!isOverPredicted && u25 < o25)) && u25 >= minOdd && u25 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, u25);
+        candidates.push({ market: "Under 2.5", pick: "Under 2.5", odds: u25, trustScore, trustLevel });
       }
 
-      // 6. Both Teams to Score
+      // Over 1.5: Safe line when Over is predicted
+      if (betTypes["Over 1.5"] && !isUnderPredicted && o15 >= minOdd && o15 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.6), o15);
+        candidates.push({ market: "Over 1.5", pick: "Over 1.5", odds: o15, trustScore, trustLevel });
+      }
+      // Under 1.5: Only when strictly strong Under predicted and low scoring
+      if (betTypes["Under 1.5"] && isUnderPredicted && u25 <= 1.55 && u15 >= minOdd && u15 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum * 0.9, u15);
+        candidates.push({ market: "Under 1.5", pick: "Under 1.5", odds: u15, trustScore, trustLevel });
+      }
+
+      // Over 3.5 & Under 3.5
+      if (betTypes["Over 3.5"] && isOverPredicted && o25 <= 1.55 && o35 >= minOdd && o35 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum * 0.92, o35);
+        candidates.push({ market: "Over 3.5", pick: "Over 3.5", odds: o35, trustScore, trustLevel });
+      }
+      if (betTypes["Under 3.5"] && !isOverPredicted && u35 >= minOdd && u35 <= maxOdd) {
+        const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.5), u35);
+        candidates.push({ market: "Under 3.5", pick: "Under 3.5", odds: u35, trustScore, trustLevel });
+      }
+
+      // 4. Both Teams to Score (BTTS) — Aligned with NerdyTips BTTS prediction
+      const rawBtts = (m.predictions?.btts?.pick || "").trim().toLowerCase();
+      const isBttsYes = rawBtts.includes("yes") || rawBtts === "gg" || rawBtts === "1";
+      const isBttsNo = rawBtts.includes("no") || rawBtts === "ng" || rawBtts === "0";
+
       const bttsYes = toDec(m.predictions?.btts?.odd, 1.80);
       const bttsNo = parseFloat(Math.max(1.30, 3.6 - bttsYes).toFixed(2));
       if (betTypes["Both Teams to Score"]) {
-        if (bttsYes >= minOdd && bttsYes <= maxOdd) {
-          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bttsYes, trustScore: ratingNum, trustLevel });
+        if ((isBttsYes || (!isBttsNo && bttsYes <= bttsNo)) && bttsYes >= minOdd && bttsYes <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, bttsYes);
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bttsYes, trustScore, trustLevel });
         }
-        if (bttsNo >= minOdd && bttsNo <= maxOdd) {
-          candidates.push({ market: "Both Teams to Score", pick: "BTTS No", odds: bttsNo, trustScore: ratingNum * 0.92, trustLevel });
+        if ((isBttsNo || (!isBttsYes && bttsNo < bttsYes)) && bttsNo >= minOdd && bttsNo <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, bttsNo);
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS No", odds: bttsNo, trustScore, trustLevel });
         }
       }
 
-      // 7. More markets: Draw No Bet (excluded when universalOnly is true to ensure 100% SportyBet & Bet9ja conversion)
+      // 5. Draw No Bet (DNB) — Aligned with favorite (excluded when universalOnly is true)
       if (!universalOnly && betTypes["More markets"]) {
         const dnb1 = parseFloat(Math.max(1.15, hOdd * 0.72).toFixed(2));
         const dnb2 = parseFloat(Math.max(1.18, aOdd * 0.72).toFixed(2));
-        if (dnb1 >= minOdd && dnb1 <= maxOdd) {
-          candidates.push({ market: "Draw No Bet", pick: "DNB 1", odds: dnb1, trustScore: Math.min(10, ratingNum + 0.3), trustLevel });
+        if ((homeFav || (!awayFav && hOdd <= aOdd)) && dnb1 >= minOdd && dnb1 <= maxOdd) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, dnb1);
+          candidates.push({ market: "Draw No Bet", pick: "DNB 1", odds: dnb1, trustScore, trustLevel });
         }
-        if (dnb2 >= minOdd && dnb2 <= maxOdd && aOdd <= 3.5) {
-          candidates.push({ market: "Draw No Bet", pick: "DNB 2", odds: dnb2, trustScore: ratingNum * 0.93, trustLevel });
+        if ((awayFav || (!homeFav && aOdd < hOdd)) && dnb2 >= minOdd && dnb2 <= maxOdd && aOdd <= 3.2) {
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, dnb2);
+          candidates.push({ market: "Draw No Bet", pick: "DNB 2", odds: dnb2, trustScore, trustLevel });
         }
       }
 
@@ -372,21 +460,33 @@ export default function BetBuilderPage() {
         const ratingNum = typeof m.rating === "number" ? m.rating : typeof m.predictions?.bestTip?.rating === "number" ? m.predictions.bestTip.rating : 8.0;
         const hOdd = toDec(m.odds?.home, 1.85);
         const aOdd = toDec(m.odds?.away, 3.40);
+        const raw1x2 = (m.predictions?.pickScore?.pick || "").trim();
+        const isHomeFav = raw1x2 === "1" || (hOdd <= aOdd && aOdd >= 2.0);
+        const isAwayFav = raw1x2 === "2" || (aOdd < hOdd && hOdd >= 2.0);
+
         const candidates: Array<{ market: string; pick: string; odds: number; trustScore: number; trustLevel: "cf1" | "cf2" | "cf3" | "cf4" }> = [];
 
         if (betTypes["Double Chance"]) {
-          candidates.push({ market: "Double Chance", pick: hOdd <= aOdd ? "1X" : "X2", odds: 1.28, trustScore: ratingNum + 0.3, trustLevel: "cf2" });
+          const pick = isHomeFav ? "1X" : isAwayFav ? "X2" : "1X";
+          const odd = isHomeFav ? Math.max(1.10, parseFloat((1 / (1 / hOdd + 1 / 3.4) * 0.96).toFixed(2))) : 1.28;
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.5), odd);
+          candidates.push({ market: "Double Chance", pick, odds: odd, trustScore, trustLevel });
         }
         if (betTypes["Over 1.5"] || betTypes["Over 2.5"]) {
-          candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: toDec(m.predictions?.goals?.odd, 1.75), trustScore: ratingNum, trustLevel: "cf2" });
+          const oOdd = toDec(m.predictions?.goals?.odd, 1.75);
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, oOdd);
+          candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: oOdd, trustScore, trustLevel });
         }
         if (betTypes["Both Teams to Score"]) {
-          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: toDec(m.predictions?.btts?.odd, 1.80), trustScore: ratingNum, trustLevel: "cf2" });
+          const bOdd = toDec(m.predictions?.btts?.odd, 1.80);
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, bOdd);
+          candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bOdd, trustScore, trustLevel });
         }
         if (betTypes["Match Result (1X2)"] || candidates.length === 0) {
-          const pick = hOdd <= aOdd ? "1" : "2";
-          const odd = hOdd <= aOdd ? hOdd : aOdd;
-          candidates.push({ market: "Match Result (1X2)", pick, odds: Math.min(3.2, Math.max(1.2, odd)), trustScore: ratingNum, trustLevel: "cf2" });
+          const pick = isHomeFav ? "1" : isAwayFav ? "2" : (hOdd <= aOdd ? "1" : "2");
+          const odd = isHomeFav ? hOdd : isAwayFav ? aOdd : Math.min(hOdd, aOdd);
+          const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, odd);
+          candidates.push({ market: "Match Result (1X2)", pick, odds: Math.min(3.2, Math.max(1.10, odd)), trustScore, trustLevel });
         }
         return { raw: m, candidates };
       });
@@ -1457,7 +1557,7 @@ export default function BetBuilderPage() {
 
                         {/* Trust Score */}
                         <span className="bb-slip__trust" title={`AI Trust Score: ${match.trustScore}/10`}>
-                          {match.trustScore}
+                          {match.trustScore.includes("/10") ? match.trustScore : `${match.trustScore}/10`}
                         </span>
 
                         {/* Pick Pill */}
