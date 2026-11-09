@@ -146,6 +146,8 @@ export default function BetBuilderPage() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<string>("");
   const [generatedSlip, setGeneratedSlip] = useState<SlipMatch[]>([]);
+  const [hasGenerated, setHasGenerated] = useState<boolean>(false);
+  const [hasUnappliedChanges, setHasUnappliedChanges] = useState<boolean>(false);
 
   // Auth & Daily Usage State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -589,20 +591,25 @@ export default function BetBuilderPage() {
     });
   }, [matchesPool, rawMatches, betTypes, isFixedCount, fixedCount, numPicksRange, targetOdds]);
 
-  // Dynamic regeneration when parameters or matches pool change
+  // Track when user changes parameters after an initial slip was generated (never auto-generate games without user clicking button)
   useEffect(() => {
-    if (rawMatches.length > 0 && !loading) {
-      const updated = buildSlip();
-      if (updated.length > 0) {
-        setGeneratedSlip(updated);
-      }
+    if (hasGenerated && generatedSlip.length > 0) {
+      setHasUnappliedChanges(true);
     }
-  }, [buildSlip, rawMatches.length, loading]);
+  }, [hasGenerated, targetOdds, numPicksRange, isFixedCount, fixedCount, betTypes, minOdd, maxOdd, minTrust, timeWindow, onlyMajor, onlyDecreasing]);
 
   // Action: Trigger Slip Generation with Micro-Animation & User Limit Checks
   const handleGenerateSlip = async () => {
-    // If free logged-in user already used ticket today and is not VIP/trial
-    if (isLoggedIn && !isVip && freeTicketsUsedToday >= 3) {
+    // If user is a guest (not logged in), enforce 1 free slip generation before showing login/signup modal
+    if (!isLoggedIn) {
+      const guestKey = `jt_bb_guest_${todayKey}`;
+      const guestUsed = parseInt(localStorage.getItem(guestKey) || "0", 10);
+      if (guestUsed >= 1) {
+        setShowLimitModal(true);
+        return;
+      }
+    } else if (!isVip && freeTicketsUsedToday >= 3) {
+      // If free logged-in user already used ticket today and is not VIP/trial
       setShowLimitModal(true);
       return;
     }
@@ -622,11 +629,17 @@ export default function BetBuilderPage() {
     // Generate new randomized slip respecting all parameters
     const newSlip = buildSlip();
     setGeneratedSlip(newSlip);
+    setHasGenerated(true);
+    setHasUnappliedChanges(false);
     setIsGenerating(false);
     setGenerationStep("");
 
-    // If free logged-in user without VIP, record ticket used
-    if (!isVip && userId) {
+    // Record ticket usage
+    if (!isLoggedIn) {
+      const guestKey = `jt_bb_guest_${todayKey}`;
+      const guestUsed = parseInt(localStorage.getItem(guestKey) || "0", 10);
+      localStorage.setItem(guestKey, String(guestUsed + 1));
+    } else if (!isVip && userId) {
       const storageKey = `jt_bb_tickets_${userId}_${todayKey}`;
       const newCount = freeTicketsUsedToday + 1;
       localStorage.setItem(storageKey, String(newCount));
@@ -1256,6 +1269,7 @@ export default function BetBuilderPage() {
                   justifyContent: "center",
                   gap: 8,
                   opacity: isGenerating ? 0.75 : 1,
+                  boxShadow: hasUnappliedChanges ? "0 0 18px rgba(124, 108, 245, 0.65)" : undefined,
                 }}
               >
                 {isGenerating ? (
@@ -1266,53 +1280,89 @@ export default function BetBuilderPage() {
                 ) : (
                   <>
                     <Sparkles size={15} />
-                    <span>Generate Slip</span>
+                    <span>
+                      {hasUnappliedChanges
+                        ? "Update & Generate Slip"
+                        : generatedSlip.length > 0
+                        ? "Re-Generate Slip"
+                        : "Generate Slip"}
+                    </span>
                   </>
                 )}
               </button>
 
-              <button
-                type="button"
-                className="bb-btn bb-btn--ghost"
-                onClick={handleGenerateSlip}
-                disabled={isGenerating || loading}
-                title="Re-roll with different matches"
-              >
-                <RefreshCw size={15} className={isGenerating ? "animate-spin" : ""} />
-              </button>
+              {generatedSlip.length > 0 && (
+                <button
+                  type="button"
+                  className="bb-btn bb-btn--ghost"
+                  onClick={handleGenerateSlip}
+                  disabled={isGenerating || loading}
+                  title="Re-roll with different matches"
+                >
+                  <RefreshCw size={15} className={isGenerating ? "animate-spin" : ""} />
+                </button>
+              )}
             </div>
 
-            {/* Prominent "Get Betting Code / Convert Codes" Button right under Generate Slip */}
-            <button
-              type="button"
-              onClick={() => {
-                if (generatedSlip.length === 0) {
-                  handleGenerateSlip();
-                }
-                setShowBookingModal(true);
-              }}
-              style={{
-                marginTop: 10,
-                width: "100%",
-                padding: "13px 18px",
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                border: "1px solid rgba(16, 185, 129, 0.4)",
-                color: "#ffffff",
-                fontWeight: 800,
-                fontSize: 14,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.28)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <Ticket size={16} />
-              <span>Get Betting Code / Convert Codes</span>
-            </button>
+            {/* "Get Betting Code / Convert Codes" Button - Active ONLY after slip has been generated */}
+            {generatedSlip.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBookingModal(true);
+                }}
+                style={{
+                  marginTop: 10,
+                  width: "100%",
+                  padding: "13px 18px",
+                  borderRadius: 12,
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  border: "1px solid rgba(16, 185, 129, 0.4)",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 14px rgba(16, 185, 129, 0.28)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Ticket size={16} />
+                <span>Get Betting Code / Convert Codes</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setBookingModalTab("convert");
+                  setShowBookingModal(true);
+                }}
+                style={{
+                  marginTop: 10,
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: 10,
+                  background: "rgba(124, 108, 245, 0.08)",
+                  border: "1px dashed rgba(124, 108, 245, 0.25)",
+                  color: "#a79fff",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+                title="Convert existing booking codes between bookmakers"
+              >
+                <ArrowLeftRight size={13} />
+                <span>Have a code? Convert between bookmakers &rarr;</span>
+              </button>
+            )}
           </form>
 
           {/* ════════════════════════════════════════════════════════════
@@ -1383,12 +1433,200 @@ export default function BetBuilderPage() {
                 </p>
               </div>
             ) : generatedSlip.length === 0 ? (
-              <div className="bb-placeholder">
-                <h2>Ready to build your slip?</h2>
-                <p>Set your preferences on the left, then click Generate slip to let the AI assemble it for you.</p>
+              /* High-Converting Pre-Generation State: Games ONLY revealed after hitting Generate Slip */
+              <div
+                className="bb-placeholder"
+                style={{
+                  minHeight: 460,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "radial-gradient(120% 70% at 50% 10%, rgba(124, 108, 245, 0.14), rgba(18, 15, 45, 0.8) 60%)",
+                  border: "1.5px dashed rgba(167, 159, 255, 0.3)",
+                  borderRadius: 20,
+                  padding: "44px 28px",
+                  textAlign: "center",
+                  boxShadow: "0 20px 50px rgba(0, 0, 0, 0.4)",
+                }}
+              >
+                {/* Glowing Center Icon */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: 72,
+                    height: 72,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, rgba(124, 108, 245, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%)",
+                    border: "1px solid rgba(167, 159, 255, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffd700",
+                    marginBottom: 20,
+                    boxShadow: "0 0 32px rgba(124, 108, 245, 0.35)",
+                  }}
+                >
+                  <Sparkles size={34} />
+                </div>
+
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    background: "rgba(124, 108, 245, 0.15)",
+                    border: "1px solid rgba(124, 108, 245, 0.35)",
+                    color: "#c4b5fd",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    marginBottom: 12,
+                  }}
+                >
+                  <ShieldCheck size={13} color="#2fd08a" />
+                  <span>AI Algorithmic Bet Builder</span>
+                </div>
+
+                <h2 style={{ fontSize: 24, fontWeight: 900, color: "#ffffff", margin: "0 0 10px", letterSpacing: "-0.01em" }}>
+                  Ready to Build Your Slip?
+                </h2>
+                <p style={{ fontSize: 13.5, color: "#a79fff", maxWidth: 460, margin: "0 0 26px", lineHeight: 1.6 }}>
+                  Matches and AI predictions are generated on demand. Set your desired target odds, number of picks, and market preferences on the left, then click <strong>Generate Slip</strong> to reveal your optimal banker combination.
+                </p>
+
+                {/* 3 Value Pillars */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 12,
+                    width: "100%",
+                    maxWidth: 580,
+                    marginBottom: 28,
+                    textAlign: "left",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(167, 159, 255, 0.12)",
+                    }}
+                  >
+                    <div style={{ color: "#ffd700", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <Zap size={14} />
+                      <span>Monte Carlo AI</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#8a85b5", lineHeight: 1.4 }}>
+                      Simulates 100k Poisson probability scenarios to pinpoint high-edge value picks.
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(167, 159, 255, 0.12)",
+                    }}
+                  >
+                    <div style={{ color: "#2fd08a", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <ShieldCheck size={14} />
+                      <span>Universal Markets</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#8a85b5", lineHeight: 1.4 }}>
+                      100% SportyBet, Bet9ja &amp; 1xBet compatible. Zero missing-market errors.
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(167, 159, 255, 0.12)",
+                    }}
+                  >
+                    <div style={{ color: "#38bdf8", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <Ticket size={14} />
+                      <span>1-Click Codes</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#8a85b5", lineHeight: 1.4 }}>
+                      Directly generate bookmaker codes and convert between bookies after generating.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary CTA Button */}
+                <button
+                  type="button"
+                  onClick={handleGenerateSlip}
+                  disabled={isGenerating || loading}
+                  className="bb-btn bb-btn--primary"
+                  style={{
+                    padding: "13px 32px",
+                    fontSize: 14.5,
+                    fontWeight: 900,
+                    borderRadius: 12,
+                    boxShadow: "0 8px 24px rgba(124, 108, 245, 0.45)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Sparkles size={16} />
+                  <span>Generate AI Slip Now</span>
+                </button>
               </div>
             ) : (
               <div className="bb-slip">
+                {/* Notice when filters are adjusted after initial generation */}
+                {hasUnappliedChanges && (
+                  <div
+                    style={{
+                      padding: "10px 16px",
+                      background: "linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(124, 108, 245, 0.2) 100%)",
+                      borderBottom: "1px solid rgba(245, 158, 11, 0.4)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      fontSize: 12,
+                      color: "#fbbf24",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>⚙️ Parameters changed. Click "Update &amp; Generate Slip" on the left to recalculate matches.</span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateSlip}
+                      disabled={isGenerating || loading}
+                      style={{
+                        background: "#fbbf24",
+                        color: "#08071e",
+                        border: "none",
+                        padding: "4px 12px",
+                        borderRadius: 6,
+                        fontWeight: 900,
+                        fontSize: 11.5,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <RefreshCw size={11} className={isGenerating ? "animate-spin" : ""} />
+                      <span>Update Slip</span>
+                    </button>
+                  </div>
+                )}
                 {/* Slip Header */}
                 <div className="bb-slip__head">
                   <div className="bb-slip__headmain">
