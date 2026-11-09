@@ -2398,12 +2398,10 @@ export default function BetBuilderPage() {
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
-                        <a
-                          href={codeConversionError.includes("BetPaddi") ? "https://betpaddi.com" : "https://convertbetcodes.com"}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href="/pricing"
                           style={{
-                            padding: "6px 12px",
+                            padding: "6px 14px",
                             borderRadius: 7,
                             background: "rgba(239, 68, 68, 0.2)",
                             border: "1px solid rgba(239, 68, 68, 0.4)",
@@ -2416,14 +2414,9 @@ export default function BetBuilderPage() {
                             gap: 5,
                           }}
                         >
-                          <span>{codeConversionError.includes("BetPaddi") ? "Manage BetPaddi Account" : "Open ConvertBetCodes.com"}</span>
+                          <span>Upgrade Plan / View Pricing</span>
                           <ExternalLink size={12} />
-                        </a>
-                        {codeConversionError.includes("Insufficient Credits") && (
-                          <span style={{ fontSize: 11, color: "#fca5a5" }}>
-                            Top up your BetPaddi conversion credits to enable live code conversion.
-                          </span>
-                        )}
+                        </Link>
                       </div>
                     </div>
                   )}

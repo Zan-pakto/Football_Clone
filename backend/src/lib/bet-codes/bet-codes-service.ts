@@ -352,6 +352,7 @@ export class BetCodesService {
 
     // ── 1. CONVERT EXISTING BOOKING CODE ──
     if (existingCode && existingCode.trim()) {
+      const targetMeta = this.getBookmakerMeta(targetBookmaker, existingCode.trim());
       const rawFrom = sourceBookmaker || "sportybet";
       const fromParam = rawFrom.includes(":") ? rawFrom : `${rawFrom}:ng`;
       const toParam = targetBookmaker.includes(":") ? targetBookmaker : `${targetBookmaker}:ng`;
@@ -422,6 +423,11 @@ export class BetCodesService {
           // If BetPaddi returned an explicit error response
           if (data && data.message) {
             const meta = this.getBookmakerMeta(targetBookmaker, existingCode);
+            const userFriendlyError =
+              data.message.toLowerCase().includes("insufficient")
+                ? "Code conversion limit reached for this session. Please upgrade your tier or try again shortly."
+                : `Conversion failed: ${data.message}`;
+
             return {
               success: false,
               bookingCode: null,
@@ -437,8 +443,8 @@ export class BetCodesService {
               picksCount: selections.length,
               expiresAt,
               generatedAt: new Date().toISOString(),
-              error: `BetPaddi: ${data.message}`,
-              externalUrl: "https://betpaddi.com",
+              error: userFriendlyError,
+              externalUrl: undefined,
             };
           }
         } catch (err: any) {
@@ -487,18 +493,18 @@ export class BetCodesService {
                 success: false,
                 bookingCode: null,
                 targetBookmaker,
-                bookmakerLabel: targetBookmaker.toUpperCase(),
-                brandColor: "#e41b23",
-                directWebUrl: "https://convertbetcodes.com",
+                bookmakerLabel: targetMeta.label,
+                brandColor: targetMeta.brandColor,
+                directWebUrl: targetMeta.directWebUrl,
                 universalValidation,
                 provider: "convertbetcodes",
-                instructions: { mobileApp: [], mobileWeb: [], desktop: [] },
+                instructions: targetMeta.instructions,
                 totalOdds: 1,
                 picksCount: selections.length,
                 expiresAt,
                 generatedAt: new Date().toISOString(),
-                error: `Conversion provider error: ${data.message}`,
-                externalUrl: "https://convertbetcodes.com",
+                error: "Code conversion limit reached or invalid code. Please check your code and try again.",
+                externalUrl: undefined,
               };
             }
           }
@@ -508,26 +514,23 @@ export class BetCodesService {
       }
 
       // If no API key configured or API calls could not be completed
-      const meta = this.getBookmakerMeta(targetBookmaker, existingCode);
       return {
         success: false,
         bookingCode: null,
         sourceBookmaker,
         targetBookmaker,
-        bookmakerLabel: meta.label,
-        brandColor: meta.brandColor,
-        directWebUrl: meta.directWebUrl,
+        bookmakerLabel: targetMeta.label,
+        brandColor: targetMeta.brandColor,
+        directWebUrl: targetMeta.directWebUrl,
         universalValidation,
         provider: "manual",
-        instructions: meta.instructions,
+        instructions: targetMeta.instructions,
         totalOdds: parseFloat(totalOdds.toFixed(2)),
         picksCount: selections.length,
         expiresAt,
         generatedAt: new Date().toISOString(),
-        error: this.betpaddiApiKey || this.convertBetCodesApiKey
-          ? "Unable to convert this booking code on destination bookmaker. The code may have expired or is invalid on the source bookie."
-          : "Bet conversion API key is not configured in backend .env. Live cross-bookmaker translation requires an active conversion API key.",
-        externalUrl: this.betpaddiApiKey ? "https://betpaddi.com" : "https://convertbetcodes.com",
+        error: "Unable to convert this booking code. The code may have expired or is invalid on the source bookie.",
+        externalUrl: undefined,
       };
     }
 

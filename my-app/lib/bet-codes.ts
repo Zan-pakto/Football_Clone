@@ -266,7 +266,7 @@ export async function convertBetCode(
     "1xbet": { label: "1xBet", color: "#1e88e5", directWeb: "https://1xbet.ng/en/" },
     betway: { label: "Betway", color: "#000000", directWeb: "https://www.betway.com.ng/" },
     msport: { label: "MSport", color: "#fbb03b", directWeb: "https://www.msport.com/ng/" },
-  }[toBookmaker] || { label: toBookmaker.toUpperCase(), color: "#7c6cf5", directWeb: "https://convertbetcodes.com" };
+  }[toBookmaker] || { label: toBookmaker.toUpperCase(), color: "#7c6cf5", directWeb: "https://www.google.com" };
 
   const validation = validateUniversalMarkets(selections);
 
@@ -298,7 +298,7 @@ export async function convertBetCode(
       expiresAt: new Date(Date.now() + 4 * 3600000).toISOString(),
       generatedAt: new Date().toISOString(),
       error: data?.error || "Code conversion failed. The booking code might be invalid or expired.",
-      externalUrl: data?.externalUrl || "https://convertbetcodes.com",
+      externalUrl: data?.externalUrl,
     };
   } catch (err: any) {
     console.warn("API booking code conversion network failure:", err);
@@ -317,8 +317,8 @@ export async function convertBetCode(
       picksCount: selections.length,
       expiresAt: new Date(Date.now() + 4 * 3600000).toISOString(),
       generatedAt: new Date().toISOString(),
-      error: "Unable to reach booking conversion server. Please check your connection or visit ConvertBetCodes.com directly.",
-      externalUrl: "https://convertbetcodes.com",
+      error: "Unable to reach booking conversion server. Please check your connection and try again.",
+      externalUrl: undefined,
     };
   }
 }
