@@ -48,6 +48,14 @@ export class BachsPaymentProvider implements IPaymentProvider {
         if (input.successUrl.startsWith("https://")) {
           url.searchParams.set("redirect_url", input.successUrl);
         }
+        if (input.currency) {
+          url.searchParams.set("currency", input.currency);
+          url.searchParams.set("metadata[currency]", input.currency);
+        }
+        if (input.country) {
+          url.searchParams.set("country", input.country);
+          url.searchParams.set("metadata[country]", input.country);
+        }
 
         return {
           sessionId: `bachs_${Date.now()}`,

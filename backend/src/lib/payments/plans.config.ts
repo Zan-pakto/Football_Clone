@@ -364,12 +364,12 @@ export function resolveProviderAndCheckout(
   }
 
   // African currencies / Mobile Money route to Bachs
-  if (cur === "kes" || cur === "momo" || cur === "ghs" || cur === "ugx" || cur === "tzs" || cur === "rwf" || cur === "xof" || cur === "xaf") {
+  if (cur === "kes" || cur === "momo" || cur === "ghs" || cur === "ugx" || cur === "tzs" || cur === "rwf" || cur === "xof" || cur === "xaf" || cur === "zmw") {
     const variant = plan.currencyVariants[cur] || plan.currencyVariants.momo || plan.currencyVariants.kes;
     return {
       provider: "bachs",
       checkoutUrl: variant?.checkoutUrl || plan.bachsCheckoutUrl || plan.whopCheckoutUrl,
-      currency: variant?.currency || "MOMO",
+      currency: cur === "momo" ? "MOMO" : cur.toUpperCase(),
       productId: variant?.productId || plan.bachsProductId,
     };
   }

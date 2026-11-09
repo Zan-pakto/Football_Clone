@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import {
   Check,
@@ -15,6 +15,7 @@ import {
   Wallet,
   Zap,
   HelpCircle,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -161,9 +162,176 @@ const PLAN_PRICING: Record<
   },
 };
 
+export interface MoMoCountryOption {
+  id: string;
+  name: string;
+  currency: string;
+  symbol: string;
+  flag: string;
+  providers: string;
+  prices: {
+    premium: {
+      "1month": { price: string; periodLabel: string; billedNote: string };
+      "6months": { price: string; periodLabel: string; billedNote: string; savings: string };
+    };
+    vip: {
+      "1month": { price: string; periodLabel: string; billedNote: string };
+      "6months": { price: string; periodLabel: string; billedNote: string; savings: string };
+    };
+  };
+}
+
+export const MOMO_COUNTRIES: MoMoCountryOption[] = [
+  {
+    id: "GH",
+    name: "Ghana",
+    currency: "GHS",
+    symbol: "GH₵",
+    flag: "🇬🇭",
+    providers: "MTN MoMo • Telecel / Vodafone • AirtelTigo",
+    prices: {
+      premium: {
+        "1month": { price: "GH₵ 155", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel MoMo" },
+        "6months": { price: "GH₵ 775", periodLabel: "/6-mo", billedNote: "GH₵ 129/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "GH₵ 310", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel MoMo" },
+        "6months": { price: "GH₵ 1,240", periodLabel: "/6-mo", billedNote: "GH₵ 207/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "KE",
+    name: "Kenya",
+    currency: "KES",
+    symbol: "KSh",
+    flag: "🇰🇪",
+    providers: "M-Pesa • Airtel Money",
+    prices: {
+      premium: {
+        "1month": { price: "KSh 1,470", periodLabel: "/month", billedNote: "Billed monthly via Safaricom M-Pesa" },
+        "6months": { price: "KSh 7,350", periodLabel: "/6-mo", billedNote: "KSh 1,225/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "KSh 2,940", periodLabel: "/month", billedNote: "Billed monthly via Safaricom M-Pesa" },
+        "6months": { price: "KSh 14,700", periodLabel: "/6-mo", billedNote: "KSh 2,450/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "UG",
+    name: "Uganda",
+    currency: "UGX",
+    symbol: "UGX",
+    flag: "🇺🇬",
+    providers: "MTN MoMo • Airtel Money",
+    prices: {
+      premium: {
+        "1month": { price: "UGX 37,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "UGX 185,000", periodLabel: "/6-mo", billedNote: "UGX 30,833/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "UGX 74,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "UGX 295,000", periodLabel: "/6-mo", billedNote: "UGX 49,166/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "TZ",
+    name: "Tanzania",
+    currency: "TZS",
+    symbol: "TZS",
+    flag: "🇹🇿",
+    providers: "Vodacom M-Pesa • Tigo Pesa • Airtel Money",
+    prices: {
+      premium: {
+        "1month": { price: "TZS 26,500", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo Pesa" },
+        "6months": { price: "TZS 132,500", periodLabel: "/6-mo", billedNote: "TZS 22,083/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "TZS 53,000", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo Pesa" },
+        "6months": { price: "TZS 212,000", periodLabel: "/6-mo", billedNote: "TZS 35,333/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "RW",
+    name: "Rwanda",
+    currency: "RWF",
+    symbol: "RWF",
+    flag: "🇷🇼",
+    providers: "MTN Mobile Money • Airtel Money",
+    prices: {
+      premium: {
+        "1month": { price: "RWF 13,500", periodLabel: "/month", billedNote: "Billed monthly via MTN MoMo" },
+        "6months": { price: "RWF 67,500", periodLabel: "/6-mo", billedNote: "RWF 11,250/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "RWF 27,000", periodLabel: "/month", billedNote: "Billed monthly via MTN MoMo" },
+        "6months": { price: "RWF 108,000", periodLabel: "/6-mo", billedNote: "RWF 18,000/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "CM",
+    name: "Cameroon & Central Africa",
+    currency: "XAF",
+    symbol: "FCFA",
+    flag: "🇨🇲",
+    providers: "Orange Money • MTN MoMo",
+    prices: {
+      premium: {
+        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN MoMo" },
+        "6months": { price: "30,000 FCFA", periodLabel: "/6-mo", billedNote: "5,000 FCFA/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN MoMo" },
+        "6months": { price: "48,000 FCFA", periodLabel: "/6-mo", billedNote: "8,000 FCFA/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "CI",
+    name: "Ivory Coast / Senegal / Franc CFA",
+    currency: "XOF",
+    symbol: "FCFA",
+    flag: "🇨🇮",
+    providers: "Orange Money • MTN • Wave • Moov",
+    prices: {
+      premium: {
+        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
+        "6months": { price: "30,000 FCFA", periodLabel: "/6-mo", billedNote: "5,000 FCFA/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
+        "6months": { price: "48,000 FCFA", periodLabel: "/6-mo", billedNote: "8,000 FCFA/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+  {
+    id: "ZM",
+    name: "Zambia",
+    currency: "ZMW",
+    symbol: "ZK",
+    flag: "🇿🇲",
+    providers: "MTN MoMo • Airtel Money • Zamtel",
+    prices: {
+      premium: {
+        "1month": { price: "ZK 270", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "ZK 1,350", periodLabel: "/6-mo", billedNote: "ZK 225/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "ZK 540", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "ZK 2,150", periodLabel: "/6-mo", billedNote: "ZK 358/mo equivalent • Save 33%", savings: "SAVE 33%" },
+      },
+    },
+  },
+];
+
 export default function PricingPage() {
   const router = useRouter();
   const [currency, setCurrency] = useState<CurrencyCode>("USD");
+  const [selectedMoMoCountry, setSelectedMoMoCountry] = useState<MoMoCountryOption>(MOMO_COUNTRIES[0]);
   const [interval, setInterval] = useState<BillingInterval>("1month");
   const [loading, setLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -181,15 +349,40 @@ export default function PricingPage() {
         setCurrency("ZAR");
       } else if (tz.includes("Nairobi")) {
         setCurrency("KES");
+        const ke = MOMO_COUNTRIES.find((c) => c.id === "KE");
+        if (ke) setSelectedMoMoCountry(ke);
+      } else if (tz.includes("Accra")) {
+        setCurrency("MOMO");
+        const gh = MOMO_COUNTRIES.find((c) => c.id === "GH");
+        if (gh) setSelectedMoMoCountry(gh);
+      } else if (tz.includes("Kampala")) {
+        setCurrency("MOMO");
+        const ug = MOMO_COUNTRIES.find((c) => c.id === "UG");
+        if (ug) setSelectedMoMoCountry(ug);
+      } else if (tz.includes("Dar_es_Salaam")) {
+        setCurrency("MOMO");
+        const tzMatch = MOMO_COUNTRIES.find((c) => c.id === "TZ");
+        if (tzMatch) setSelectedMoMoCountry(tzMatch);
+      } else if (tz.includes("Kigali")) {
+        setCurrency("MOMO");
+        const rw = MOMO_COUNTRIES.find((c) => c.id === "RW");
+        if (rw) setSelectedMoMoCountry(rw);
+      } else if (tz.includes("Douala")) {
+        setCurrency("MOMO");
+        const cm = MOMO_COUNTRIES.find((c) => c.id === "CM");
+        if (cm) setSelectedMoMoCountry(cm);
+      } else if (tz.includes("Abidjan")) {
+        setCurrency("MOMO");
+        const ci = MOMO_COUNTRIES.find((c) => c.id === "CI");
+        if (ci) setSelectedMoMoCountry(ci);
       } else if (
-        tz.includes("Accra") ||
-        tz.includes("Kampala") ||
-        tz.includes("Dar_es_Salaam") ||
-        tz.includes("Kigali") ||
-        tz.includes("Douala") ||
-        tz.includes("Abidjan")
+        tz.includes("Lusaka") ||
+        tz.includes("Maputo") ||
+        tz.includes("Harare")
       ) {
         setCurrency("MOMO");
+        const zm = MOMO_COUNTRIES.find((c) => c.id === "ZM");
+        if (zm) setSelectedMoMoCountry(zm);
       } else {
         // Every other country defaults to USD
         setCurrency("USD");
@@ -238,10 +431,60 @@ export default function PricingPage() {
   const isVipActive = Boolean(subStatus?.hasActiveSubscription && !subStatus?.isExpired);
   const isExpired = Boolean(subStatus?.isExpired);
 
-  const currentPrices = PLAN_PRICING[currency];
-  const curInfo = CURRENCIES[currency];
+  const currentPrices = useMemo(() => {
+    if (currency === "MOMO") {
+      return {
+        premium: {
+          "1month": {
+            price: selectedMoMoCountry.prices.premium["1month"].price,
+            periodLabel: selectedMoMoCountry.prices.premium["1month"].periodLabel,
+            billedNote: selectedMoMoCountry.prices.premium["1month"].billedNote,
+            planId: "PREMIUM_MONTHLY",
+          },
+          "6months": {
+            price: selectedMoMoCountry.prices.premium["6months"].price,
+            periodLabel: selectedMoMoCountry.prices.premium["6months"].periodLabel,
+            billedNote: selectedMoMoCountry.prices.premium["6months"].billedNote,
+            planId: "PREMIUM_6MONTHS",
+            savings: selectedMoMoCountry.prices.premium["6months"].savings,
+          },
+        },
+        vip: {
+          "1month": {
+            price: selectedMoMoCountry.prices.vip["1month"].price,
+            periodLabel: selectedMoMoCountry.prices.vip["1month"].periodLabel,
+            billedNote: selectedMoMoCountry.prices.vip["1month"].billedNote,
+            planId: "VIP_MONTHLY",
+          },
+          "6months": {
+            price: selectedMoMoCountry.prices.vip["6months"].price,
+            periodLabel: selectedMoMoCountry.prices.vip["6months"].periodLabel,
+            billedNote: selectedMoMoCountry.prices.vip["6months"].billedNote,
+            planId: "VIP_6MONTHS",
+            savings: selectedMoMoCountry.prices.vip["6months"].savings,
+          },
+        },
+      };
+    }
+    return PLAN_PRICING[currency];
+  }, [currency, selectedMoMoCountry]);
 
-  const handleCheckout = async (planKey: "premium" | "vip") => {
+  const curInfo = useMemo(() => {
+    if (currency === "MOMO") {
+      return {
+        code: "MOMO" as CurrencyCode,
+        symbol: selectedMoMoCountry.symbol,
+        name: `${selectedMoMoCountry.name} Mobile Money`,
+        flag: selectedMoMoCountry.flag,
+        region: `${selectedMoMoCountry.name} & Africa`,
+        provider: "Bachs.io" as const,
+        methodsText: selectedMoMoCountry.providers,
+      };
+    }
+    return CURRENCIES[currency];
+  }, [currency, selectedMoMoCountry]);
+
+  const handleCheckout = async (planKey: "premium" | "vip", customCountry?: MoMoCountryOption) => {
     setErrorMessage(null);
 
     const targetPlanId = currentPrices[planKey][interval].planId;
@@ -282,13 +525,20 @@ export default function PricingPage() {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
+      const momoTarget = customCountry || (currency === "MOMO" ? selectedMoMoCountry : null);
+      const checkoutCurrency = momoTarget
+        ? momoTarget.currency.toLowerCase()
+        : currency.toLowerCase();
+      const checkoutCountry = momoTarget ? momoTarget.id : undefined;
+
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers,
         credentials: "include",
         body: JSON.stringify({
           planId: targetPlanId,
-          currency: currency.toLowerCase(),
+          currency: checkoutCurrency,
+          country: checkoutCountry,
         }),
       });
 
@@ -486,19 +736,53 @@ export default function PricingPage() {
             <div
               style={{
                 marginTop: 14,
-                padding: "12px 16px",
-                borderRadius: 10,
+                padding: "12px 18px",
+                borderRadius: 12,
                 background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid rgba(245, 158, 11, 0.4)",
-                textAlign: "center",
+                border: "1px solid rgba(245, 158, 11, 0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
               }}
             >
-              <div style={{ color: "#fbbf24", fontWeight: 900, fontSize: 13.5 }}>
-                ***Click on &quot;Pay&quot; after filling in your name and email address to get an amazing discount***
+              <div>
+                <div style={{ color: "#fbbf24", fontWeight: 900, fontSize: 13.5, display: "flex", alignItems: "center", gap: 7 }}>
+                  <span>{selectedMoMoCountry.flag}</span>
+                  <span>Active MoMo Country: {selectedMoMoCountry.name} ({selectedMoMoCountry.currency})</span>
+                </div>
+                <p style={{ margin: "4px 0 0", fontSize: 12, color: "#d4cde3", lineHeight: 1.4 }}>
+                  Supported networks: <strong>{selectedMoMoCountry.providers}</strong>. You can switch your country below on any card to view exact local pricing.
+                </p>
               </div>
-              <p style={{ margin: "5px 0 0", fontSize: 11.5, color: "#d4cde3", lineHeight: 1.4 }}>
-                Bachs automatically converts the base currency into your exact local African Mobile Money currency, and your final local discount price is calculated directly at the gateway.
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11.5, color: "#fbbf24", fontWeight: 700 }}>Quick Switch:</span>
+                <select
+                  value={selectedMoMoCountry.id}
+                  onChange={(e) => {
+                    const found = MOMO_COUNTRIES.find((c) => c.id === e.target.value);
+                    if (found) setSelectedMoMoCountry(found);
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "#120f2e",
+                    border: "1px solid rgba(245, 158, 11, 0.5)",
+                    color: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  {MOMO_COUNTRIES.map((c) => (
+                    <option key={c.id} value={c.id} style={{ background: "#120f2e", color: "#ffffff" }}>
+                      {c.flag} {c.name} ({c.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </div>
@@ -821,7 +1105,7 @@ export default function PricingPage() {
               </div>
 
               {/* 7-Day Free Trial Pill */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
                 <span
                   style={{
                     fontSize: 11.5,
@@ -840,6 +1124,131 @@ export default function PricingPage() {
                   <span>7-Day Free Trial</span>
                 </span>
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
+              </div>
+
+              {/* 🌍 MoMo Country & Price Dropdown Selector */}
+              <div
+                style={{
+                  background: currency === "MOMO" ? "rgba(245, 158, 11, 0.12)" : "rgba(255, 255, 255, 0.04)",
+                  border: currency === "MOMO" ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1px solid rgba(167, 159, 255, 0.2)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  marginBottom: 20,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <label
+                    htmlFor="momo-select-premium"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: currency === "MOMO" ? "#fbbf24" : "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    <Smartphone size={13} color={currency === "MOMO" ? "#fbbf24" : "#a79fff"} />
+                    <span>MoMo Country &amp; Price:</span>
+                  </label>
+                  {currency === "MOMO" && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 900,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        background: "rgba(47, 208, 138, 0.2)",
+                        color: "#2fd08a",
+                        border: "1px solid rgba(47, 208, 138, 0.35)",
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  <select
+                    id="momo-select-premium"
+                    value={selectedMoMoCountry.id}
+                    onChange={(e) => {
+                      const found = MOMO_COUNTRIES.find((c) => c.id === e.target.value);
+                      if (found) {
+                        setSelectedMoMoCountry(found);
+                        setCurrency("MOMO");
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "9px 32px 9px 12px",
+                      borderRadius: 8,
+                      background: "#120f2e",
+                      border: "1px solid rgba(245, 158, 11, 0.45)",
+                      color: "#ffffff",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                    }}
+                  >
+                    {MOMO_COUNTRIES.map((c) => (
+                      <option key={c.id} value={c.id} style={{ background: "#120f2e", color: "#ffffff" }}>
+                        {c.flag} {c.name} ({c.currency}) — {c.prices.premium[interval].price}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                      color: "#fbbf24",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 7,
+                    fontSize: 10.5,
+                    color: "var(--text-dim)",
+                    flexWrap: "wrap",
+                    gap: 4,
+                  }}
+                >
+                  <span>{selectedMoMoCountry.flag} {selectedMoMoCountry.providers}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrency("MOMO");
+                      handleCheckout("premium");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#fbbf24",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      padding: 0,
+                      fontSize: 10.5,
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Direct MoMo Checkout &rarr;
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
@@ -926,7 +1335,11 @@ export default function PricingPage() {
                   </>
                 ) : (
                   <>
-                    <span>Start 7-Day Free Trial ({currentPrices.premium[interval].price})</span>
+                    <span>
+                      {currency === "MOMO"
+                        ? `Pay ${currentPrices.premium[interval].price} via ${selectedMoMoCountry.name} MoMo`
+                        : `Start 7-Day Free Trial (${currentPrices.premium[interval].price})`}
+                    </span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -991,7 +1404,7 @@ export default function PricingPage() {
               </div>
 
               {/* 7-Day Free Trial Pill */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
                 <span
                   style={{
                     fontSize: 11.5,
@@ -1010,6 +1423,131 @@ export default function PricingPage() {
                   <span>7-Day Free Trial</span>
                 </span>
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
+              </div>
+
+              {/* 🌍 MoMo Country & Price Dropdown Selector */}
+              <div
+                style={{
+                  background: currency === "MOMO" ? "rgba(245, 158, 11, 0.12)" : "rgba(255, 255, 255, 0.04)",
+                  border: currency === "MOMO" ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1px solid rgba(167, 159, 255, 0.2)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  marginBottom: 20,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <label
+                    htmlFor="momo-select-vip"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: currency === "MOMO" ? "#fbbf24" : "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    <Smartphone size={13} color={currency === "MOMO" ? "#fbbf24" : "#a79fff"} />
+                    <span>MoMo Country &amp; Price:</span>
+                  </label>
+                  {currency === "MOMO" && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 900,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        background: "rgba(47, 208, 138, 0.2)",
+                        color: "#2fd08a",
+                        border: "1px solid rgba(47, 208, 138, 0.35)",
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  <select
+                    id="momo-select-vip"
+                    value={selectedMoMoCountry.id}
+                    onChange={(e) => {
+                      const found = MOMO_COUNTRIES.find((c) => c.id === e.target.value);
+                      if (found) {
+                        setSelectedMoMoCountry(found);
+                        setCurrency("MOMO");
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "9px 32px 9px 12px",
+                      borderRadius: 8,
+                      background: "#120f2e",
+                      border: "1px solid rgba(245, 158, 11, 0.45)",
+                      color: "#ffffff",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                    }}
+                  >
+                    {MOMO_COUNTRIES.map((c) => (
+                      <option key={c.id} value={c.id} style={{ background: "#120f2e", color: "#ffffff" }}>
+                        {c.flag} {c.name} ({c.currency}) — {c.prices.vip[interval].price}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                      color: "#fbbf24",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 7,
+                    fontSize: 10.5,
+                    color: "var(--text-dim)",
+                    flexWrap: "wrap",
+                    gap: 4,
+                  }}
+                >
+                  <span>{selectedMoMoCountry.flag} {selectedMoMoCountry.providers}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrency("MOMO");
+                      handleCheckout("vip");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#fbbf24",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      padding: 0,
+                      fontSize: 10.5,
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Direct MoMo Checkout &rarr;
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
@@ -1107,12 +1645,20 @@ export default function PricingPage() {
                   </>
                 ) : isExpired ? (
                   <>
-                    <span>Renew VIP Pro ({currentPrices.vip[interval].price})</span>
+                    <span>
+                      {currency === "MOMO"
+                        ? `Renew VIP Pro (${currentPrices.vip[interval].price})`
+                        : `Renew VIP Pro (${currentPrices.vip[interval].price})`}
+                    </span>
                     <ArrowRight size={16} />
                   </>
                 ) : (
                   <>
-                    <span>Start 7-Day Free Trial ({currentPrices.vip[interval].price})</span>
+                    <span>
+                      {currency === "MOMO"
+                        ? `Pay ${currentPrices.vip[interval].price} via ${selectedMoMoCountry.name} MoMo`
+                        : `Start 7-Day Free Trial (${currentPrices.vip[interval].price})`}
+                    </span>
                     <ArrowRight size={16} />
                   </>
                 )}
