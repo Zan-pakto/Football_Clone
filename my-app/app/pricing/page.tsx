@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import {
   Check,
@@ -88,12 +88,12 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
   },
   MOMO: {
     code: "MOMO",
-    symbol: "MoMo",
-    name: "African Mobile Money",
+    symbol: "Local",
+    name: "African Local Payments",
     flag: "🌍",
-    region: "Ghana, Uganda, Tanzania & All Africa",
+    region: "Ghana, Kenya, Uganda, Tanzania & All Africa",
     provider: "Bachs.io",
-    methodsText: "MTN MoMo • Vodafone Cash • Airtel Money • M-Pesa",
+    methodsText: "M-Pesa • MTN • Telecel • Airtel • Orange • Wave",
   },
 };
 
@@ -168,6 +168,7 @@ export interface MoMoCountryOption {
   currency: string;
   symbol: string;
   flag: string;
+  flagUrl: string;
   providers: string;
   prices: {
     premium: {
@@ -188,14 +189,15 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "GHS",
     symbol: "GH₵",
     flag: "🇬🇭",
-    providers: "MTN MoMo • Telecel / Vodafone • AirtelTigo",
+    flagUrl: "/flags/ghana.png",
+    providers: "MTN, Telecel / Vodafone, AirtelTigo",
     prices: {
       premium: {
-        "1month": { price: "GH₵ 155", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel MoMo" },
+        "1month": { price: "GH₵ 155", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
         "6months": { price: "GH₵ 775", periodLabel: "/6-mo", billedNote: "GH₵ 129/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "GH₵ 310", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel MoMo" },
+        "1month": { price: "GH₵ 310", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
         "6months": { price: "GH₵ 1,240", periodLabel: "/6-mo", billedNote: "GH₵ 207/mo equivalent • Save 33%", savings: "SAVE 33%" },
       },
     },
@@ -206,7 +208,8 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "KES",
     symbol: "KSh",
     flag: "🇰🇪",
-    providers: "M-Pesa • Airtel Money",
+    flagUrl: "/flags/kenya.png",
+    providers: "Safaricom M-Pesa, Airtel Money",
     prices: {
       premium: {
         "1month": { price: "KSh 1,470", periodLabel: "/month", billedNote: "Billed monthly via Safaricom M-Pesa" },
@@ -224,14 +227,15 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "UGX",
     symbol: "UGX",
     flag: "🇺🇬",
-    providers: "MTN MoMo • Airtel Money",
+    flagUrl: "/flags/uganda.png",
+    providers: "MTN, Airtel Money",
     prices: {
       premium: {
-        "1month": { price: "UGX 37,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "1month": { price: "UGX 37,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
         "6months": { price: "UGX 185,000", periodLabel: "/6-mo", billedNote: "UGX 30,833/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "UGX 74,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "1month": { price: "UGX 74,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
         "6months": { price: "UGX 295,000", periodLabel: "/6-mo", billedNote: "UGX 49,166/mo equivalent • Save 33%", savings: "SAVE 33%" },
       },
     },
@@ -242,14 +246,15 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "TZS",
     symbol: "TZS",
     flag: "🇹🇿",
-    providers: "Vodacom M-Pesa • Tigo Pesa • Airtel Money",
+    flagUrl: "/flags/tanzania.png",
+    providers: "Vodacom M-Pesa, Tigo Pesa, Airtel",
     prices: {
       premium: {
-        "1month": { price: "TZS 26,500", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo Pesa" },
+        "1month": { price: "TZS 26,500", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
         "6months": { price: "TZS 132,500", periodLabel: "/6-mo", billedNote: "TZS 22,083/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "TZS 53,000", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo Pesa" },
+        "1month": { price: "TZS 53,000", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
         "6months": { price: "TZS 212,000", periodLabel: "/6-mo", billedNote: "TZS 35,333/mo equivalent • Save 33%", savings: "SAVE 33%" },
       },
     },
@@ -260,14 +265,15 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "RWF",
     symbol: "RWF",
     flag: "🇷🇼",
-    providers: "MTN Mobile Money • Airtel Money",
+    flagUrl: "/flags/rwanda.png",
+    providers: "MTN Mobile Money, Airtel Money",
     prices: {
       premium: {
-        "1month": { price: "RWF 13,500", periodLabel: "/month", billedNote: "Billed monthly via MTN MoMo" },
+        "1month": { price: "RWF 13,500", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
         "6months": { price: "RWF 67,500", periodLabel: "/6-mo", billedNote: "RWF 11,250/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "RWF 27,000", periodLabel: "/month", billedNote: "Billed monthly via MTN MoMo" },
+        "1month": { price: "RWF 27,000", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
         "6months": { price: "RWF 108,000", periodLabel: "/6-mo", billedNote: "RWF 18,000/mo equivalent • Save 33%", savings: "SAVE 33%" },
       },
     },
@@ -278,14 +284,15 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "XAF",
     symbol: "FCFA",
     flag: "🇨🇲",
-    providers: "Orange Money • MTN MoMo",
+    flagUrl: "/flags/cameroon.png",
+    providers: "Orange Money, MTN Mobile",
     prices: {
       premium: {
-        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN MoMo" },
+        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
         "6months": { price: "30,000 FCFA", periodLabel: "/6-mo", billedNote: "5,000 FCFA/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN MoMo" },
+        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
         "6months": { price: "48,000 FCFA", periodLabel: "/6-mo", billedNote: "8,000 FCFA/mo equivalent • Save 33%", savings: "SAVE 33%" },
       },
     },
@@ -296,7 +303,8 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "XOF",
     symbol: "FCFA",
     flag: "🇨🇮",
-    providers: "Orange Money • MTN • Wave • Moov",
+    flagUrl: "/flags/cote-d-ivoire.png",
+    providers: "Wave, Orange Money, MTN, Moov",
     prices: {
       premium: {
         "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
@@ -314,7 +322,8 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     currency: "ZMW",
     symbol: "ZK",
     flag: "🇿🇲",
-    providers: "MTN MoMo • Airtel Money • Zamtel",
+    flagUrl: "/flags/zambia.png",
+    providers: "MTN, Airtel Money, Zamtel",
     prices: {
       premium: {
         "1month": { price: "ZK 270", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
@@ -327,6 +336,294 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     },
   },
 ];
+
+interface CountryPriceDropdownProps {
+  id: string;
+  selectedCountry: MoMoCountryOption;
+  onSelectCountry: (country: MoMoCountryOption) => void;
+  planKey: "premium" | "vip";
+  interval: BillingInterval;
+  isActive: boolean;
+  onDirectCheckout: () => void;
+}
+
+function CountryPriceDropdown({
+  id,
+  selectedCountry,
+  onSelectCountry,
+  planKey,
+  interval,
+  isActive,
+  onDirectCheckout,
+}: CountryPriceDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const currentCountryPrice = selectedCountry.prices[planKey][interval].price;
+
+  return (
+    <div
+      ref={dropdownRef}
+      style={{
+        position: "relative",
+        background: isActive ? "rgba(245, 158, 11, 0.1)" : "rgba(255, 255, 255, 0.03)",
+        border: isActive ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1px solid rgba(167, 159, 255, 0.2)",
+        borderRadius: 12,
+        padding: "12px 14px",
+        marginBottom: 20,
+        transition: "all 0.2s ease",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 800,
+            color: isActive ? "#fbbf24" : "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          <Globe size={13} color={isActive ? "#fbbf24" : "#a79fff"} />
+          <span>Pay in Local Currency:</span>
+        </span>
+        {isActive && (
+          <span
+            style={{
+              fontSize: 9.5,
+              fontWeight: 900,
+              padding: "1px 6px",
+              borderRadius: 4,
+              background: "rgba(47, 208, 138, 0.2)",
+              color: "#2fd08a",
+              border: "1px solid rgba(47, 208, 138, 0.35)",
+            }}
+          >
+            ACTIVE
+          </span>
+        )}
+      </div>
+
+      {/* Custom Luxury Trigger Button */}
+      <button
+        type="button"
+        id={id}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        style={{
+          width: "100%",
+          padding: "9px 12px",
+          borderRadius: 9,
+          background: "#141132",
+          border: isOpen ? "1.5px solid #fbbf24" : "1px solid rgba(167, 159, 255, 0.25)",
+          color: "#ffffff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          transition: "all 0.18s ease",
+          boxShadow: isOpen ? "0 0 14px rgba(245, 158, 11, 0.25)" : "none",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+          {/* Real Country Flag PNG */}
+          <img
+            src={selectedCountry.flagUrl}
+            alt={selectedCountry.name}
+            style={{
+              width: 22,
+              height: 15,
+              borderRadius: 3,
+              objectFit: "cover",
+              flexShrink: 0,
+              boxShadow: "0 1px 4px rgba(0, 0, 0, 0.5)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+            }}
+          />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: "#ffffff",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {selectedCountry.name}
+          </span>
+          <span style={{ fontSize: 11, color: "#a79fff", fontWeight: 700 }}>
+            ({selectedCountry.currency})
+          </span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 900, color: "#fbbf24" }}>
+            {currentCountryPrice}
+          </span>
+          <ChevronDown
+            size={14}
+            style={{
+              color: "#fbbf24",
+              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          />
+        </div>
+      </button>
+
+      {/* Floating Menu Popover */}
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            zIndex: 60,
+            background: "#120f2e",
+            border: "1.5px solid rgba(245, 158, 11, 0.5)",
+            borderRadius: 12,
+            boxShadow: "0 18px 48px rgba(0, 0, 0, 0.85)",
+            overflow: "hidden",
+            maxHeight: 290,
+            overflowY: "auto",
+          }}
+        >
+          <div
+            style={{
+              padding: "7px 12px",
+              fontSize: 10,
+              fontWeight: 800,
+              color: "#a79fff",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              background: "rgba(8, 7, 30, 0.75)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            Select country to view local price &amp; checkout:
+          </div>
+
+          {MOMO_COUNTRIES.map((c) => {
+            const isSelected = c.id === selectedCountry.id;
+            const price = c.prices[planKey][interval].price;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  onSelectCountry(c);
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  background: isSelected ? "rgba(245, 158, 11, 0.16)" : "transparent",
+                  border: "none",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "rgba(124, 108, 245, 0.16)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                  <img
+                    src={c.flagUrl}
+                    alt={c.name}
+                    style={{
+                      width: 22,
+                      height: 15,
+                      borderRadius: 3,
+                      objectFit: "cover",
+                      flexShrink: 0,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#ffffff", display: "flex", alignItems: "center", gap: 5 }}>
+                      <span>{c.name}</span>
+                      <span style={{ fontSize: 10.5, color: "#a79fff", fontWeight: 700 }}>({c.currency})</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#8a85b5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {c.providers}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 900, color: isSelected ? "#ffd700" : "#fbbf24" }}>
+                    {price}
+                  </span>
+                  {isSelected && <Check size={14} color="#2fd08a" strokeWidth={2.5} />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Subtitle with supported networks & direct checkout link */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 7,
+          fontSize: 10.5,
+          color: "var(--text-dim)",
+          flexWrap: "wrap",
+          gap: 4,
+        }}
+      >
+        <span>Supported: {selectedCountry.providers}</span>
+        <button
+          type="button"
+          onClick={onDirectCheckout}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#fbbf24",
+            fontWeight: 800,
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 10.5,
+            textDecoration: "underline",
+          }}
+        >
+          Direct Checkout &rarr;
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function PricingPage() {
   const router = useRouter();
@@ -750,7 +1047,7 @@ export default function PricingPage() {
               <div>
                 <div style={{ color: "#fbbf24", fontWeight: 900, fontSize: 13.5, display: "flex", alignItems: "center", gap: 7 }}>
                   <span>{selectedMoMoCountry.flag}</span>
-                  <span>Active MoMo Country: {selectedMoMoCountry.name} ({selectedMoMoCountry.currency})</span>
+                  <span>Active Country: {selectedMoMoCountry.name} ({selectedMoMoCountry.currency})</span>
                 </div>
                 <p style={{ margin: "4px 0 0", fontSize: 12, color: "#d4cde3", lineHeight: 1.4 }}>
                   Supported networks: <strong>{selectedMoMoCountry.providers}</strong>. You can switch your country below on any card to view exact local pricing.
@@ -1126,130 +1423,22 @@ export default function PricingPage() {
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
               </div>
 
-              {/* 🌍 MoMo Country & Price Dropdown Selector */}
-              <div
-                style={{
-                  background: currency === "MOMO" ? "rgba(245, 158, 11, 0.12)" : "rgba(255, 255, 255, 0.04)",
-                  border: currency === "MOMO" ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1px solid rgba(167, 159, 255, 0.2)",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  marginBottom: 20,
-                  transition: "all 0.2s ease",
+              {/* 🌍 African Local Payments Dropdown Selector */}
+              <CountryPriceDropdown
+                id="country-select-premium"
+                selectedCountry={selectedMoMoCountry}
+                onSelectCountry={(c) => {
+                  setSelectedMoMoCountry(c);
+                  setCurrency("MOMO");
                 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <label
-                    htmlFor="momo-select-premium"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: currency === "MOMO" ? "#fbbf24" : "var(--text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    <Smartphone size={13} color={currency === "MOMO" ? "#fbbf24" : "#a79fff"} />
-                    <span>MoMo Country &amp; Price:</span>
-                  </label>
-                  {currency === "MOMO" && (
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 900,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                        background: "rgba(47, 208, 138, 0.2)",
-                        color: "#2fd08a",
-                        border: "1px solid rgba(47, 208, 138, 0.35)",
-                      }}
-                    >
-                      ACTIVE
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ position: "relative" }}>
-                  <select
-                    id="momo-select-premium"
-                    value={selectedMoMoCountry.id}
-                    onChange={(e) => {
-                      const found = MOMO_COUNTRIES.find((c) => c.id === e.target.value);
-                      if (found) {
-                        setSelectedMoMoCountry(found);
-                        setCurrency("MOMO");
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "9px 32px 9px 12px",
-                      borderRadius: 8,
-                      background: "#120f2e",
-                      border: "1px solid rgba(245, 158, 11, 0.45)",
-                      color: "#ffffff",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      outline: "none",
-                      appearance: "none",
-                      WebkitAppearance: "none",
-                    }}
-                  >
-                    {MOMO_COUNTRIES.map((c) => (
-                      <option key={c.id} value={c.id} style={{ background: "#120f2e", color: "#ffffff" }}>
-                        {c.flag} {c.name} ({c.currency}) — {c.prices.premium[interval].price}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={14}
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                      color: "#fbbf24",
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 7,
-                    fontSize: 10.5,
-                    color: "var(--text-dim)",
-                    flexWrap: "wrap",
-                    gap: 4,
-                  }}
-                >
-                  <span>{selectedMoMoCountry.flag} {selectedMoMoCountry.providers}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrency("MOMO");
-                      handleCheckout("premium");
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#fbbf24",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      padding: 0,
-                      fontSize: 10.5,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Direct MoMo Checkout &rarr;
-                  </button>
-                </div>
-              </div>
+                planKey="premium"
+                interval={interval}
+                isActive={currency === "MOMO"}
+                onDirectCheckout={() => {
+                  setCurrency("MOMO");
+                  handleCheckout("premium");
+                }}
+              />
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
@@ -1337,7 +1526,7 @@ export default function PricingPage() {
                   <>
                     <span>
                       {currency === "MOMO"
-                        ? `Pay ${currentPrices.premium[interval].price} via ${selectedMoMoCountry.name} MoMo`
+                        ? `Pay ${currentPrices.premium[interval].price} via ${selectedMoMoCountry.name} Local Payment`
                         : `Start 7-Day Free Trial (${currentPrices.premium[interval].price})`}
                     </span>
                     <ArrowRight size={16} />
@@ -1425,130 +1614,22 @@ export default function PricingPage() {
                 <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>$0 charged today</span>
               </div>
 
-              {/* 🌍 MoMo Country & Price Dropdown Selector */}
-              <div
-                style={{
-                  background: currency === "MOMO" ? "rgba(245, 158, 11, 0.12)" : "rgba(255, 255, 255, 0.04)",
-                  border: currency === "MOMO" ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1px solid rgba(167, 159, 255, 0.2)",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  marginBottom: 20,
-                  transition: "all 0.2s ease",
+              {/* 🌍 African Local Payments Dropdown Selector */}
+              <CountryPriceDropdown
+                id="country-select-vip"
+                selectedCountry={selectedMoMoCountry}
+                onSelectCountry={(c) => {
+                  setSelectedMoMoCountry(c);
+                  setCurrency("MOMO");
                 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <label
-                    htmlFor="momo-select-vip"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: currency === "MOMO" ? "#fbbf24" : "var(--text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    <Smartphone size={13} color={currency === "MOMO" ? "#fbbf24" : "#a79fff"} />
-                    <span>MoMo Country &amp; Price:</span>
-                  </label>
-                  {currency === "MOMO" && (
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 900,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                        background: "rgba(47, 208, 138, 0.2)",
-                        color: "#2fd08a",
-                        border: "1px solid rgba(47, 208, 138, 0.35)",
-                      }}
-                    >
-                      ACTIVE
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ position: "relative" }}>
-                  <select
-                    id="momo-select-vip"
-                    value={selectedMoMoCountry.id}
-                    onChange={(e) => {
-                      const found = MOMO_COUNTRIES.find((c) => c.id === e.target.value);
-                      if (found) {
-                        setSelectedMoMoCountry(found);
-                        setCurrency("MOMO");
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "9px 32px 9px 12px",
-                      borderRadius: 8,
-                      background: "#120f2e",
-                      border: "1px solid rgba(245, 158, 11, 0.45)",
-                      color: "#ffffff",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      outline: "none",
-                      appearance: "none",
-                      WebkitAppearance: "none",
-                    }}
-                  >
-                    {MOMO_COUNTRIES.map((c) => (
-                      <option key={c.id} value={c.id} style={{ background: "#120f2e", color: "#ffffff" }}>
-                        {c.flag} {c.name} ({c.currency}) — {c.prices.vip[interval].price}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={14}
-                    style={{
-                      position: "absolute",
-                      right: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                      color: "#fbbf24",
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 7,
-                    fontSize: 10.5,
-                    color: "var(--text-dim)",
-                    flexWrap: "wrap",
-                    gap: 4,
-                  }}
-                >
-                  <span>{selectedMoMoCountry.flag} {selectedMoMoCountry.providers}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrency("MOMO");
-                      handleCheckout("vip");
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#fbbf24",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      padding: 0,
-                      fontSize: 10.5,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Direct MoMo Checkout &rarr;
-                  </button>
-                </div>
-              </div>
+                planKey="vip"
+                interval={interval}
+                isActive={currency === "MOMO"}
+                onDirectCheckout={() => {
+                  setCurrency("MOMO");
+                  handleCheckout("vip");
+                }}
+              />
 
               <div style={{ display: "flex", flexDirection: "column", gap: 11, marginBottom: 28, flex: 1 }}>
                 {[
@@ -1656,7 +1737,7 @@ export default function PricingPage() {
                   <>
                     <span>
                       {currency === "MOMO"
-                        ? `Pay ${currentPrices.vip[interval].price} via ${selectedMoMoCountry.name} MoMo`
+                        ? `Pay ${currentPrices.vip[interval].price} via ${selectedMoMoCountry.name} Local Payment`
                         : `Start 7-Day Free Trial (${currentPrices.vip[interval].price})`}
                     </span>
                     <ArrowRight size={16} />

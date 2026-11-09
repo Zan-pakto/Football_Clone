@@ -316,7 +316,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
       >
         <div
           style={{
-            maxWidth: 1440,
+            maxWidth: 1600,
             margin: "0 auto",
             padding: "0 16px",
             height: 68,
@@ -424,6 +424,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               <Search size={14} />
               <span className="navbar-search-text">Search</span>
               <kbd
+                className="navbar-search-kbd"
                 style={{
                   padding: "1px 5px",
                   borderRadius: 4,
@@ -487,6 +488,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               type="button"
               onClick={() => setShowFavoritesDrawer(true)}
               aria-label="View Favorite Bet Slips"
+              className="navbar-favorites-btn"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -699,6 +701,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                     <span
+                      className="navbar-user-name"
+                      title={currentUser?.name || "Account"}
                       style={{
                         maxWidth: 90,
                         overflow: "hidden",
@@ -1530,17 +1534,61 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
           }
         }
 
-        @media (min-width: 1024px) and (max-width: 1340px) {
+        /* Tier 1: 1024px - 1240px (Small desktop / compact laptop) */
+        @media (min-width: 1024px) and (max-width: 1240px) {
           .navbar-desktop-links {
             gap: 1px !important;
           }
           .navbar-desktop-links a {
-            padding: 5px 7px !important;
-            font-size: 12px !important;
+            padding: 4px 6px !important;
+            font-size: 11.5px !important;
           }
           .navbar-search-text,
+          .navbar-search-kbd,
           .navbar-favorites-text {
             display: none !important;
+          }
+          .navbar-search-btn-desktop,
+          .navbar-favorites-btn {
+            padding: 6px 8px !important;
+          }
+          .navbar-user-name {
+            max-width: 60px !important;
+          }
+        }
+
+        /* Tier 2: 1241px - 1380px (Standard laptops: 1280px & 1366px) */
+        @media (min-width: 1241px) and (max-width: 1380px) {
+          .navbar-desktop-links {
+            gap: 2px !important;
+          }
+          .navbar-desktop-links a {
+            padding: 5px 8px !important;
+            font-size: 12px !important;
+          }
+          .navbar-search-kbd,
+          .navbar-favorites-text {
+            display: none !important;
+          }
+          .navbar-user-name {
+            max-width: 75px !important;
+          }
+        }
+
+        /* Tier 3: 1381px - 1500px (1440px MacBooks & 1080p 125% scaling) */
+        @media (min-width: 1381px) and (max-width: 1500px) {
+          .navbar-desktop-links {
+            gap: 2px !important;
+          }
+          .navbar-desktop-links a {
+            padding: 5px 10px !important;
+            font-size: 12.5px !important;
+          }
+          .navbar-search-kbd {
+            display: none !important;
+          }
+          .navbar-user-name {
+            max-width: 85px !important;
           }
         }
 
