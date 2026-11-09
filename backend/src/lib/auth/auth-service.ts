@@ -225,11 +225,15 @@ export class AuthService {
       throw new Error("Invalid email or password");
     }
 
+    const override = adminService.getUserOverride(dbUser.id);
     const activeSub = findActiveValidSubscription(dbUser.subscriptions);
     const isWithin7DaysOfSignup = dbUser.createdAt && (Date.now() - new Date(dbUser.createdAt).getTime() < 7 * 86400000);
     const isTrialActive = Boolean(activeSub?.status === "TRIALING" || (!activeSub && isWithin7DaysOfSignup && dbUser.role !== "ADMIN"));
-    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN" || isWithin7DaysOfSignup);
+    const isPremium = Boolean(activeSub || dbUser.role === "ADMIN" || isWithin7DaysOfSignup || (override?.tier && override.tier !== "FREE"));
     const trialEndsAt = activeSub?.expiresAt ? new Date(activeSub.expiresAt).toISOString() : (isWithin7DaysOfSignup ? new Date(new Date(dbUser.createdAt).getTime() + 7 * 86400000).toISOString() : null);
+
+    const subscriptionPlan = override?.tier || (activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")));
+    const subscriptionStatus = override?.subscriptionStatus || (activeSub ? activeSub.status : (dbUser.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")));
 
     const user: AuthUser = {
       id: dbUser.id,
@@ -237,8 +241,8 @@ export class AuthService {
       name: dbUser.name || dbUser.email.split("@")[0],
       role: dbUser.role,
       isPremium,
-      subscriptionPlan: activeSub ? activeSub.plan : (dbUser.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")),
-      subscriptionStatus: activeSub ? activeSub.status : (dbUser.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")),
+      subscriptionPlan,
+      subscriptionStatus,
       trialEndsAt,
       createdAt: dbUser.createdAt ? new Date(dbUser.createdAt).toISOString() : new Date().toISOString(),
     };
@@ -402,11 +406,17 @@ export class AuthService {
       dbUser = memoryUsers.get(payload.email);
     }
 
+    const { adminService } = await import("../admin/admin-service");
+    const override = adminService.getUserOverride(payload.userId);
+
     const activeSub = findActiveValidSubscription(dbUser?.subscriptions);
     const isWithin7DaysOfSignup = dbUser?.createdAt && (Date.now() - new Date(dbUser.createdAt).getTime() < 7 * 86400000);
     const isTrialActive = Boolean(activeSub?.status === "TRIALING" || (!activeSub && isWithin7DaysOfSignup && payload.role !== "ADMIN"));
-    const isPremium = payload.role === "ADMIN" || Boolean(activeSub) || Boolean(isWithin7DaysOfSignup);
+    const isPremium = payload.role === "ADMIN" || Boolean(activeSub) || Boolean(isWithin7DaysOfSignup) || Boolean(override?.tier && override.tier !== "FREE");
     const trialEndsAt = activeSub?.expiresAt ? new Date(activeSub.expiresAt).toISOString() : (isWithin7DaysOfSignup ? new Date(new Date(dbUser.createdAt).getTime() + 7 * 86400000).toISOString() : null);
+
+    const subscriptionPlan = override?.tier || (activeSub ? activeSub.plan : (payload.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")));
+    const subscriptionStatus = override?.subscriptionStatus || (activeSub ? activeSub.status : (payload.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")));
 
     return {
       id: payload.userId,
@@ -414,8 +424,8 @@ export class AuthService {
       name: dbUser?.name || payload.email.split("@")[0],
       role: payload.role,
       isPremium,
-      subscriptionPlan: activeSub ? activeSub.plan : (payload.role === "ADMIN" ? "VIP_PRO" : (isTrialActive ? "7_DAY_TRIAL" : "FREE")),
-      subscriptionStatus: activeSub ? activeSub.status : (payload.role === "ADMIN" ? "ACTIVE" : (isTrialActive ? "TRIALING" : "FREE")),
+      subscriptionPlan,
+      subscriptionStatus,
       trialEndsAt,
       createdAt: dbUser?.createdAt ? new Date(dbUser.createdAt).toISOString() : undefined,
     };

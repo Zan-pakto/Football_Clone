@@ -41,9 +41,19 @@ export default function RolloversPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("/api/auth");
+        const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const res = await fetch(`/api/auth?_t=${Date.now()}`, {
+          headers,
+          credentials: "include",
+          cache: "no-store",
+        });
         const data = await res.json();
         if (data.success && data.isLoggedIn && data.user) {
+          if (data.token && typeof window !== "undefined") {
+            localStorage.setItem("jt_auth_token", data.token);
+          }
           setUser(data.user);
         }
       } catch (err) {
@@ -51,17 +61,45 @@ export default function RolloversPage() {
       }
     }
     checkAuth();
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "jt_auth_token" || e.key === "jt_admin_view_pov") {
+        checkAuth();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const isVipPro = Boolean(
-    user && (
-      user.role === "ADMIN" ||
-      ((user.subscriptionPlan === "VIP_PRO" ||
-        user.subscriptionPlan === "VIP_MONTHLY" ||
-        user.subscriptionPlan === "VIP") &&
-        user.subscriptionStatus === "ACTIVE")
-    )
-  );
+  const isVipPro = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const adminPov = localStorage.getItem("jt_admin_view_pov");
+      if (adminPov === "free") return false;
+      if (adminPov === "vip") return true;
+    }
+
+    if (!user) return false;
+
+    const role = String(user.role || "").toUpperCase();
+    if (role === "ADMIN" || role === "SUPERADMIN" || user.isAdmin) return true;
+    if (user.isPremium) return true;
+
+    const plan = String(user.subscriptionPlan || user.plan || user.tier || "").toUpperCase();
+    const status = String(user.subscriptionStatus || user.status || "").toUpperCase();
+
+    if (
+      plan.includes("VIP") ||
+      plan.includes("PRO") ||
+      plan.includes("PREMIUM") ||
+      plan === "ACTIVE"
+    ) {
+      if (status === "ACTIVE" || status === "TRIALING" || !user.subscriptionStatus || status === "NONE" || status === "") {
+        return true;
+      }
+    }
+
+    return false;
+  }, [user]);
 
   // Fetch published rollovers from API
   const fetchRollovers = async () => {

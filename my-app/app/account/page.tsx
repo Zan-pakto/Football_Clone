@@ -27,10 +27,11 @@ interface UserProfile {
   id: string;
   name?: string | null;
   email: string;
-  role: "USER" | "ADMIN";
+  role: string;
   isPremium?: boolean;
   subscriptionPlan?: string;
   subscriptionStatus?: string;
+  tier?: string;
   createdAt?: string;
 }
 
@@ -64,12 +65,10 @@ export default function AccountPage() {
     user && (
       user.isPremium ||
       user.role === "ADMIN" ||
-      ((user.subscriptionPlan === "VIP_PRO" ||
-        user.subscriptionPlan === "VIP_MONTHLY" ||
-        user.subscriptionPlan === "PRO" ||
-        user.subscriptionPlan === "PREMIUM" ||
-        user.subscriptionPlan === "VIP") &&
-        user.subscriptionStatus === "ACTIVE")
+      user.role === "SUPERADMIN" ||
+      String(user.subscriptionPlan || user.tier || "").toUpperCase().includes("VIP") ||
+      String(user.subscriptionPlan || user.tier || "").toUpperCase().includes("PRO") ||
+      String(user.subscriptionPlan || user.tier || "").toUpperCase().includes("PREMIUM")
     )
   );
 
@@ -81,7 +80,14 @@ export default function AccountPage() {
   const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/auth");
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await fetch(`/api/auth?_t=${Date.now()}`, {
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
       const data = await res.json();
       if (data.success && data.isLoggedIn && data.user) {
         setUser(data.user);

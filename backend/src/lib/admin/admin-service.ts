@@ -34,6 +34,13 @@ export class AdminService {
   }
 
   /**
+   * Get dynamic override for user tier & status
+   */
+  getUserOverride(userId: string): Partial<AdminUserRecord> | undefined {
+    return dynamicUserOverrides.get(userId);
+  }
+
+  /**
    * Block a user
    */
   async blockUser(userId: string): Promise<boolean> {
