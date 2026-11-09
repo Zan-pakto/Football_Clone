@@ -1173,7 +1173,7 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <PayPalLogo size={36} />
+              <PayPalLogo width={60} height={36} />
               <div>
                 <strong style={{ fontSize: 14, color: "#60a5fa", display: "block", marginBottom: 3 }}>
                   PayPal
@@ -1196,7 +1196,7 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <OPayLogo size={36} />
+              <OPayLogo width={60} height={36} />
               <div>
                 <strong style={{ fontSize: 14, color: "#00B875", display: "block", marginBottom: 3 }}>
                   OPay Wallet & Bank
@@ -1219,7 +1219,7 @@ export default function PricingPage() {
                 gap: 12,
               }}
             >
-              <MpesaLogo size={36} />
+              <MpesaLogo width={60} height={36} />
               <div>
                 <strong style={{ fontSize: 14, color: "#22c55e", display: "block", marginBottom: 3 }}>
                   M-Pesa Mobile Money
@@ -1243,8 +1243,8 @@ export default function PricingPage() {
               }}
             >
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <ApplePayLogo size={36} />
-                <GooglePayLogo size={36} />
+                <ApplePayLogo width={52} height={36} />
+                <GooglePayLogo width={52} height={36} />
               </div>
               <div>
                 <strong style={{ fontSize: 14, color: "#ffffff", display: "block", marginBottom: 3 }}>
@@ -1256,7 +1256,7 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* 4. Instant Bank Transfer */}
+            {/* 5. Instant Bank Transfer */}
             <div
               style={{
                 background: "rgba(124, 108, 245, 0.08)",
@@ -1270,9 +1270,9 @@ export default function PricingPage() {
             >
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
+                  width: 60,
+                  height: 36,
+                  borderRadius: 8,
                   background: "#7c6cf5",
                   color: "#ffffff",
                   display: "flex",
