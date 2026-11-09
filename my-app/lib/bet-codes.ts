@@ -29,15 +29,15 @@ export interface MarketValidationResult {
 
 export interface GeneratedBetCodeResult {
   success: boolean;
-  bookingCode: string;
+  bookingCode?: string | null;
   sourceBookmaker?: string;
   targetBookmaker: SupportedBookmaker;
   bookmakerLabel: string;
   brandColor: string;
-  loadUrl: string;
+  loadUrl?: string;
   directWebUrl: string;
   universalValidation: MarketValidationResult;
-  provider: "convertbetcodes" | "direct_sync";
+  provider: "convertbetcodes" | "direct_sync" | "manual";
   instructions: {
     mobileApp: string[];
     mobileWeb: string[];
@@ -47,6 +47,8 @@ export interface GeneratedBetCodeResult {
   picksCount: number;
   expiresAt: string;
   generatedAt: string;
+  error?: string;
+  externalUrl?: string;
 }
 
 /**
@@ -150,32 +152,6 @@ export function validateUniversalMarkets(selections: BetSelection[]): MarketVali
 }
 
 /**
- * Generate client-side fallback booking code
- */
-function generateClientFallbackCode(bookmaker: SupportedBookmaker, seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) & 0xffffffff;
-  }
-  const hex = Math.abs(hash).toString(16).toUpperCase().padStart(6, "0");
-
-  switch (bookmaker) {
-    case "sportybet":
-      return `BC${hex.substring(0, 4)}`;
-    case "bet9ja":
-      return `B9JA-${hex.substring(2, 6)}`;
-    case "1xbet":
-      return `1X-${hex.substring(1, 6)}`;
-    case "betway":
-      return `BW-${hex.substring(0, 5)}`;
-    case "msport":
-      return `MS-${hex.substring(0, 5)}`;
-    default:
-      return `BC-${hex.substring(0, 6)}`;
-  }
-}
-
-/**
  * Generate 1-click booking code from selections
  */
 export async function generateBetCode(
@@ -191,17 +167,13 @@ export async function generateBetCode(
 
     if (res.ok) {
       const data = await res.json();
-      if (data.success && data.bookingCode) {
-        return data as GeneratedBetCodeResult;
-      }
+      return data as GeneratedBetCodeResult;
     }
   } catch (err) {
-    console.warn("API booking code generation failed, using client fallback engine:", err);
+    console.warn("API booking code generation failed, using local format:", err);
   }
 
-  // Client-side fallback if backend route is unreachable
-  const seed = selections.map((s) => `${s.homeTeam}-${s.awayTeam}-${s.pick}`).join("|") + `_${targetBookmaker}`;
-  const bookingCode = generateClientFallbackCode(targetBookmaker, seed);
+  // Client-side fallback if backend route is unreachable (never return fake booking codes)
   const totalOdds = selections.reduce((acc, s) => acc * (s.odds || 1), 1);
   const validation = validateUniversalMarkets(selections);
 
@@ -209,25 +181,23 @@ export async function generateBetCode(
     sportybet: {
       label: "SportyBet",
       color: "#e41b23",
-      loadUrl: `https://www.sportybet.com/ng/m/sport/football?shareCode=${bookingCode}`,
+      loadUrl: "https://www.sportybet.com/ng/",
       directWeb: "https://www.sportybet.com/ng/",
       steps: [
         "Open SportyBet app or website.",
-        "Tap Betslip at the bottom.",
-        "Tap 'Load Code' or 'Share Code'.",
-        `Enter code: ${bookingCode} and tap Load.`,
+        "Add selections to betslip.",
+        "Confirm your stake and place bet.",
       ],
     },
     bet9ja: {
       label: "Bet9ja",
       color: "#008753",
-      loadUrl: `https://sports.bet9ja.com/mobile/load-betslip?code=${bookingCode}`,
+      loadUrl: "https://sports.bet9ja.com/",
       directWeb: "https://sports.bet9ja.com/",
       steps: [
         "Open Bet9ja app or visit sports.bet9ja.com.",
-        "Tap the Betslip icon at the bottom.",
-        "Select 'Check / Load Bet'.",
-        `Enter Booking Code: ${bookingCode} and press Load.`,
+        "Add selections to betslip.",
+        "Confirm your stake and place bet.",
       ],
     },
     "1xbet": {
@@ -235,40 +205,40 @@ export async function generateBetCode(
       color: "#1e88e5",
       loadUrl: "https://1xbet.ng/en/",
       directWeb: "https://1xbet.ng/en/",
-      steps: ["Open 1xBet app or site.", "Open Betslip -> Download Bet Slip.", `Enter code: ${bookingCode}.`],
+      steps: ["Open 1xBet app or site.", "Open Betslip.", "Confirm and place bet."],
     },
     betway: {
       label: "Betway",
       color: "#000000",
       loadUrl: "https://www.betway.com.ng/",
       directWeb: "https://www.betway.com.ng/",
-      steps: ["Open Betway Nigeria.", "Go to Betslip -> Booking Code.", `Enter code: ${bookingCode}.`],
+      steps: ["Open Betway Nigeria.", "Add selections to betslip.", "Confirm and place bet."],
     },
     msport: {
       label: "MSport",
       color: "#fbb03b",
       loadUrl: "https://www.msport.com/ng/",
       directWeb: "https://www.msport.com/ng/",
-      steps: ["Open MSport app.", "Load Bet -> Enter code: " + bookingCode],
+      steps: ["Open MSport app.", "Add selections to betslip.", "Confirm and place bet."],
     },
   }[targetBookmaker] || {
     label: targetBookmaker.toUpperCase(),
     color: "#7c6cf5",
     loadUrl: "https://google.com",
     directWeb: "https://google.com",
-    steps: [`Load code ${bookingCode} in ${targetBookmaker}`],
+    steps: [`Place bet on ${targetBookmaker}`],
   };
 
   return {
     success: true,
-    bookingCode,
+    bookingCode: null,
     targetBookmaker,
     bookmakerLabel: meta.label,
     brandColor: meta.color,
     loadUrl: meta.loadUrl,
     directWebUrl: meta.directWeb,
     universalValidation: validation,
-    provider: "direct_sync",
+    provider: "manual",
     instructions: {
       mobileApp: meta.steps,
       mobileWeb: meta.steps,
@@ -290,6 +260,16 @@ export async function convertBetCode(
   bookingCode: string,
   selections: BetSelection[] = []
 ): Promise<GeneratedBetCodeResult> {
+  const meta = {
+    sportybet: { label: "SportyBet", color: "#e41b23", directWeb: "https://www.sportybet.com/ng/" },
+    bet9ja: { label: "Bet9ja", color: "#008753", directWeb: "https://sports.bet9ja.com/" },
+    "1xbet": { label: "1xBet", color: "#1e88e5", directWeb: "https://1xbet.ng/en/" },
+    betway: { label: "Betway", color: "#000000", directWeb: "https://www.betway.com.ng/" },
+    msport: { label: "MSport", color: "#fbb03b", directWeb: "https://www.msport.com/ng/" },
+  }[toBookmaker] || { label: toBookmaker.toUpperCase(), color: "#7c6cf5", directWeb: "https://convertbetcodes.com" };
+
+  const validation = validateUniversalMarkets(selections);
+
   try {
     const res = await fetch("/api/bet-codes/convert", {
       method: "POST",
@@ -297,44 +277,49 @@ export async function convertBetCode(
       body: JSON.stringify({ fromBookmaker, toBookmaker, bookingCode, selections }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.bookingCode) {
-        return data as GeneratedBetCodeResult;
-      }
+    const data = await res.json().catch(() => null);
+    if (res.ok && data) {
+      return data as GeneratedBetCodeResult;
     }
-  } catch (err) {
-    console.warn("API booking code conversion failed, using client fallback engine:", err);
+
+    return {
+      success: false,
+      bookingCode: null,
+      sourceBookmaker: fromBookmaker,
+      targetBookmaker: toBookmaker,
+      bookmakerLabel: meta.label,
+      brandColor: meta.color,
+      directWebUrl: meta.directWeb,
+      universalValidation: validation,
+      provider: "manual",
+      instructions: { mobileApp: [], mobileWeb: [], desktop: [] },
+      totalOdds: 1.0,
+      picksCount: selections.length,
+      expiresAt: new Date(Date.now() + 4 * 3600000).toISOString(),
+      generatedAt: new Date().toISOString(),
+      error: data?.error || "Code conversion failed. The booking code might be invalid or expired.",
+      externalUrl: data?.externalUrl || "https://convertbetcodes.com",
+    };
+  } catch (err: any) {
+    console.warn("API booking code conversion network failure:", err);
+    return {
+      success: false,
+      bookingCode: null,
+      sourceBookmaker: fromBookmaker,
+      targetBookmaker: toBookmaker,
+      bookmakerLabel: meta.label,
+      brandColor: meta.color,
+      directWebUrl: meta.directWeb,
+      universalValidation: validation,
+      provider: "manual",
+      instructions: { mobileApp: [], mobileWeb: [], desktop: [] },
+      totalOdds: 1.0,
+      picksCount: selections.length,
+      expiresAt: new Date(Date.now() + 4 * 3600000).toISOString(),
+      generatedAt: new Date().toISOString(),
+      error: "Unable to reach booking conversion server. Please check your connection or visit ConvertBetCodes.com directly.",
+      externalUrl: "https://convertbetcodes.com",
+    };
   }
-
-  // Fallback
-  const seed = `${bookingCode}_${fromBookmaker}_${toBookmaker}`;
-  const convertedCode = generateClientFallbackCode(toBookmaker, seed);
-  const validation = validateUniversalMarkets(selections);
-
-  return {
-    success: true,
-    bookingCode: convertedCode,
-    sourceBookmaker: fromBookmaker,
-    targetBookmaker: toBookmaker,
-    bookmakerLabel: toBookmaker === "sportybet" ? "SportyBet" : toBookmaker === "bet9ja" ? "Bet9ja" : "1xBet",
-    brandColor: toBookmaker === "sportybet" ? "#e41b23" : toBookmaker === "bet9ja" ? "#008753" : "#1e88e5",
-    loadUrl:
-      toBookmaker === "sportybet"
-        ? `https://www.sportybet.com/ng/m/sport/football?shareCode=${convertedCode}`
-        : `https://sports.bet9ja.com/mobile/load-betslip?code=${convertedCode}`,
-    directWebUrl: toBookmaker === "sportybet" ? "https://www.sportybet.com/ng/" : "https://sports.bet9ja.com/",
-    universalValidation: validation,
-    provider: "direct_sync",
-    instructions: {
-      mobileApp: [`Load code ${convertedCode} in ${toBookmaker}`],
-      mobileWeb: [`Load code ${convertedCode} on mobile`],
-      desktop: [`Load code ${convertedCode} on desktop`],
-    },
-    totalOdds: 1.0,
-    picksCount: selections.length,
-    expiresAt: new Date(Date.now() + 4 * 3600000).toISOString(),
-    generatedAt: new Date().toISOString(),
-  };
 }
 

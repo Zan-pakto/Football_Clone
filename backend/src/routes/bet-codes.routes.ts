@@ -73,7 +73,8 @@ router.get("/status", (_req: Request, res: Response) => {
   return res.json({
     success: true,
     service: "jolloftips-bet-codes-converter",
-    hasExternalApiKey: Boolean(process.env.CONVERT_BET_CODES_API_KEY),
+    hasExternalApiKey: Boolean(process.env.BETPADDI_API_KEY || process.env.CONVERT_BET_CODES_API_KEY),
+    activeProvider: process.env.BETPADDI_API_KEY ? "betpaddi" : process.env.CONVERT_BET_CODES_API_KEY ? "convertbetcodes" : "manual",
     supportedBookmakers: [
       { id: "sportybet", name: "SportyBet", primary: true, color: "#e41b23" },
       { id: "bet9ja", name: "Bet9ja", primary: true, color: "#008753" },

@@ -31,15 +31,15 @@ export interface MarketValidationResult {
 
 export interface GeneratedBetCodeResult {
   success: boolean;
-  bookingCode: string;
+  bookingCode?: string | null;
   sourceBookmaker?: string;
   targetBookmaker: SupportedBookmaker;
   bookmakerLabel: string;
   brandColor: string;
-  loadUrl: string;
+  loadUrl?: string;
   directWebUrl: string;
   universalValidation: MarketValidationResult;
-  provider: "convertbetcodes" | "direct_sync";
+  provider: "convertbetcodes" | "direct_sync" | "manual";
   instructions: {
     mobileApp: string[];
     mobileWeb: string[];
@@ -49,6 +49,8 @@ export interface GeneratedBetCodeResult {
   picksCount: number;
   expiresAt: string;
   generatedAt: string;
+  error?: string;
+  externalUrl?: string;
 }
 
 // Normalized universal market checkers
@@ -174,8 +176,32 @@ export function validateUniversalMarkets(selections: BetSelection[]): MarketVali
  * Generates official booking code formatting and platform instructions
  */
 export class BetCodesService {
-  private static apiKey = process.env.CONVERT_BET_CODES_API_KEY || "";
-  private static baseUrl = process.env.CONVERT_BET_CODES_BASE_URL || "https://api.convertbetcodes.com/v1";
+  private static get betpaddiApiKey(): string {
+    return process.env.BETPADDI_API_KEY || "";
+  }
+  private static get betpaddiBaseUrl(): string {
+    return process.env.BETPADDI_BASE_URL || "https://betpaddi.com/api/v1";
+  }
+  private static get convertBetCodesApiKey(): string {
+    return process.env.CONVERT_BET_CODES_API_KEY || "";
+  }
+  private static get convertBetCodesBaseUrl(): string {
+    return process.env.CONVERT_BET_CODES_BASE_URL || "https://convertbetcodes.com/api";
+  }
+
+  /**
+   * Maps supported bookmakers to BetPaddi identifier format
+   */
+  private static toBetpaddiBookie(bookie: string): string {
+    const b = (bookie || "").toLowerCase();
+    if (b.includes("sporty")) return "sportybet:ng";
+    if (b.includes("bet9ja")) return "bet9ja";
+    if (b.includes("1x")) return "1xbet:xx";
+    if (b.includes("betway")) return "betway:ng";
+    if (b.includes("msport")) return "msport";
+    if (b.includes("betking")) return "betking:ng";
+    return bookie;
+  }
 
   /**
    * Deterministic authentic booking code generator for Nigerian sportsbooks
@@ -321,78 +347,205 @@ export class BetCodesService {
     selections?: BetSelection[];
   }): Promise<GeneratedBetCodeResult> {
     const universalValidation = validateUniversalMarkets(selections);
-
-    let bookingCode = "";
-    let provider: "convertbetcodes" | "direct_sync" = "direct_sync";
-
-    // 1. If ConvertBetCodes API Key is available, attempt real API conversion
-    if (this.apiKey) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(`${this.baseUrl}/convert`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify({
-            from: sourceBookmaker || "sportybet",
-            to: targetBookmaker,
-            code: existingCode || undefined,
-            selections: selections.map((s) => ({
-              match: `${s.homeTeam} vs ${s.awayTeam}`,
-              market: s.market,
-              outcome: s.pick,
-              odds: s.odds,
-            })),
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (response.ok) {
-          const data = (await response.json()) as any;
-          if (data && (data.code || data.converted_code || data.booking_code)) {
-            bookingCode = data.code || data.converted_code || data.booking_code;
-            provider = "convertbetcodes";
-          }
-        }
-      } catch (err) {
-        console.warn("[BetCodesService] External API conversion call failed or timed out. Falling back to direct sync engine.", err);
-      }
-    }
-
-    // 2. Fallback to direct high-reliability code engine
-    if (!bookingCode) {
-      const seedString = existingCode
-        ? `${existingCode}_${sourceBookmaker || "sportybet"}_${targetBookmaker}`
-        : selections.length > 0
-        ? selections.map((s) => `${s.homeTeam}-${s.awayTeam}-${s.pick}`).join("|") + `_${targetBookmaker}`
-        : `${Date.now()}_${targetBookmaker}`;
-
-      bookingCode = this.generateBookieCode(targetBookmaker, seedString);
-    }
-
-    const meta = this.getBookmakerMeta(targetBookmaker, bookingCode);
     const totalOdds = selections.reduce((acc, s) => acc * (s.odds || 1), 1);
-
-    // Calculate expiry (approx 4 hours or kickoff of earliest match)
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
 
+    // ── 1. CONVERT EXISTING BOOKING CODE ──
+    if (existingCode && existingCode.trim()) {
+      const rawFrom = sourceBookmaker || "sportybet";
+      const fromParam = rawFrom.includes(":") ? rawFrom : `${rawFrom}:ng`;
+      const toParam = targetBookmaker.includes(":") ? targetBookmaker : `${targetBookmaker}:ng`;
+
+      // ── Step 1: BetPaddi API (Primary Engine) ──
+      if (this.betpaddiApiKey) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 9000);
+
+          const fromPaddi = this.toBetpaddiBookie(sourceBookmaker || "sportybet");
+          const toPaddi = this.toBetpaddiBookie(targetBookmaker);
+
+          const response = await fetch(`${this.betpaddiBaseUrl}/conversion/convert-code`, {
+            method: "POST",
+            headers: {
+              "X-API-Key": this.betpaddiApiKey,
+              "Authorization": `Bearer ${this.betpaddiApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: fromPaddi,
+              to: toPaddi,
+              code: existingCode.trim(),
+              bookie1: fromPaddi,
+              bookie2: toPaddi,
+              booking_code: existingCode.trim(),
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+
+          const data = (await response.json().catch(() => null)) as any;
+          if (response.ok && data) {
+            const bookingCode =
+              data?.data?.target?.booking_code ||
+              data?.data?.target?.code ||
+              data?.data?.converted_code ||
+              data?.data?.booking_code ||
+              data?.data?.destination_code ||
+              data?.destination_code ||
+              data?.booking_code ||
+              data?.converted_code ||
+              (typeof data?.data === "string" ? data.data : null);
+
+            if (bookingCode && typeof bookingCode === "string") {
+              const meta = this.getBookmakerMeta(targetBookmaker, bookingCode.trim());
+              return {
+                success: true,
+                bookingCode: bookingCode.trim(),
+                sourceBookmaker,
+                targetBookmaker,
+                bookmakerLabel: meta.label,
+                brandColor: meta.brandColor,
+                loadUrl: meta.loadUrl,
+                directWebUrl: meta.directWebUrl,
+                universalValidation,
+                provider: "convertbetcodes",
+                instructions: meta.instructions,
+                totalOdds: parseFloat(totalOdds.toFixed(2)),
+                picksCount: selections.length,
+                expiresAt,
+                generatedAt: new Date().toISOString(),
+              };
+            }
+          }
+
+          // If BetPaddi returned an explicit error response
+          if (data && data.message) {
+            const meta = this.getBookmakerMeta(targetBookmaker, existingCode);
+            return {
+              success: false,
+              bookingCode: null,
+              sourceBookmaker,
+              targetBookmaker,
+              bookmakerLabel: meta.label,
+              brandColor: meta.brandColor,
+              directWebUrl: meta.directWebUrl,
+              universalValidation,
+              provider: "manual",
+              instructions: meta.instructions,
+              totalOdds: parseFloat(totalOdds.toFixed(2)),
+              picksCount: selections.length,
+              expiresAt,
+              generatedAt: new Date().toISOString(),
+              error: `BetPaddi: ${data.message}`,
+              externalUrl: "https://betpaddi.com",
+            };
+          }
+        } catch (err: any) {
+          console.warn("[BetCodesService] BetPaddi API error:", err.message);
+        }
+      }
+
+      // ── Step 2: ConvertBetCodes API (Fallback Engine) ──
+      if (this.convertBetCodesApiKey) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 8000);
+
+          const url = `${this.convertBetCodesBaseUrl}/conversion?from=${encodeURIComponent(fromParam)}&to=${encodeURIComponent(toParam)}&booking_code=${encodeURIComponent(existingCode.trim())}&api_key=${encodeURIComponent(this.convertBetCodesApiKey)}`;
+
+          const response = await fetch(url, {
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+
+          if (response.ok) {
+            const data = (await response.json()) as any;
+            if (data && data.destination_code) {
+              const bookingCode = data.destination_code;
+              const meta = this.getBookmakerMeta(targetBookmaker, bookingCode);
+              return {
+                success: true,
+                bookingCode,
+                sourceBookmaker,
+                targetBookmaker,
+                bookmakerLabel: meta.label,
+                brandColor: meta.brandColor,
+                loadUrl: meta.loadUrl,
+                directWebUrl: meta.directWebUrl,
+                universalValidation,
+                provider: "convertbetcodes",
+                instructions: meta.instructions,
+                totalOdds: parseFloat(totalOdds.toFixed(2)),
+                picksCount: selections.length,
+                expiresAt,
+                generatedAt: new Date().toISOString(),
+              };
+            } else if (data && data.message) {
+              return {
+                success: false,
+                bookingCode: null,
+                targetBookmaker,
+                bookmakerLabel: targetBookmaker.toUpperCase(),
+                brandColor: "#e41b23",
+                directWebUrl: "https://convertbetcodes.com",
+                universalValidation,
+                provider: "convertbetcodes",
+                instructions: { mobileApp: [], mobileWeb: [], desktop: [] },
+                totalOdds: 1,
+                picksCount: selections.length,
+                expiresAt,
+                generatedAt: new Date().toISOString(),
+                error: `Conversion provider error: ${data.message}`,
+                externalUrl: "https://convertbetcodes.com",
+              };
+            }
+          }
+        } catch (err: any) {
+          console.warn("[BetCodesService] ConvertBetCodes API request error:", err.message);
+        }
+      }
+
+      // If no API key configured or API calls could not be completed
+      const meta = this.getBookmakerMeta(targetBookmaker, existingCode);
+      return {
+        success: false,
+        bookingCode: null,
+        sourceBookmaker,
+        targetBookmaker,
+        bookmakerLabel: meta.label,
+        brandColor: meta.brandColor,
+        directWebUrl: meta.directWebUrl,
+        universalValidation,
+        provider: "manual",
+        instructions: meta.instructions,
+        totalOdds: parseFloat(totalOdds.toFixed(2)),
+        picksCount: selections.length,
+        expiresAt,
+        generatedAt: new Date().toISOString(),
+        error: this.betpaddiApiKey || this.convertBetCodesApiKey
+          ? "Unable to convert this booking code on destination bookmaker. The code may have expired or is invalid on the source bookie."
+          : "Bet conversion API key is not configured in backend .env. Live cross-bookmaker translation requires an active conversion API key.",
+        externalUrl: this.betpaddiApiKey ? "https://betpaddi.com" : "https://convertbetcodes.com",
+      };
+    }
+
+    // ── 2. BET BUILDER CUSTOM SLIP GENERATION ──
+    // Custom slips generated on the fly cannot be converted into fake bookmaker hashes.
+    // Instead, provide clean formatted betting data and direct bookmaker links.
+    const meta = this.getBookmakerMeta(targetBookmaker, "");
     return {
       success: true,
-      bookingCode,
+      bookingCode: null,
       sourceBookmaker,
       targetBookmaker,
       bookmakerLabel: meta.label,
       brandColor: meta.brandColor,
-      loadUrl: meta.loadUrl,
+      loadUrl: meta.directWebUrl,
       directWebUrl: meta.directWebUrl,
       universalValidation,
-      provider,
+      provider: "manual",
       instructions: meta.instructions,
       totalOdds: parseFloat(totalOdds.toFixed(2)),
       picksCount: selections.length,

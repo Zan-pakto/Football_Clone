@@ -751,6 +751,7 @@ export default function BetBuilderPage() {
       return;
     }
     setCodeConversionError(null);
+    setCodeConversionSuccess(null);
     setIsConvertingCode(true);
     try {
       const res = await convertBetCode(
@@ -758,7 +759,14 @@ export default function BetBuilderPage() {
         inputTargetBookie,
         inputSourceCode.trim()
       );
-      setCodeConversionSuccess(res);
+      if (res && res.success && res.bookingCode) {
+        setCodeConversionSuccess(res);
+      } else {
+        setCodeConversionError(
+          res?.error ||
+            "Unable to convert booking code. The code might be expired, invalid, or requires a live conversion API key."
+        );
+      }
     } catch (err: any) {
       setCodeConversionError(err.message || "Failed to convert booking code. Please try again.");
     } finally {
@@ -773,22 +781,18 @@ export default function BetBuilderPage() {
     }
   }, [showBookingModal, selectedBookie, handleGenerateBookingCode, generatedSlip.length]);
 
-  // Current active booking code
+  // Current active booking code (only genuine live code from bookmaker, never fake hashes)
   const currentBookingCode = useMemo(() => {
-    if (convertedCodeResult && convertedCodeResult.targetBookmaker === selectedBookie) {
-      return convertedCodeResult.bookingCode;
+    if (
+      convertedCodeResult &&
+      convertedCodeResult.targetBookmaker === selectedBookie &&
+      convertedCodeResult.bookingCode &&
+      convertedCodeResult.bookingCode.trim()
+    ) {
+      return convertedCodeResult.bookingCode.trim();
     }
-    if (generatedSlip.length === 0) return "JT-84920";
-    const sum = generatedSlip.reduce((acc, m) => acc + m.id.charCodeAt(0), 0);
-    const prefixes: Record<string, string> = {
-      sportybet: "BC",
-      bet9ja: "B9JA-",
-      "1xbet": "1X-",
-      betway: "BW-",
-      msport: "MS-",
-    };
-    return `${prefixes[selectedBookie] || "JT-"}${Math.abs((sum * 37) % 90000 + 10000)}`;
-  }, [convertedCodeResult, selectedBookie, generatedSlip]);
+    return null;
+  }, [convertedCodeResult, selectedBookie]);
 
   // Check if current slip is in favorites
   useEffect(() => {
@@ -827,7 +831,7 @@ export default function BetBuilderPage() {
           matchesCount: generatedSlip.length,
           totalOdds: parseFloat(calculatedOdds.toFixed(2)),
           slip: generatedSlip,
-          sportyBetCode: currentBookingCode,
+          sportyBetCode: currentBookingCode || undefined,
         };
         list = [newFav, ...list];
         setIsFavorite(true);
@@ -844,10 +848,14 @@ export default function BetBuilderPage() {
     if (generatedSlip.length === 0) return;
     const lines = [
       `🎯 JollofTips Slip (${generatedSlip.length} Picks · Combined Odds: ${calculatedOdds.toFixed(2)})`,
-      `━━━━━━━━━━━━━━━━━━━━`,
-      ...generatedSlip.map((m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} — Pick: ${m.pick} (@${m.odds.toFixed(2)})`),
-      `━━━━━━━━━━━━━━━━━━━━`,
-      `Booking Code (${selectedBookie.toUpperCase()}): ${currentBookingCode}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ...generatedSlip.map(
+        (m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}\n   Market: ${m.marketName} | Pick: ${m.pick} (@${m.odds.toFixed(2)})`
+      ),
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ...(currentBookingCode
+        ? [`Booking Code (${selectedBookie.toUpperCase()}): ${currentBookingCode}`]
+        : [`Bookmaker: ${selectedBookie.toUpperCase()} · Place via 1-click slip selections`]),
     ];
     navigator.clipboard.writeText(lines.join("\n"));
     setCopiedSelections(true);
@@ -1979,183 +1987,274 @@ export default function BetBuilderPage() {
                     </div>
                   </div>
 
-                  {/* Booking Code Display Card */}
-                  <div
-                    style={{
-                      background: "rgba(8, 7, 30, 0.85)",
-                      border: "1px dashed rgba(47, 208, 138, 0.45)",
-                      borderRadius: 14,
-                      padding: "18px 20px",
-                      marginBottom: 16,
-                      boxShadow: "inset 0 0 20px rgba(0, 0, 0, 0.4)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: "#8a85b5", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        {selectedBookie.toUpperCase()} BOOKING CODE
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          background: "rgba(47, 208, 138, 0.15)",
-                          color: "#2fd08a",
-                        }}
-                      >
-                        {generatedSlip.length} Picks · {calculatedOdds.toFixed(2)} Odds
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                      <div>
-                        {isGeneratingCode ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
-                            <RefreshCw size={20} className="animate-spin" color="#2fd08a" />
-                            <span style={{ fontSize: 14, color: "#a79fff", fontWeight: 700 }}>
-                              Auto-generating {selectedBookie} code...
-                            </span>
-                          </div>
-                        ) : (
-                          <div
+                  {/* Tab 1: 1-Click Booking Code & Slip Placement */}
+                  {currentBookingCode ? (
+                    /* Genuine Verified Booking Code Available */
+                    <div
+                      style={{
+                        background: "rgba(8, 7, 30, 0.85)",
+                        border: "1px dashed rgba(47, 208, 138, 0.45)",
+                        borderRadius: 14,
+                        padding: "18px 20px",
+                        marginBottom: 16,
+                        boxShadow: "inset 0 0 20px rgba(0, 0, 0, 0.4)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#8a85b5", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            {selectedBookie.toUpperCase()} BOOKING CODE
+                          </span>
+                          <span
                             style={{
-                              fontSize: 26,
-                              fontWeight: 900,
-                              fontFamily: "monospace",
-                              letterSpacing: "0.08em",
-                              color: selectedBookie === "sportybet" ? "#ff4d4f" : selectedBookie === "bet9ja" ? "#2fd08a" : "#60a5fa",
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              padding: "2px 6px",
+                              borderRadius: 6,
+                              background: "rgba(47, 208, 138, 0.15)",
+                              color: "#2fd08a",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
                             }}
                           >
-                            {currentBookingCode}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Code Actions */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(currentBookingCode);
-                            setCopiedCode(true);
-                            setTimeout(() => setCopiedCode(false), 2000);
-                          }}
+                            <ShieldCheck size={11} /> Verified Live Code
+                          </span>
+                        </div>
+                        <span
                           style={{
-                            padding: "9px 15px",
-                            borderRadius: 8,
-                            background: copiedCode ? "#2fd08a" : "#7c6cf5",
-                            border: "none",
-                            color: "#ffffff",
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: 800,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            transition: "all 0.15s ease",
+                            padding: "2px 8px",
+                            borderRadius: 10,
+                            background: "rgba(47, 208, 138, 0.15)",
+                            color: "#2fd08a",
                           }}
                         >
-                          {copiedCode ? <Check size={14} /> : <Copy size={14} />}
-                          <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
+                          {generatedSlip.length} Picks · {calculatedOdds.toFixed(2)} Odds
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            fontSize: 26,
+                            fontWeight: 900,
+                            fontFamily: "monospace",
+                            letterSpacing: "0.08em",
+                            color: selectedBookie === "sportybet" ? "#ff4d4f" : selectedBookie === "bet9ja" ? "#2fd08a" : "#60a5fa",
+                          }}
+                        >
+                          {currentBookingCode}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(currentBookingCode);
+                              setCopiedCode(true);
+                              setTimeout(() => setCopiedCode(false), 2000);
+                            }}
+                            style={{
+                              padding: "9px 15px",
+                              borderRadius: 8,
+                              background: copiedCode ? "#2fd08a" : "#7c6cf5",
+                              border: "none",
+                              color: "#ffffff",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {copiedCode ? <Check size={14} /> : <Copy size={14} />}
+                            <span>{copiedCode ? "Copied!" : "Copy Code"}</span>
+                          </button>
+
+                          <a
+                            href={
+                              convertedCodeResult?.loadUrl ||
+                              (selectedBookie === "sportybet"
+                                ? `https://www.sportybet.com/ng/m/sport/football?shareCode=${currentBookingCode}`
+                                : `https://sports.bet9ja.com/mobile/load-betslip?code=${currentBookingCode}`)
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              padding: "9px 14px",
+                              borderRadius: 8,
+                              background: "rgba(255, 255, 255, 0.08)",
+                              border: "1px solid rgba(255, 255, 255, 0.15)",
+                              color: "#ffffff",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              textDecoration: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                            }}
+                            title={`Open ${selectedBookie} directly with this code preloaded`}
+                          >
+                            <span>Open Site</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Step-by-Step Load Guide */}
+                      <div
+                        style={{
+                          marginTop: 14,
+                          paddingTop: 12,
+                          borderTop: "1px dashed rgba(255, 255, 255, 0.1)",
+                          fontSize: 11.5,
+                          color: "#a79fff",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        How to load: Open {selectedBookie === "sportybet" ? "SportyBet" : selectedBookie === "bet9ja" ? "Bet9ja" : "1xBet"} &rarr; Betslip &rarr; Load Code &rarr; enter <strong>{currentBookingCode}</strong>.
+                      </div>
+                    </div>
+                  ) : (
+                    /* Custom Algorithm Slip (Never show fake client hash numbers) */
+                    <div
+                      style={{
+                        background: "rgba(8, 7, 30, 0.9)",
+                        border: "1px solid rgba(124, 108, 245, 0.35)",
+                        borderRadius: 14,
+                        padding: "18px 20px",
+                        marginBottom: 16,
+                        boxShadow: "inset 0 0 20px rgba(0, 0, 0, 0.4)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <Ticket size={16} color="#7c6cf5" />
+                          <span style={{ fontSize: 12, fontWeight: 800, color: "#ffffff", textTransform: "uppercase" }}>
+                            {selectedBookie.toUpperCase()} ACCA SLIP
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 800,
+                            padding: "3px 8px",
+                            borderRadius: 10,
+                            background: "rgba(124, 108, 245, 0.2)",
+                            color: "#a79fff",
+                          }}
+                        >
+                          {generatedSlip.length} Picks · {calculatedOdds.toFixed(2)} Combined Odds
+                        </span>
+                      </div>
+
+                      <p style={{ fontSize: 12, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1.5 }}>
+                        Direct booking codes are registered by sportsbooks once a slip is booked on their platform. Use our <strong>1-Click Slip Copy</strong> to copy all picks formatted with matches, markets and odds, or open {selectedBookie === "sportybet" ? "SportyBet" : selectedBookie === "bet9ja" ? "Bet9ja" : selectedBookie.toUpperCase()} directly:
+                      </p>
+
+                      {/* Primary Action Buttons */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                        <button
+                          type="button"
+                          onClick={handleCopyAllSelections}
+                          style={{
+                            flex: "1 1 200px",
+                            padding: "11px 16px",
+                            borderRadius: 10,
+                            background: copiedSelections
+                              ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                              : "linear-gradient(135deg, #7c6cf5 0%, #5844e3 100%)",
+                            border: "none",
+                            color: "#ffffff",
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 7,
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 4px 14px rgba(124, 108, 245, 0.35)",
+                          }}
+                        >
+                          {copiedSelections ? <Check size={16} /> : <Copy size={16} />}
+                          <span>{copiedSelections ? "Slip Copied to Clipboard!" : "Copy All Slip Selections (Text)"}</span>
                         </button>
 
-                        {/* Direct Load Link */}
                         <a
                           href={
-                            convertedCodeResult?.loadUrl ||
-                            (selectedBookie === "sportybet"
-                              ? `https://www.sportybet.com/ng/m/sport/football?shareCode=${currentBookingCode}`
-                              : `https://sports.bet9ja.com/mobile/load-betslip?code=${currentBookingCode}`)
+                            selectedBookie === "sportybet"
+                              ? "https://www.sportybet.com/ng/"
+                              : selectedBookie === "bet9ja"
+                              ? "https://sports.bet9ja.com/"
+                              : selectedBookie === "1xbet"
+                              ? "https://1xbet.ng/en/"
+                              : `https://google.com/search?q=${selectedBookie}+nigeria`
                           }
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            padding: "9px 14px",
-                            borderRadius: 8,
+                            padding: "11px 16px",
+                            borderRadius: 10,
                             background: "rgba(255, 255, 255, 0.08)",
                             border: "1px solid rgba(255, 255, 255, 0.15)",
                             color: "#ffffff",
-                            fontSize: 12,
+                            fontSize: 12.5,
                             fontWeight: 800,
                             textDecoration: "none",
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 5,
+                            gap: 6,
                           }}
-                          title={`Open ${selectedBookie} directly with this code preloaded`}
+                          title={`Open ${selectedBookie} directly`}
                         >
-                          <span>Open Site</span>
-                          <ExternalLink size={12} />
+                          <span>Open {selectedBookie === "sportybet" ? "SportyBet" : selectedBookie === "bet9ja" ? "Bet9ja" : selectedBookie.toUpperCase()}</span>
+                          <ExternalLink size={13} />
                         </a>
                       </div>
-                    </div>
 
-                    {/* Copy All Selections Fallback Button */}
-                    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed rgba(255, 255, 255, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: "#94a3b8" }}>
-                        Having code loading issues on bookmaker apps?
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyAllSelections}
+                      {/* Slip Selections Preview */}
+                      <div
                         style={{
-                          padding: "6px 12px",
-                          borderRadius: 7,
-                          background: copiedSelections ? "rgba(47, 208, 138, 0.2)" : "rgba(255, 255, 255, 0.08)",
-                          border: copiedSelections ? "1px solid #2fd08a" : "1px solid rgba(255, 255, 255, 0.15)",
-                          color: copiedSelections ? "#2fd08a" : "#cbd5e1",
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
+                          background: "rgba(0, 0, 0, 0.25)",
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          maxHeight: 140,
+                          overflowY: "auto",
+                          border: "1px solid rgba(255, 255, 255, 0.06)",
                         }}
                       >
-                        {copiedSelections ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{copiedSelections ? "All Selections Copied!" : "Copy All Slip Selections (Text)"}</span>
-                      </button>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8a85b5", textTransform: "uppercase", marginBottom: 6 }}>
+                          Slip Selections ({generatedSlip.length}):
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          {generatedSlip.map((m, idx) => (
+                            <div
+                              key={m.id || idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                fontSize: 11,
+                                color: "#e2e8f0",
+                              }}
+                            >
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>
+                                {idx + 1}. {m.homeTeam} vs {m.awayTeam}
+                              </span>
+                              <span style={{ fontWeight: 800, color: "#2fd08a" }}>
+                                {m.pick} <span style={{ color: "#94a3b8", fontWeight: 500 }}>@{m.odds.toFixed(2)}</span>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Step-by-Step Load Guide */}
-                  <div
-                    style={{
-                      background: "rgba(255, 255, 255, 0.03)",
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      marginBottom: 18,
-                      border: "1px solid rgba(167, 159, 255, 0.1)",
-                    }}
-                  >
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "#d4cde3", marginBottom: 6 }}>
-                      How to load on {selectedBookie === "sportybet" ? "SportyBet" : selectedBookie === "bet9ja" ? "Bet9ja" : "1xBet"}:
-                    </div>
-                    <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: "#a79fff", lineHeight: 1.6 }}>
-                      {selectedBookie === "sportybet" ? (
-                        <>
-                          <li>Open the SportyBet app or visit sportybet.com/ng.</li>
-                          <li>Tap <strong>Betslip</strong> at the bottom of the screen.</li>
-                          <li>Select <strong>Load Code</strong> or <strong>Share Code</strong>.</li>
-                          <li>Paste code <strong>{currentBookingCode}</strong> and tap <strong>Load</strong>.</li>
-                        </>
-                      ) : selectedBookie === "bet9ja" ? (
-                        <>
-                          <li>Open the Bet9ja app or visit sports.bet9ja.com.</li>
-                          <li>Tap the <strong>Betslip</strong> icon on the bottom navigation bar.</li>
-                          <li>Select <strong>Check / Load Bet</strong>.</li>
-                          <li>Enter booking code <strong>{currentBookingCode}</strong> and press <strong>Load</strong>.</li>
-                        </>
-                      ) : (
-                        <>
-                          <li>Open 1xBet app or visit 1xbet.ng.</li>
-                          <li>Open your <strong>Bet Slip</strong> menu.</li>
-                          <li>Tap <strong>Download Bet Slip</strong> and paste code <strong>{currentBookingCode}</strong>.</li>
-                        </>
-                      )}
-                    </ol>
-                  </div>
+                  )}
                 </>
               ) : (
                 /* TAB 2: CONVERT EXISTING BOOKING CODE */
@@ -2280,12 +2379,56 @@ export default function BetBuilderPage() {
                   </button>
 
                   {codeConversionError && (
-                    <div style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", fontSize: 12 }}>
-                      {codeConversionError}
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        background: "rgba(239, 68, 68, 0.12)",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                        color: "#fca5a5",
+                        fontSize: 12,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <div style={{ lineHeight: 1.5 }}>{codeConversionError}</div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+                        <a
+                          href={codeConversionError.includes("BetPaddi") ? "https://betpaddi.com" : "https://convertbetcodes.com"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 7,
+                            background: "rgba(239, 68, 68, 0.2)",
+                            border: "1px solid rgba(239, 68, 68, 0.4)",
+                            color: "#ffffff",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <span>{codeConversionError.includes("BetPaddi") ? "Manage BetPaddi Account" : "Open ConvertBetCodes.com"}</span>
+                          <ExternalLink size={12} />
+                        </a>
+                        {codeConversionError.includes("Insufficient Credits") && (
+                          <span style={{ fontSize: 11, color: "#fca5a5" }}>
+                            Top up your BetPaddi conversion credits to enable live code conversion.
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {codeConversionSuccess && (
+                  {codeConversionSuccess && codeConversionSuccess.bookingCode && (
                     <div
                       style={{
                         padding: "16px",
@@ -2300,10 +2443,27 @@ export default function BetBuilderPage() {
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#8a85b5", textTransform: "uppercase" }}>
-                          CONVERTED {codeConversionSuccess.bookmakerLabel} CODE
-                        </span>
-                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color: codeConversionSuccess.brandColor, marginTop: 2 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#8a85b5", textTransform: "uppercase" }}>
+                            CONVERTED {codeConversionSuccess.bookmakerLabel} CODE
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              padding: "2px 6px",
+                              borderRadius: 6,
+                              background: "rgba(47, 208, 138, 0.15)",
+                              color: "#2fd08a",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <CheckCircle2 size={11} /> Converted
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color: codeConversionSuccess.brandColor || "#2fd08a", marginTop: 2 }}>
                           {codeConversionSuccess.bookingCode}
                         </div>
                       </div>
@@ -2312,9 +2472,11 @@ export default function BetBuilderPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            navigator.clipboard.writeText(codeConversionSuccess.bookingCode);
-                            setCopiedCode(true);
-                            setTimeout(() => setCopiedCode(false), 2000);
+                            if (codeConversionSuccess.bookingCode) {
+                              navigator.clipboard.writeText(codeConversionSuccess.bookingCode);
+                              setCopiedCode(true);
+                              setTimeout(() => setCopiedCode(false), 2000);
+                            }
                           }}
                           style={{
                             padding: "8px 14px",
@@ -2335,7 +2497,7 @@ export default function BetBuilderPage() {
                         </button>
 
                         <a
-                          href={codeConversionSuccess.loadUrl}
+                          href={codeConversionSuccess.loadUrl || codeConversionSuccess.directWebUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
