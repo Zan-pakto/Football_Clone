@@ -54,8 +54,8 @@ export default function AdminDashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Admin login credentials input state
-  const [loginEmail, setLoginEmail] = useState("admin@jolloftips.com");
-  const [loginPassword, setLoginPassword] = useState("password123");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
