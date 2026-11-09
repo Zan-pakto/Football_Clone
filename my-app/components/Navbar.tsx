@@ -316,7 +316,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
       >
         <div
           style={{
-            maxWidth: 1360,
+            maxWidth: 1440,
             margin: "0 auto",
             padding: "0 16px",
             height: 68,
@@ -422,7 +422,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               }}
             >
               <Search size={14} />
-              <span>Search</span>
+              <span className="navbar-search-text">Search</span>
               <kbd
                 style={{
                   padding: "1px 5px",
@@ -504,7 +504,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               title="View Favorite Generated Bet Slips"
             >
               <Star size={14} fill={favoriteSlips.length > 0 ? "#ffd700" : "none"} color="#ffd700" />
-              <span className="navbar-desktop-only">Favorites</span>
+              <span className="navbar-favorites-text navbar-desktop-only">Favorites</span>
               {favoriteSlips.length > 0 && (
                 <span
                   style={{
@@ -591,42 +591,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
               </div>
             )}
 
-            {/* Desktop VIP Access or PRO Active Badge */}
-            {isPro ? (
-              <Link
-                href="/account"
-                className="navbar-desktop-only"
-                style={{
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg, rgba(255, 184, 0, 0.22) 0%, rgba(255, 136, 0, 0.22) 100%)",
-                  border: "1px solid rgba(255, 184, 0, 0.65)",
-                  color: "#ffc837",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                  textDecoration: "none",
-                  boxShadow: "0 0 14px rgba(255, 184, 0, 0.22)",
-                  letterSpacing: "0.5px",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #ffd700 0%, #ff8800 100%)";
-                  e.currentTarget.style.color = "#0b091f";
-                  e.currentTarget.style.boxShadow = "0 0 20px rgba(255, 184, 0, 0.5)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 184, 0, 0.22) 0%, rgba(255, 136, 0, 0.22) 100%)";
-                  e.currentTarget.style.color = "#ffc837";
-                  e.currentTarget.style.boxShadow = "0 0 14px rgba(255, 184, 0, 0.22)";
-                }}
-              >
-                <Sparkles size={14} fill="#ffc837" />
-                <span>PRO</span>
-              </Link>
-            ) : (
+            {/* Desktop VIP Access Button (Shown only for non-Pro / Free users to upgrade) */}
+            {!isPro && (
               <Link
                 href="/pricing"
                 className="navbar-desktop-only"
@@ -643,6 +609,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                   transition: "all 0.2s ease",
                   whiteSpace: "nowrap",
                   textDecoration: "none",
+                  flexShrink: 0,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#7c6cf5";
@@ -685,8 +652,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "4px 10px 4px 6px",
+                      gap: 6,
+                      padding: "4px 8px 4px 6px",
                       borderRadius: 999,
                       background: isPro ? "rgba(255, 184, 0, 0.08)" : "#141132",
                       border: isPro ? "1px solid rgba(255, 184, 0, 0.4)" : "1px solid rgba(167, 159, 255, 0.15)",
@@ -696,6 +663,8 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                       cursor: "pointer",
                       boxShadow: isPro ? "0 0 10px rgba(255, 184, 0, 0.15)" : "none",
                       transition: "all 0.2s ease",
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
                     }}
                     onMouseEnter={(e) => {
                       if (isPro) {
@@ -724,11 +693,20 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                         justifyContent: "center",
                         fontWeight: 800,
                         fontSize: 11,
+                        flexShrink: 0,
                       }}
                     >
                       {currentUser?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-                    <span style={{ maxWidth: 95, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span
+                      style={{
+                        maxWidth: 90,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "inline-block",
+                      }}
+                    >
                       {currentUser?.name || "Account"}
                     </span>
                     {isPro && (
@@ -745,6 +723,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                           fontWeight: 900,
                           letterSpacing: "0.5px",
                           lineHeight: "14px",
+                          flexShrink: 0,
                         }}
                       >
                         <Crown size={9} fill="#0b091f" />
@@ -757,6 +736,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
                         color: isPro ? "#ffd700" : "#a79fff",
                         transition: "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                         transform: userDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        flexShrink: 0,
                       }}
                     />
                   </button>
@@ -1546,6 +1526,20 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
             display: none !important;
           }
           .mobile-bottom-nav {
+            display: none !important;
+          }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1340px) {
+          .navbar-desktop-links {
+            gap: 1px !important;
+          }
+          .navbar-desktop-links a {
+            padding: 5px 7px !important;
+            font-size: 12px !important;
+          }
+          .navbar-search-text,
+          .navbar-favorites-text {
             display: none !important;
           }
         }
