@@ -1244,7 +1244,7 @@ export default function PricingPage() {
             >
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 <ApplePayLogo width={52} height={36} />
-                <GooglePayLogo width={52} height={36} />
+                <GooglePayLogo width={58} height={36} />
               </div>
               <div>
                 <strong style={{ fontSize: 14, color: "#ffffff", display: "block", marginBottom: 3 }}>
