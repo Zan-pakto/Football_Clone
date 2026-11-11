@@ -346,6 +346,42 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanId, PlanDefinition> = {
   },
 };
 
+type BachsCurrencyCode = "ghs" | "kes" | "ugx" | "tzs" | "mwk" | "rwf" | "xaf" | "xof" | "zmw";
+
+const BACHS_CURRENCY_META: Record<BachsCurrencyCode, { code: string; symbol: string }> = {
+  ghs: { code: "GHS", symbol: "GH₵" },
+  kes: { code: "KES", symbol: "KSh " },
+  ugx: { code: "UGX", symbol: "UGX " },
+  tzs: { code: "TZS", symbol: "TZS " },
+  mwk: { code: "MWK", symbol: "MWK " },
+  rwf: { code: "RWF", symbol: "RWF " },
+  xaf: { code: "XAF", symbol: "XAF " },
+  xof: { code: "XOF", symbol: "XOF " },
+  zmw: { code: "ZMW", symbol: "ZMW " },
+};
+
+function buildBachsCurrencyVariants(
+  productId: string,
+  checkoutUrl: string,
+  prices: Partial<Record<BachsCurrencyCode, number>>
+): Record<string, CurrencyPriceVariant> {
+  const variants: Record<string, CurrencyPriceVariant> = {};
+  for (const [key, amount] of Object.entries(prices) as Array<[BachsCurrencyCode, number | undefined]>) {
+    if (amount === undefined) continue;
+    const meta = BACHS_CURRENCY_META[key];
+    variants[key] = {
+      currency: meta.code,
+      symbol: meta.symbol.trim(),
+      amount,
+      formattedAmount: `${meta.symbol}${amount.toLocaleString("en-US")}`,
+      provider: "bachs",
+      productId,
+      checkoutUrl,
+    };
+  }
+  return variants;
+}
+
 export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
   CREDITS_1: {
     id: "CREDITS_1",
@@ -391,13 +427,16 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
     id: "CREDITS_3",
     name: "Bet Builder Credit (3 Slips)",
     credits: 3,
+    expirationDays: 7,
     badge: "Most Popular",
-    description: "3 instant AI Bet Builder slips. Ideal for weekend accas.",
+    description: "3 instant AI Bet Builder slips (expires after 7 days).",
     amountCents: 249, // $2.49
     currency: "usd",
     whopProductId: "prod_kJEmaPRVhxJoI",
     whopPlanId: "plan_mb5q96LMRR3SN",
     whopCheckoutUrl: "https://whop.com/checkout/plan_mb5q96LMRR3SN",
+    bachsProductId: process.env.BACHS_PRODUCT_CREDITS_3 || "prod_cb545410db9d41e08d25",
+    bachsCheckoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_3 || undefined,
     currencyVariants: {
       usd: {
         currency: "USD",
@@ -426,6 +465,21 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
         productId: "plan_rgBYUoxQK2ntg",
         checkoutUrl: "https://whop.com/checkout/plan_rgBYUoxQK2ntg",
       },
+      ...buildBachsCurrencyVariants(
+        "prod_cb545410db9d41e08d25",
+        process.env.BACHS_CHECKOUT_URL_CREDITS_3 || "",
+        {
+          ghs: 12,
+          kes: 120,
+          ugx: 4000,
+          tzs: 2500,
+          mwk: 1500,
+          rwf: 1400,
+          xaf: 600,
+          xof: 600,
+          zmw: 20,
+        }
+      ),
     },
   },
   CREDITS_10: {
@@ -470,78 +524,20 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
         productId: "plan_POOQfPT71x540",
         checkoutUrl: "https://whop.com/checkout/plan_POOQfPT71x540",
       },
-      ghs: {
-        currency: "GHS",
-        symbol: "GH₵",
-        amount: 25,
-        formattedAmount: "GH₵25",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      kes: {
-        currency: "KES",
-        symbol: "KSh",
-        amount: 250,
-        formattedAmount: "KSh 250",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      ugx: {
-        currency: "UGX",
-        symbol: "UGX",
-        amount: 7500,
-        formattedAmount: "UGX 7,500",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      tzs: {
-        currency: "TZS",
-        symbol: "TZS",
-        amount: 5000,
-        formattedAmount: "TZS 5,000",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      mwk: {
-        currency: "MWK",
-        symbol: "MWK",
-        amount: 3500,
-        formattedAmount: "MWK 3,500",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      rwf: {
-        currency: "RWF",
-        symbol: "RWF",
-        amount: 3000,
-        formattedAmount: "RWF 3,000",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      xaf: {
-        currency: "XAF",
-        symbol: "XAF",
-        amount: 1350,
-        formattedAmount: "XAF 1,350",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
-      xof: {
-        currency: "XOF",
-        symbol: "XOF",
-        amount: 1350,
-        formattedAmount: "XOF 1,350",
-        provider: "bachs",
-        productId: "prod_9555b53b472d455b92e8",
-        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
-      },
+      ...buildBachsCurrencyVariants(
+        "prod_9555b53b472d455b92e8",
+        process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+        {
+          ghs: 25,
+          kes: 250,
+          ugx: 7500,
+          tzs: 5000,
+          mwk: 3500,
+          rwf: 3000,
+          xaf: 1350,
+          xof: 1350,
+        }
+      ),
     },
   },
 };
@@ -637,6 +633,7 @@ export const BACHS_PRODUCT_TO_INTERNAL_PLAN: Record<string, PlanId> = {
   prod_ed97f1b60dc344e491c8: "PREMIUM_MONTHLY",
   prod_275e20b69d0940f8a31f: "VIP_6MONTHS",
   prod_8bcc294dbe674aab9ad3: "VIP_MONTHLY",
+  prod_cb545410db9d41e08d25: "CREDITS_3",
   prod_9555b53b472d455b92e8: "CREDITS_10",
 };
 

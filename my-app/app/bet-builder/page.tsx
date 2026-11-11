@@ -222,8 +222,9 @@ export default function BetBuilderPage() {
       id: "CREDITS_3",
       name: "Bet Builder Credit (3 Slips)",
       credits: 3,
+      expirationDays: 7,
       badge: "Most Popular",
-      description: "3 instant AI Bet Builder slips.",
+      description: "3 instant AI Bet Builder slips (expires after 7 days).",
       currencyVariants: {
         usd: { currency: "USD", formattedAmount: "$2.49" },
         ngn: { currency: "NGN", formattedAmount: "₦700" },
@@ -2380,17 +2381,17 @@ export default function BetBuilderPage() {
                                 day: "numeric",
                               })})`
                             : ""
-                        }. Top up instant slip credits (10-Slip packs valid for 14 days) or upgrade for unlimited access.`
+                        }. Top up instant slip credits or upgrade for unlimited access.`
                       : `Current balance: ${creditsBalance} credit${
                           creditsBalance === 1 ? "" : "s"
                         }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}${
                           timedCredits > 0 && timedCreditsExpiresAt
-                            ? ` · ${timedCredits} expiring ${new Date(timedCreditsExpiresAt).toLocaleDateString(
+                            ? ` · next expiry ${new Date(timedCreditsExpiresAt).toLocaleDateString(
                                 undefined,
                                 { month: "short", day: "numeric" }
                               )}`
                             : ""
-                        }. 1 & 3 slip packs never expire; 10-Slip packs are valid for 14 days.`}
+                        }. 1-Slip never expires · 3-Slip valid 7 days · 10-Slip valid 14 days.`}
                   </p>
 
                   {/* Currency Switcher (Whop supports USD, NGN & ZAR; other countries use USD) */}

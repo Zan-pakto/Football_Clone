@@ -262,6 +262,7 @@ model User {
   betBuilderLastFreeAt            DateTime? @map("bet_builder_last_free_at")
   betBuilderTimedCredits          Int       @default(0) @map("bet_builder_timed_credits")
   betBuilderTimedCreditsExpiresAt DateTime? @map("bet_builder_timed_credits_expires_at")
+  betBuilderCreditLots            Json      @default("[]") @map("bet_builder_credit_lots")
   createdAt                       DateTime  @default(now()) @map("created_at")
   updatedAt                       DateTime  @updatedAt @map("updated_at")
 

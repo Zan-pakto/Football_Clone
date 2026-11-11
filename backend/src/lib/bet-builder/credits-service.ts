@@ -4,12 +4,18 @@ import type { AuthUser } from "../auth/auth-service";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export interface TimedCreditLot {
+  remaining: number;
+  expiresAt: string;
+}
+
 export interface BetBuilderWalletStatus {
   isUnlimited: boolean;
   creditsBalance: number;
   permanentCredits: number;
   timedCredits: number;
   timedCreditsExpiresAt: string | null;
+  timedLots: TimedCreditLot[];
   freeWeeklyRemaining: number;
   nextFreeResetAt: string | null;
   canGenerate: boolean;
@@ -23,12 +29,56 @@ export interface ConsumeGenerationResult extends BetBuilderWalletStatus {
 
 interface MemoryWalletRecord {
   permanentCredits: number;
-  timedCredits: number;
-  timedExpiresAt: Date | null;
+  lots: TimedCreditLot[];
   lastFreeAt: Date | null;
 }
 
 const memoryWallets = new Map<string, MemoryWalletRecord>();
+
+function normalizeActiveLots(
+  rawLots: unknown,
+  legacyTimedCredits: number,
+  legacyTimedExpiresAt: Date | null,
+  nowMs: number
+): TimedCreditLot[] {
+  const parsed: TimedCreditLot[] = [];
+  let source = rawLots;
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch {
+      source = [];
+    }
+  }
+
+  if (Array.isArray(source)) {
+    for (const item of source) {
+      const rem = Number((item as any)?.remaining || 0);
+      const expStr = typeof (item as any)?.expiresAt === "string" ? (item as any).expiresAt : "";
+      const expMs = expStr ? new Date(expStr).getTime() : 0;
+      if (rem > 0 && Number.isFinite(expMs) && expMs > nowMs) {
+        parsed.push({ remaining: rem, expiresAt: new Date(expMs).toISOString() });
+      }
+    }
+  }
+
+  // Backward-compatible migration: preserve pre-lot timed credits if lots array is empty
+  if (
+    parsed.length === 0 &&
+    legacyTimedCredits > 0 &&
+    legacyTimedExpiresAt &&
+    legacyTimedExpiresAt.getTime() > nowMs
+  ) {
+    parsed.push({
+      remaining: legacyTimedCredits,
+      expiresAt: legacyTimedExpiresAt.toISOString(),
+    });
+  }
+
+  // FIFO by earliest expiration so soonest-expiring credits are always spent first
+  parsed.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
+  return parsed;
+}
 
 export class BetBuilderCreditsService {
   private schemaReadyPromise: Promise<void> | null = null;
@@ -46,7 +96,8 @@ export class BetBuilderCreditsService {
             ADD COLUMN IF NOT EXISTS "bet_builder_credits" INTEGER NOT NULL DEFAULT 0,
             ADD COLUMN IF NOT EXISTS "bet_builder_last_free_at" TIMESTAMPTZ,
             ADD COLUMN IF NOT EXISTS "bet_builder_timed_credits" INTEGER NOT NULL DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS "bet_builder_timed_credits_expires_at" TIMESTAMPTZ;
+            ADD COLUMN IF NOT EXISTS "bet_builder_timed_credits_expires_at" TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS "bet_builder_credit_lots" JSONB NOT NULL DEFAULT '[]'::jsonb;
           `);
         } catch (err: any) {
           this.schemaReadyPromise = null;
@@ -79,21 +130,16 @@ export class BetBuilderCreditsService {
   private formatWalletState(
     user: AuthUser,
     permanentCreditsRaw: number,
-    timedCreditsRaw: number,
-    timedExpiresAt: Date | null,
+    activeLots: TimedCreditLot[],
     lastFreeAt: Date | null
   ): BetBuilderWalletStatus {
     const isUnlimited = this.hasUnlimitedAccess(user);
     const nowMs = Date.now();
-    const hasValidTimed =
-      timedCreditsRaw > 0 &&
-      Boolean(timedExpiresAt) &&
-      timedExpiresAt!.getTime() > nowMs;
+    const validLots = normalizeActiveLots(activeLots, 0, null, nowMs);
     const permanentCredits = Math.max(0, permanentCreditsRaw);
-    const timedCredits = hasValidTimed ? Math.max(0, timedCreditsRaw) : 0;
+    const timedCredits = validLots.reduce((sum, lot) => sum + lot.remaining, 0);
     const creditsBalance = permanentCredits + timedCredits;
-    const timedCreditsExpiresAt =
-      hasValidTimed && timedExpiresAt ? timedExpiresAt.toISOString() : null;
+    const timedCreditsExpiresAt = validLots.length > 0 ? validLots[0].expiresAt : null;
 
     const hasUsedFreeWithinWeek =
       Boolean(lastFreeAt) && nowMs - lastFreeAt!.getTime() < WEEK_MS;
@@ -109,6 +155,7 @@ export class BetBuilderCreditsService {
       permanentCredits,
       timedCredits,
       timedCreditsExpiresAt,
+      timedLots: validLots,
       freeWeeklyRemaining,
       nextFreeResetAt,
       canGenerate: isUnlimited || freeWeeklyRemaining > 0 || creditsBalance > 0,
@@ -121,8 +168,7 @@ export class BetBuilderCreditsService {
     if (!rec) {
       rec = {
         permanentCredits: 0,
-        timedCredits: 0,
-        timedExpiresAt: null,
+        lots: [],
         lastFreeAt: null,
       };
       memoryWallets.set(userId, rec);
@@ -130,9 +176,34 @@ export class BetBuilderCreditsService {
     return rec;
   }
 
+  private applyConsumeInMemory(mem: MemoryWalletRecord, nowMs: number): "free_weekly" | "credit" | null {
+    const canUseFree =
+      !mem.lastFreeAt || nowMs - mem.lastFreeAt.getTime() >= WEEK_MS;
+    if (canUseFree) {
+      mem.lastFreeAt = new Date(nowMs);
+      return "free_weekly";
+    }
+
+    mem.lots = normalizeActiveLots(mem.lots, 0, null, nowMs);
+    if (mem.lots.length > 0) {
+      mem.lots[0].remaining -= 1;
+      if (mem.lots[0].remaining <= 0) {
+        mem.lots.shift();
+      }
+      return "credit";
+    }
+
+    if (mem.permanentCredits > 0) {
+      mem.permanentCredits -= 1;
+      return "credit";
+    }
+
+    return null;
+  }
+
   async getWalletStatus(user: AuthUser): Promise<BetBuilderWalletStatus> {
     if (this.hasUnlimitedAccess(user)) {
-      return this.formatWalletState(user, 0, 0, null, null);
+      return this.formatWalletState(user, 0, [], null);
     }
 
     await this.ensureSchema();
@@ -144,15 +215,21 @@ export class BetBuilderCreditsService {
           betBuilderCredits: true,
           betBuilderTimedCredits: true,
           betBuilderTimedCreditsExpiresAt: true,
+          betBuilderCreditLots: true,
           betBuilderLastFreeAt: true,
         },
       });
       if (dbUser) {
+        const activeLots = normalizeActiveLots(
+          dbUser.betBuilderCreditLots,
+          dbUser.betBuilderTimedCredits,
+          dbUser.betBuilderTimedCreditsExpiresAt,
+          Date.now()
+        );
         return this.formatWalletState(
           user,
           dbUser.betBuilderCredits,
-          dbUser.betBuilderTimedCredits,
-          dbUser.betBuilderTimedCreditsExpiresAt,
+          activeLots,
           dbUser.betBuilderLastFreeAt
         );
       }
@@ -161,19 +238,13 @@ export class BetBuilderCreditsService {
     }
 
     const mem = this.getOrCreateMemoryWallet(user.id);
-    return this.formatWalletState(
-      user,
-      mem.permanentCredits,
-      mem.timedCredits,
-      mem.timedExpiresAt,
-      mem.lastFreeAt
-    );
+    return this.formatWalletState(user, mem.permanentCredits, mem.lots, mem.lastFreeAt);
   }
 
   async consumeGeneration(user: AuthUser): Promise<ConsumeGenerationResult> {
     if (this.hasUnlimitedAccess(user)) {
       return {
-        ...this.formatWalletState(user, 0, 0, null, null),
+        ...this.formatWalletState(user, 0, [], null),
         allowed: true,
         consumedFrom: "subscriber",
       };
@@ -181,176 +252,93 @@ export class BetBuilderCreditsService {
 
     await this.ensureSchema();
 
-    type WalletRow = {
+    type LockedUserRow = {
       permanent_credits: number;
       timed_credits: number;
       timed_expires_at: Date | null;
+      credit_lots: unknown;
       last_free_at: Date | null;
     };
 
     try {
-      // 1. Prefer claiming the weekly free slip first
-      const freeClaimRows = await prisma.$queryRaw<WalletRow[]>`
-        UPDATE "users"
-        SET "bet_builder_last_free_at" = NOW()
-        WHERE "id" = ${user.id}
-          AND (
-            "bet_builder_last_free_at" IS NULL
-            OR "bet_builder_last_free_at" <= NOW() - INTERVAL '7 days'
-          )
-        RETURNING
-          "bet_builder_credits" AS permanent_credits,
-          "bet_builder_timed_credits" AS timed_credits,
-          "bet_builder_timed_credits_expires_at" AS timed_expires_at,
-          "bet_builder_last_free_at" AS last_free_at
-      `;
+      const txResult = await prisma.$transaction(async (tx) => {
+        const rows = await tx.$queryRaw<LockedUserRow[]>`
+          SELECT
+            "bet_builder_credits" AS permanent_credits,
+            "bet_builder_timed_credits" AS timed_credits,
+            "bet_builder_timed_credits_expires_at" AS timed_expires_at,
+            "bet_builder_credit_lots" AS credit_lots,
+            "bet_builder_last_free_at" AS last_free_at
+          FROM "users"
+          WHERE "id" = ${user.id}
+          FOR UPDATE
+        `;
 
-      if (freeClaimRows.length > 0) {
-        const r = freeClaimRows[0];
+        if (rows.length === 0) {
+          return {
+            status: this.formatWalletState(user, 0, [], null),
+            allowed: false,
+            consumedFrom: null as ConsumeGenerationResult["consumedFrom"],
+          };
+        }
+
+        const r = rows[0];
+        const now = new Date();
+        const nowMs = now.getTime();
+        let permanent = Number(r.permanent_credits) || 0;
+        let lots = normalizeActiveLots(r.credit_lots, Number(r.timed_credits) || 0, r.timed_expires_at, nowMs);
+        let lastFreeAt = r.last_free_at;
+
+        let consumedFrom: "free_weekly" | "credit" | null = null;
+
+        if (!lastFreeAt || nowMs - lastFreeAt.getTime() >= WEEK_MS) {
+          lastFreeAt = now;
+          consumedFrom = "free_weekly";
+        } else if (lots.length > 0) {
+          lots[0] = { ...lots[0], remaining: lots[0].remaining - 1 };
+          if (lots[0].remaining <= 0) {
+            lots.shift();
+          }
+          consumedFrom = "credit";
+        } else if (permanent > 0) {
+          permanent -= 1;
+          consumedFrom = "credit";
+        }
+
+        const timedSum = lots.reduce((sum, l) => sum + l.remaining, 0);
+        const maxExpDate = lots.length > 0 ? new Date(lots[lots.length - 1].expiresAt) : null;
+
+        await tx.$executeRaw`
+          UPDATE "users"
+          SET
+            "bet_builder_credits" = ${permanent},
+            "bet_builder_timed_credits" = ${timedSum},
+            "bet_builder_timed_credits_expires_at" = ${maxExpDate},
+            "bet_builder_credit_lots" = ${JSON.stringify(lots)}::jsonb,
+            "bet_builder_last_free_at" = ${lastFreeAt}
+          WHERE "id" = ${user.id}
+        `;
+
         return {
-          ...this.formatWalletState(
-            user,
-            Number(r.permanent_credits) || 0,
-            Number(r.timed_credits) || 0,
-            r.timed_expires_at,
-            r.last_free_at
-          ),
-          allowed: true,
-          consumedFrom: "free_weekly",
+          status: this.formatWalletState(user, permanent, lots, lastFreeAt),
+          allowed: consumedFrom !== null,
+          consumedFrom,
         };
-      }
+      });
 
-      // 2. Spend expiring 14-day credits before non-expiring credits so users don't lose timed balances
-      const timedClaimRows = await prisma.$queryRaw<WalletRow[]>`
-        UPDATE "users"
-        SET "bet_builder_timed_credits" = "bet_builder_timed_credits" - 1
-        WHERE "id" = ${user.id}
-          AND "bet_builder_timed_credits" > 0
-          AND "bet_builder_timed_credits_expires_at" IS NOT NULL
-          AND "bet_builder_timed_credits_expires_at" > NOW()
-        RETURNING
-          "bet_builder_credits" AS permanent_credits,
-          "bet_builder_timed_credits" AS timed_credits,
-          "bet_builder_timed_credits_expires_at" AS timed_expires_at,
-          "bet_builder_last_free_at" AS last_free_at
-      `;
-
-      if (timedClaimRows.length > 0) {
-        const r = timedClaimRows[0];
-        return {
-          ...this.formatWalletState(
-            user,
-            Number(r.permanent_credits) || 0,
-            Number(r.timed_credits) || 0,
-            r.timed_expires_at,
-            r.last_free_at
-          ),
-          allowed: true,
-          consumedFrom: "credit",
-        };
-      }
-
-      // 3. Otherwise spend non-expiring credits
-      const creditClaimRows = await prisma.$queryRaw<WalletRow[]>`
-        UPDATE "users"
-        SET "bet_builder_credits" = "bet_builder_credits" - 1
-        WHERE "id" = ${user.id}
-          AND "bet_builder_credits" > 0
-        RETURNING
-          "bet_builder_credits" AS permanent_credits,
-          "bet_builder_timed_credits" AS timed_credits,
-          "bet_builder_timed_credits_expires_at" AS timed_expires_at,
-          "bet_builder_last_free_at" AS last_free_at
-      `;
-
-      if (creditClaimRows.length > 0) {
-        const r = creditClaimRows[0];
-        return {
-          ...this.formatWalletState(
-            user,
-            Number(r.permanent_credits) || 0,
-            Number(r.timed_credits) || 0,
-            r.timed_expires_at,
-            r.last_free_at
-          ),
-          allowed: true,
-          consumedFrom: "credit",
-        };
-      }
-
-      const status = await this.getWalletStatus(user);
       return {
-        ...status,
-        allowed: false,
-        consumedFrom: null,
+        ...txResult.status,
+        allowed: txResult.allowed,
+        consumedFrom: txResult.consumedFrom,
       };
     } catch (err: any) {
       console.warn("[BetBuilderCredits] DB consume fallback:", err.message);
       const mem = this.getOrCreateMemoryWallet(user.id);
-      const now = new Date();
-      const canUseFree =
-        !mem.lastFreeAt || now.getTime() - mem.lastFreeAt.getTime() >= WEEK_MS;
-
-      if (canUseFree) {
-        mem.lastFreeAt = now;
-        return {
-          ...this.formatWalletState(
-            user,
-            mem.permanentCredits,
-            mem.timedCredits,
-            mem.timedExpiresAt,
-            mem.lastFreeAt
-          ),
-          allowed: true,
-          consumedFrom: "free_weekly",
-        };
-      }
-
-      const hasValidTimed =
-        mem.timedCredits > 0 &&
-        Boolean(mem.timedExpiresAt) &&
-        mem.timedExpiresAt!.getTime() > now.getTime();
-
-      if (hasValidTimed) {
-        mem.timedCredits -= 1;
-        return {
-          ...this.formatWalletState(
-            user,
-            mem.permanentCredits,
-            mem.timedCredits,
-            mem.timedExpiresAt,
-            mem.lastFreeAt
-          ),
-          allowed: true,
-          consumedFrom: "credit",
-        };
-      }
-
-      if (mem.permanentCredits > 0) {
-        mem.permanentCredits -= 1;
-        return {
-          ...this.formatWalletState(
-            user,
-            mem.permanentCredits,
-            mem.timedCredits,
-            mem.timedExpiresAt,
-            mem.lastFreeAt
-          ),
-          allowed: true,
-          consumedFrom: "credit",
-        };
-      }
-
+      const consumedFrom = this.applyConsumeInMemory(mem, Date.now());
       return {
-        ...this.formatWalletState(
-          user,
-          mem.permanentCredits,
-          mem.timedCredits,
-          mem.timedExpiresAt,
-          mem.lastFreeAt
-        ),
-        allowed: false,
-        consumedFrom: null,
+        ...this.formatWalletState(user, mem.permanentCredits, mem.lots, mem.lastFreeAt),
+        allowed: consumedFrom !== null,
+        consumedFrom,
       };
     }
   }
@@ -368,51 +356,60 @@ export class BetBuilderCreditsService {
       await this.ensureSchema();
     }
 
+    type GrantRow = {
+      permanent_credits: number;
+      timed_credits: number;
+      timed_expires_at: Date | null;
+      credit_lots: unknown;
+    };
+
     try {
-      if (expirationDays && expirationDays > 0) {
-        const rows = await client.$queryRaw<
-          Array<{ permanent_credits: number; timed_credits: number }>
-        >`
+      const rows = await client.$queryRaw<GrantRow[]>`
+        SELECT
+          "bet_builder_credits" AS permanent_credits,
+          "bet_builder_timed_credits" AS timed_credits,
+          "bet_builder_timed_credits_expires_at" AS timed_expires_at,
+          "bet_builder_credit_lots" AS credit_lots
+        FROM "users"
+        WHERE "id" = ${userId}
+        FOR UPDATE
+      `;
+
+      if (rows.length > 0) {
+        const r = rows[0];
+        const nowMs = Date.now();
+        let permanent = Number(r.permanent_credits) || 0;
+        const lots = normalizeActiveLots(
+          r.credit_lots,
+          Number(r.timed_credits) || 0,
+          r.timed_expires_at,
+          nowMs
+        );
+
+        if (expirationDays && expirationDays > 0) {
+          lots.push({
+            remaining: creditsToAdd,
+            expiresAt: new Date(nowMs + expirationDays * DAY_MS).toISOString(),
+          });
+          lots.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
+        } else {
+          permanent += creditsToAdd;
+        }
+
+        const timedSum = lots.reduce((sum, l) => sum + l.remaining, 0);
+        const maxExpDate = lots.length > 0 ? new Date(lots[lots.length - 1].expiresAt) : null;
+
+        await client.$executeRaw`
           UPDATE "users"
           SET
-            "bet_builder_timed_credits" = CASE
-              WHEN "bet_builder_timed_credits_expires_at" IS NOT NULL
-                AND "bet_builder_timed_credits_expires_at" > NOW()
-                AND "bet_builder_timed_credits" > 0
-              THEN "bet_builder_timed_credits" + ${creditsToAdd}
-              ELSE ${creditsToAdd}
-            END,
-            "bet_builder_timed_credits_expires_at" = NOW() + (${expirationDays} * INTERVAL '1 day')
+            "bet_builder_credits" = ${permanent},
+            "bet_builder_timed_credits" = ${timedSum},
+            "bet_builder_timed_credits_expires_at" = ${maxExpDate},
+            "bet_builder_credit_lots" = ${JSON.stringify(lots)}::jsonb
           WHERE "id" = ${userId}
-          RETURNING
-            "bet_builder_credits" AS permanent_credits,
-            "bet_builder_timed_credits" AS timed_credits
         `;
-        if (rows.length > 0) {
-          return (
-            (Number(rows[0].permanent_credits) || 0) +
-            (Number(rows[0].timed_credits) || 0)
-          );
-        }
-      } else {
-        const updated = await client.user.update({
-          where: { id: userId },
-          data: {
-            betBuilderCredits: { increment: creditsToAdd },
-          },
-          select: {
-            betBuilderCredits: true,
-            betBuilderTimedCredits: true,
-            betBuilderTimedCreditsExpiresAt: true,
-          },
-        });
-        const activeTimed =
-          updated.betBuilderTimedCredits > 0 &&
-          updated.betBuilderTimedCreditsExpiresAt &&
-          updated.betBuilderTimedCreditsExpiresAt.getTime() > Date.now()
-            ? updated.betBuilderTimedCredits
-            : 0;
-        return updated.betBuilderCredits + activeTimed;
+
+        return permanent + timedSum;
       }
     } catch (err: any) {
       console.warn("[BetBuilderCredits] DB grantCredits fallback:", err.message);
@@ -420,21 +417,17 @@ export class BetBuilderCreditsService {
 
     const mem = this.getOrCreateMemoryWallet(userId);
     const nowMs = Date.now();
+    mem.lots = normalizeActiveLots(mem.lots, 0, null, nowMs);
     if (expirationDays && expirationDays > 0) {
-      const hasValid =
-        mem.timedCredits > 0 &&
-        Boolean(mem.timedExpiresAt) &&
-        mem.timedExpiresAt!.getTime() > nowMs;
-      mem.timedCredits = hasValid ? mem.timedCredits + creditsToAdd : creditsToAdd;
-      mem.timedExpiresAt = new Date(nowMs + expirationDays * DAY_MS);
+      mem.lots.push({
+        remaining: creditsToAdd,
+        expiresAt: new Date(nowMs + expirationDays * DAY_MS).toISOString(),
+      });
+      mem.lots.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
     } else {
       mem.permanentCredits += creditsToAdd;
     }
-    const activeTimed =
-      mem.timedCredits > 0 && mem.timedExpiresAt && mem.timedExpiresAt.getTime() > nowMs
-        ? mem.timedCredits
-        : 0;
-    return mem.permanentCredits + activeTimed;
+    return mem.permanentCredits + mem.lots.reduce((sum, l) => sum + l.remaining, 0);
   }
 }
 
