@@ -248,7 +248,7 @@ export default function BetBuilderPage() {
   ]);
   const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
   const [limitModalMode, setLimitModalMode] = useState<"signup" | "quota" | "shop">("quota");
-  const [selectedCreditCurrency, setSelectedCreditCurrency] = useState<"USD" | "NGN" | "ZAR">("USD");
+  const [selectedCreditCurrency, setSelectedCreditCurrency] = useState<string>("USD");
   const [buyingPackId, setBuyingPackId] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -268,17 +268,25 @@ export default function BetBuilderPage() {
   const [codeConversionError, setCodeConversionError] = useState<string | null>(null);
   const [codeConversionSuccess, setCodeConversionSuccess] = useState<GeneratedBetCodeResult | null>(null);
 
-  // Auto-detect default Whop credit currency (Nigeria -> NGN, South Africa -> ZAR, elsewhere -> USD)
+  // Auto-detect default checkout currency from visitor timezone (Nigeria, South Africa, MoMo Africa, else USD)
   useEffect(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.includes("Lagos") || tz.includes("Nigeria")) {
-        setSelectedCreditCurrency("NGN");
-      } else if (tz.includes("Johannesburg") || tz.includes("South_Africa")) {
-        setSelectedCreditCurrency("ZAR");
-      } else {
-        setSelectedCreditCurrency("USD");
-      }
+      const tzRules: Array<[string[], string]> = [
+        [["Lagos", "Nigeria"], "NGN"],
+        [["Johannesburg", "South_Africa"], "ZAR"],
+        [["Nairobi"], "KES"],
+        [["Accra"], "GHS"],
+        [["Kampala"], "UGX"],
+        [["Dar_es_Salaam"], "TZS"],
+        [["Blantyre", "Lilongwe"], "MWK"],
+        [["Kigali"], "RWF"],
+        [["Douala"], "XAF"],
+        [["Abidjan", "Dakar"], "XOF"],
+        [["Lusaka", "Maputo", "Harare"], "ZMW"],
+      ];
+      const matched = tzRules.find(([patterns]) => patterns.some((p) => tz.includes(p)));
+      setSelectedCreditCurrency(matched ? matched[1] : "USD");
     } catch {
       setSelectedCreditCurrency("USD");
     }
@@ -2395,27 +2403,32 @@ export default function BetBuilderPage() {
                         }. 1 &amp; 3-Slip packs valid 7 days · 10-Slip pack valid 14 days.`}
                   </p>
 
-                  {/* Currency Switcher (Whop supports USD, NGN & ZAR; other countries use USD) */}
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      gap: 6,
-                      padding: 4,
-                      borderRadius: 12,
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      marginBottom: 16,
-                    }}
-                  >
-                    {[
-                      { code: "USD" as const, label: "USD ($)" },
-                      { code: "NGN" as const, label: "NGN (₦)" },
-                      { code: "ZAR" as const, label: "ZAR (R)" },
-                    ].map((cur) => {
-                      const active = selectedCreditCurrency === cur.code;
-                      return (
+                  {/* Currency Switcher (USD/NGN/ZAR via Cards/OPay, African Countries via Mobile Money) */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: 4,
+                        borderRadius: 12,
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      {[
+                        { code: "USD", label: "USD ($)", isActive: selectedCreditCurrency === "USD" },
+                        { code: "NGN", label: "NGN (₦)", isActive: selectedCreditCurrency === "NGN" },
+                        { code: "ZAR", label: "ZAR (R)", isActive: selectedCreditCurrency === "ZAR" },
+                        {
+                          code: "KES",
+                          label: "MoMo Africa",
+                          isActive: !["USD", "NGN", "ZAR"].includes(selectedCreditCurrency),
+                        },
+                      ].map((cur) => (
                         <button
-                          key={cur.code}
+                          key={cur.label}
                           type="button"
                           onClick={() => setSelectedCreditCurrency(cur.code)}
                           style={{
@@ -2425,14 +2438,44 @@ export default function BetBuilderPage() {
                             fontWeight: 700,
                             border: "none",
                             cursor: "pointer",
-                            background: active ? "#7c6cf5" : "transparent",
-                            color: active ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+                            background: cur.isActive ? "#7c6cf5" : "transparent",
+                            color: cur.isActive ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
                           }}
                         >
                           {cur.label}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+
+                    {!["USD", "NGN", "ZAR"].includes(selectedCreditCurrency) && (
+                      <select
+                        aria-label="Select African Mobile Money Country"
+                        value={selectedCreditCurrency}
+                        onChange={(e) => setSelectedCreditCurrency(e.target.value)}
+                        style={{
+                          width: "100%",
+                          maxWidth: 320,
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          background: "rgba(255, 255, 255, 0.07)",
+                          border: "1px solid rgba(124, 108, 245, 0.45)",
+                          color: "#ffffff",
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          outline: "none",
+                        }}
+                      >
+                        <option value="KES" style={{ background: "#141132" }}>Kenya — M-Pesa / Airtel (KES)</option>
+                        <option value="GHS" style={{ background: "#141132" }}>Ghana — MTN / Telecel MoMo (GHS)</option>
+                        <option value="UGX" style={{ background: "#141132" }}>Uganda — MTN / Airtel MoMo (UGX)</option>
+                        <option value="TZS" style={{ background: "#141132" }}>Tanzania — M-Pesa / Tigo Pesa (TZS)</option>
+                        <option value="MWK" style={{ background: "#141132" }}>Malawi — Airtel / TNM Mpamba (MWK)</option>
+                        <option value="ZMW" style={{ background: "#141132" }}>Zambia — MTN / Airtel MoMo (ZMW)</option>
+                        <option value="RWF" style={{ background: "#141132" }}>Rwanda — MTN / Airtel MoMo (RWF)</option>
+                        <option value="XAF" style={{ background: "#141132" }}>Cameroon &amp; Central Africa (XAF)</option>
+                        <option value="XOF" style={{ background: "#141132" }}>Ivory Coast / Senegal / West Africa (XOF)</option>
+                      </select>
+                    )}
                   </div>
 
                   {checkoutError && (
@@ -2456,9 +2499,9 @@ export default function BetBuilderPage() {
                   <div style={{ display: "grid", gap: 10, marginBottom: 16, textAlign: "left" }}>
                     {creditPacks.map((pack) => {
                       const curKey = selectedCreditCurrency.toLowerCase();
-                      const variant =
-                        pack.currencyVariants?.[curKey] || pack.currencyVariants?.usd;
-                      const formattedPrice = variant?.formattedAmount || "$1.00";
+                      const isMoMo = !["usd", "ngn", "zar"].includes(curKey);
+                      const variant = pack.currencyVariants?.[curKey];
+                      const formattedPrice = variant?.formattedAmount || (isMoMo ? "Local MoMo" : pack.currencyVariants?.usd?.formattedAmount || "$1.00");
                       const isPopular = pack.id === "CREDITS_3";
                       const isBuyingThis = buyingPackId === pack.id;
 

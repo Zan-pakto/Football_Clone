@@ -89,7 +89,7 @@ router.get("/credit-packs", (_req: Request, res: Response) => {
   return res.json({
     success: true,
     packs: Object.values(CREDIT_PACKS),
-    supportedCurrencies: ["USD", "NGN", "ZAR"],
+    supportedCurrencies: ["USD", "NGN", "ZAR", "GHS", "KES", "UGX", "TZS", "MWK", "RWF", "XAF", "XOF", "ZMW"],
   });
 });
 
