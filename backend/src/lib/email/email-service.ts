@@ -378,6 +378,58 @@ Thank you for choosing Jolloftips!
   }
 
   /**
+   * 6. Bet Builder Credits Top-Up Receipt
+   */
+  getCreditsPurchaseEmail(params: {
+    name: string;
+    email: string;
+    packName: string;
+    creditsAdded: number;
+    newBalance: number;
+    amount: string;
+    orderId?: string;
+  }): EmailPayload {
+    const { name, email, packName, creditsAdded, newBalance, amount, orderId } = params;
+    const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_APP_URL || "https://jolloftips.com";
+    const builderUrl = `${frontendUrl}/bet-builder`;
+    const subject = `✅ ${creditsAdded} Bet Builder Credit${creditsAdded === 1 ? "" : "s"} Added - Jolloftips`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <body style="background:#090d1a; color:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,sans-serif; padding:40px 20px; margin:0;">
+        <div style="max-width:560px; margin:0 auto; background:#12182c; border:1px solid #2a3356; border-radius:16px; padding:32px;">
+          <div style="text-align:center; margin-bottom:24px;">
+            <span style="background:rgba(124,108,245,0.18); color:#c4b5fd; font-weight:800; font-size:12px; padding:6px 14px; border-radius:999px; border:1px solid rgba(124,108,245,0.38);">BET BUILDER CREDITS</span>
+            <h1 style="color:#ffffff; font-size:24px; margin:14px 0 6px;">+${creditsAdded} Slip Credit${creditsAdded === 1 ? "" : "s"} Added</h1>
+            <p style="color:#a5b4fc; font-size:14px; margin:0;">Instant AI Bet Builder Wallet Top-Up</p>
+          </div>
+          <p style="font-size:15px; line-height:1.6; color:#cbd5e1;">Hi <strong>${name || "Member"}</strong>,</p>
+          <p style="font-size:14px; line-height:1.6; color:#94a3b8;">
+            Your payment for <strong>${packName}</strong> was verified and your Bet Builder credits are ready to use right away.
+          </p>
+          <div style="background:#1b2340; border:1px solid #2a3356; border-radius:12px; padding:18px; margin:20px 0;">
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+              <tr><td style="padding:6px 0; color:#94a3b8;">Pack:</td><td style="padding:6px 0; color:#fff; font-weight:700; text-align:right;">${packName}</td></tr>
+              <tr><td style="padding:6px 0; color:#94a3b8;">Credits Added:</td><td style="padding:6px 0; color:#34d399; font-weight:700; text-align:right;">+${creditsAdded} Slips</td></tr>
+              <tr><td style="padding:6px 0; color:#94a3b8;">New Credit Balance:</td><td style="padding:6px 0; color:#fbbf24; font-weight:700; text-align:right;">${newBalance} Slips</td></tr>
+              <tr><td style="padding:6px 0; color:#94a3b8;">Amount Paid:</td><td style="padding:6px 0; color:#fff; font-weight:700; text-align:right;">${amount}</td></tr>
+              ${orderId ? `<tr><td style="padding:6px 0; color:#94a3b8;">Reference:</td><td style="padding:6px 0; color:#94a3b8; font-size:12px; text-align:right; font-family:monospace;">${orderId}</td></tr>` : ""}
+            </table>
+          </div>
+          <div style="text-align:center; margin-top:28px;">
+            <a href="${builderUrl}" style="background:#7c6cf5; color:#ffffff; text-decoration:none; padding:13px 28px; border-radius:10px; font-weight:700; font-size:14px; display:inline-block;">Open AI Bet Builder</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `Hi ${name || "Member"},\n\n+${creditsAdded} Bet Builder credit(s) added (${packName}). New balance: ${newBalance} slip(s). Amount: ${amount}.\nGenerate slips at: ${builderUrl}`;
+    return { to: email, subject, html, text };
+  }
+
+  /**
    * Universal Dispatcher:
    * 1. If RESEND_API_KEY is present -> Sends via Resend HTTP API
    * 2. Else if SMTP_USER & SMTP_PASS are present -> Sends via Nodemailer SMTP (Gmail, SendGrid, etc.)

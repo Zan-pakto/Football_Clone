@@ -198,12 +198,54 @@ export default function BetBuilderPage() {
   const [hasGenerated, setHasGenerated] = useState<boolean>(false);
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState<boolean>(false);
 
-  // Auth & Daily Usage State
+  // Auth, Subscriber Tier & Bet Builder Credits Wallet State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isVip, setIsVip] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [freeTicketsUsedToday, setFreeTicketsUsedToday] = useState<number>(0);
+  const [creditsBalance, setCreditsBalance] = useState<number>(0);
+  const [freeWeeklyRemaining, setFreeWeeklyRemaining] = useState<number>(0);
+  const [nextFreeResetAt, setNextFreeResetAt] = useState<string | null>(null);
+  const [creditPacks, setCreditPacks] = useState<any[]>([
+    {
+      id: "CREDITS_1",
+      name: "Bet Builder Credit (1 Slip)",
+      credits: 1,
+      description: "1 instant AI Bet Builder slip generation.",
+      currencyVariants: {
+        usd: { currency: "USD", formattedAmount: "$1.00" },
+        ngn: { currency: "NGN", formattedAmount: "₦300" },
+        zar: { currency: "ZAR", formattedAmount: "R8" },
+      },
+    },
+    {
+      id: "CREDITS_3",
+      name: "Bet Builder Credit (3 Slips)",
+      credits: 3,
+      badge: "Most Popular",
+      description: "3 instant AI Bet Builder slips.",
+      currencyVariants: {
+        usd: { currency: "USD", formattedAmount: "$2.49" },
+        ngn: { currency: "NGN", formattedAmount: "₦700" },
+        zar: { currency: "ZAR", formattedAmount: "R20" },
+      },
+    },
+    {
+      id: "CREDITS_10",
+      name: "Bet Builder Credit (10 Slips)",
+      credits: 10,
+      badge: "Best Value",
+      description: "10 instant AI Bet Builder slips at our lowest rate.",
+      currencyVariants: {
+        usd: { currency: "USD", formattedAmount: "$4.99" },
+        ngn: { currency: "NGN", formattedAmount: "₦1,500" },
+        zar: { currency: "ZAR", formattedAmount: "R40" },
+      },
+    },
+  ]);
   const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
+  const [limitModalMode, setLimitModalMode] = useState<"signup" | "quota" | "shop">("quota");
+  const [selectedCreditCurrency, setSelectedCreditCurrency] = useState<"USD" | "NGN" | "ZAR">("USD");
+  const [buyingPackId, setBuyingPackId] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // Booking Code Conversion Modal & State
   const [showBookingModal, setShowBookingModal] = useState<boolean>(false);
@@ -221,48 +263,67 @@ export default function BetBuilderPage() {
   const [codeConversionError, setCodeConversionError] = useState<string | null>(null);
   const [codeConversionSuccess, setCodeConversionSuccess] = useState<GeneratedBetCodeResult | null>(null);
 
-  const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-  // Check auth and daily usage on mount
+  // Auto-detect default Whop credit currency (Nigeria -> NGN, South Africa -> ZAR, elsewhere -> USD)
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
-        const res = await fetch("/api/auth", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (data.success && data.isLoggedIn && data.user) {
-          setIsLoggedIn(true);
-          setUserId(data.user.id || data.user.email);
-          const userIsVip = Boolean(data.user.isPremium || data.user.role === "ADMIN");
-          setIsVip(userIsVip);
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Lagos") || tz.includes("Nigeria")) {
+        setSelectedCreditCurrency("NGN");
+      } else if (tz.includes("Johannesburg") || tz.includes("South_Africa")) {
+        setSelectedCreditCurrency("ZAR");
+      } else {
+        setSelectedCreditCurrency("USD");
+      }
+    } catch {
+      setSelectedCreditCurrency("USD");
+    }
+  }, []);
 
-          // Check free ticket usage
-          const uId = data.user.id || data.user.email;
-          const storageKey = `jt_bb_tickets_${uId}_${todayKey}`;
-          const used = parseInt(localStorage.getItem(storageKey) || "0", 10);
-          setFreeTicketsUsedToday(used);
-        } else {
-          setIsLoggedIn(false);
-          setIsVip(false);
-        }
-      } catch {
+  const refreshWalletStatus = useCallback(async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const res = await fetch(`/api/bet-builder/status?_t=${Date.now()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (Array.isArray(data.packs) && data.packs.length > 0) {
+        setCreditPacks(data.packs);
+      }
+      if (data.success && data.isLoggedIn) {
+        setIsLoggedIn(true);
+        setIsVip(Boolean(data.isUnlimited));
+        setCreditsBalance(Number(data.creditsBalance || 0));
+        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining || 0));
+        setNextFreeResetAt(data.nextFreeResetAt || null);
+      } else {
         setIsLoggedIn(false);
         setIsVip(false);
+        setCreditsBalance(0);
+        setFreeWeeklyRemaining(0);
+        setNextFreeResetAt(null);
       }
+    } catch {
+      setIsLoggedIn(false);
+      setIsVip(false);
     }
-    checkAuth();
+  }, []);
 
-    const onAuth = () => checkAuth();
+  // Load server-authoritative auth, subscriber access & credit wallet on mount
+  useEffect(() => {
+    refreshWalletStatus();
+
+    const onAuth = () => {
+      refreshWalletStatus();
+    };
     window.addEventListener("jt_auth_change", onAuth);
     window.addEventListener("storage", onAuth);
     return () => {
       window.removeEventListener("jt_auth_change", onAuth);
       window.removeEventListener("storage", onAuth);
     };
-  }, [todayKey]);
+  }, [refreshWalletStatus]);
 
   // Load matches from API across Today, Tomorrow, and Day +2 so multi-day windows and auto-expansion stay instant
   useEffect(() => {
@@ -781,19 +842,55 @@ export default function BetBuilderPage() {
     }
   }, [hasGenerated, targetOdds, numPicksRange, isFixedCount, fixedCount, betTypes, minOdd, maxOdd, minTrust, timeWindow, onlyMajor, onlyDecreasing]);
 
-  // Action: Trigger Slip Generation with Micro-Animation & User Limit Checks
-  const handleGenerateSlip = async () => {
-    // If user is a guest (not logged in), enforce 1 free slip generation before showing login/signup modal
-    if (!isLoggedIn) {
-      const guestKey = `jt_bb_guest_${todayKey}`;
-      const guestUsed = parseInt(localStorage.getItem(guestKey) || "0", 10);
-      if (guestUsed >= 1) {
-        setShowLimitModal(true);
+  const openCreditsModal = (mode: "signup" | "quota" | "shop") => {
+    setCheckoutError(null);
+    setLimitModalMode(mode);
+    setShowLimitModal(true);
+  };
+
+  const handleBuyCreditPack = async (packId: string) => {
+    setCheckoutError(null);
+    setBuyingPackId(packId);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const res = await fetch("/api/payments/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          planId: packId,
+          currency: selectedCreditCurrency,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.checkoutUrl) {
+        if (res.status === 401) {
+          setIsLoggedIn(false);
+          setLimitModalMode("signup");
+        }
+        setCheckoutError(data.error || "Unable to open checkout. Please try again.");
         return;
       }
-    } else if (!isVip && freeTicketsUsedToday >= 3) {
-      // If free logged-in user already used ticket today and is not VIP/trial
-      setShowLimitModal(true);
+      window.location.href = data.checkoutUrl;
+    } catch {
+      setCheckoutError("Network error initializing checkout. Please try again.");
+    } finally {
+      setBuyingPackId(null);
+    }
+  };
+
+  // Action: Trigger Slip Generation with Server-Enforced Auth, Weekly Free Limit & Credits
+  const handleGenerateSlip = async () => {
+    if (!isLoggedIn) {
+      openCreditsModal("signup");
+      return;
+    }
+
+    if (!isVip && freeWeeklyRemaining <= 0 && creditsBalance <= 0) {
+      openCreditsModal("quota");
       return;
     }
 
@@ -809,26 +906,68 @@ export default function BetBuilderPage() {
 
     await new Promise((r) => setTimeout(r, 200));
 
-    // Generate new randomized slip respecting all parameters
+    // Generate slip first so 0-match filters never deduct a credit
     const { slip: newSlip, notice } = buildSlip();
+    if (newSlip.length === 0) {
+      setGeneratedSlip([]);
+      setSlipScopeNote(notice);
+      setHasGenerated(true);
+      setHasUnappliedChanges(false);
+      setIsGenerating(false);
+      setGenerationStep("");
+      return;
+    }
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      const res = await fetch("/api/bet-builder/consume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (res.status === 401 || data.requiresSignup) {
+        setIsLoggedIn(false);
+        setIsVip(false);
+        setIsGenerating(false);
+        setGenerationStep("");
+        openCreditsModal("signup");
+        return;
+      }
+
+      if (res.status === 402 || data.quotaExhausted || !data.allowed) {
+        setIsVip(Boolean(data.isUnlimited));
+        setCreditsBalance(Number(data.creditsBalance || 0));
+        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining || 0));
+        setNextFreeResetAt(data.nextFreeResetAt || null);
+        setIsGenerating(false);
+        setGenerationStep("");
+        openCreditsModal("quota");
+        return;
+      }
+
+      if (res.ok && data.success) {
+        setIsVip(Boolean(data.isUnlimited));
+        setCreditsBalance(Number(data.creditsBalance ?? creditsBalance));
+        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining ?? freeWeeklyRemaining));
+        setNextFreeResetAt(data.nextFreeResetAt ?? null);
+      }
+    } catch {
+      setIsGenerating(false);
+      setGenerationStep("");
+      return;
+    }
+
     setGeneratedSlip(newSlip);
     setSlipScopeNote(notice);
     setHasGenerated(true);
     setHasUnappliedChanges(false);
     setIsGenerating(false);
     setGenerationStep("");
-
-    // Record ticket usage
-    if (!isLoggedIn) {
-      const guestKey = `jt_bb_guest_${todayKey}`;
-      const guestUsed = parseInt(localStorage.getItem(guestKey) || "0", 10);
-      localStorage.setItem(guestKey, String(guestUsed + 1));
-    } else if (!isVip && userId) {
-      const storageKey = `jt_bb_tickets_${userId}_${todayKey}`;
-      const newCount = freeTicketsUsedToday + 1;
-      localStorage.setItem(storageKey, String(newCount));
-      setFreeTicketsUsedToday(newCount);
-    }
   };
 
   // Calculated cumulative odds
@@ -1087,8 +1226,8 @@ export default function BetBuilderPage() {
             <h1 className="bb-title">AI Bet Builder</h1>
           </div>
 
-          {/* User Tier / Daily Ticket Status Badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* User Tier / Weekly Free Slip & Credits Status Badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             {isVip ? (
               <div
                 style={{
@@ -1105,30 +1244,65 @@ export default function BetBuilderPage() {
                 }}
               >
                 <Zap size={13} fill="#fbbf24" />
-                <span>VIP Pro: Unlimited Daily Slips</span>
+                <span>Subscriber Unlimited Slips</span>
               </div>
             ) : isLoggedIn ? (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  background: freeTicketsUsedToday >= 1 ? "rgba(239, 68, 68, 0.12)" : "rgba(47, 208, 138, 0.15)",
-                  border: freeTicketsUsedToday >= 1 ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid rgba(47, 208, 138, 0.4)",
-                  color: freeTicketsUsedToday >= 1 ? "#f87171" : "#2fd08a",
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                <Ticket size={13} />
-                <span>
-                  {freeTicketsUsedToday >= 1
-                    ? "Free Ticket Used Today (1/1)"
-                    : "1 Free Ticket Remaining Today (1/1)"}
-                </span>
-              </div>
+              <>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    background:
+                      freeWeeklyRemaining > 0 || creditsBalance > 0
+                        ? "rgba(47, 208, 138, 0.15)"
+                        : "rgba(239, 68, 68, 0.12)",
+                    border:
+                      freeWeeklyRemaining > 0 || creditsBalance > 0
+                        ? "1px solid rgba(47, 208, 138, 0.4)"
+                        : "1px solid rgba(239, 68, 68, 0.35)",
+                    color:
+                      freeWeeklyRemaining > 0 || creditsBalance > 0
+                        ? "#2fd08a"
+                        : "#f87171",
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  <Ticket size={13} />
+                  <span>
+                    {freeWeeklyRemaining > 0 && creditsBalance > 0
+                      ? `1 Free Weekly + ${creditsBalance} Credit${creditsBalance === 1 ? "" : "s"}`
+                      : freeWeeklyRemaining > 0
+                      ? "1 Free Weekly Slip Ready"
+                      : creditsBalance > 0
+                      ? `${creditsBalance} Slip Credit${creditsBalance === 1 ? "" : "s"} Ready`
+                      : "Weekly Free Slip Used (0 Credits)"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openCreditsModal("shop")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    padding: "6px 13px",
+                    borderRadius: 20,
+                    background: "rgba(124, 108, 245, 0.2)",
+                    border: "1px solid rgba(124, 108, 245, 0.45)",
+                    color: "#d4ceff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Sparkles size={12} />
+                  <span>Buy Credits</span>
+                </button>
+              </>
             ) : (
               <Link
                 href="/register?redirect=/bet-builder"
@@ -1147,7 +1321,7 @@ export default function BetBuilderPage() {
                 }}
               >
                 <Ticket size={13} />
-                <span>Sign up for 1 Free Daily Ticket</span>
+                <span>Sign up free for 1 Weekly Slip</span>
               </Link>
             )}
           </div>
@@ -2089,7 +2263,7 @@ export default function BetBuilderPage() {
         </div>
 
         {/* ════════════════════════════════════════════════════════════
-            FREE TICKET LIMIT MODAL
+            SIGNUP & BET BUILDER CREDITS MODAL
             ════════════════════════════════════════════════════════════ */}
         {showLimitModal && (
           <div
@@ -2097,29 +2271,31 @@ export default function BetBuilderPage() {
               position: "fixed",
               inset: 0,
               zIndex: 100,
-              background: "rgba(0, 0, 0, 0.75)",
+              background: "rgba(0, 0, 0, 0.78)",
               backdropFilter: "blur(8px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 20,
+              padding: 16,
             }}
             onClick={() => setShowLimitModal(false)}
           >
             <div
               style={{
-                maxWidth: 480,
+                maxWidth: !isLoggedIn || limitModalMode === "signup" ? 470 : 560,
                 width: "100%",
                 background: "#141132",
                 border: "1px solid rgba(167, 159, 255, 0.25)",
                 borderRadius: 18,
-                padding: "32px 26px",
+                padding: "28px 24px",
                 textAlign: "center",
-                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.6)",
+                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.65)",
+                maxHeight: "92vh",
+                overflowY: "auto",
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {!isLoggedIn ? (
+              {!isLoggedIn || limitModalMode === "signup" ? (
                 <>
                   <div
                     style={{
@@ -2138,10 +2314,10 @@ export default function BetBuilderPage() {
                     <Ticket size={28} />
                   </div>
                   <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 10px" }}>
-                    Claim Your 1 Free Daily Ticket
+                    Claim Your 1 Free Weekly Slip
                   </h3>
-                  <p style={{ fontSize: 13.5, color: "#a79fff", lineHeight: 1.6, margin: "0 0 24px" }}>
-                    Bet Builder is free for registered JollofTips members! Create a free account in 30 seconds to unlock your daily ticket.
+                  <p style={{ fontSize: 13.5, color: "#b6afe4", lineHeight: 1.6, margin: "0 0 24px" }}>
+                    Create a free Jolloftips.com account in 30 seconds to claim your <strong>1 free weekly Bet Builder slip</strong> or top up pay-as-you-go slip credits.
                   </p>
                   <div style={{ display: "flex", gap: 10 }}>
                     <Link
@@ -2164,27 +2340,190 @@ export default function BetBuilderPage() {
                 <>
                   <div
                     style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 16,
-                      background: "rgba(245, 158, 11, 0.15)",
-                      border: "1px solid rgba(245, 158, 11, 0.35)",
+                      width: 52,
+                      height: 52,
+                      borderRadius: 14,
+                      background:
+                        limitModalMode === "quota"
+                          ? "rgba(245, 158, 11, 0.15)"
+                          : "rgba(124, 108, 245, 0.18)",
+                      border:
+                        limitModalMode === "quota"
+                          ? "1px solid rgba(245, 158, 11, 0.35)"
+                          : "1px solid rgba(124, 108, 245, 0.35)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 18px",
-                      color: "#fbbf24",
+                      margin: "0 auto 14px",
+                      color: limitModalMode === "quota" ? "#fbbf24" : "#c4b5fd",
                     }}
                   >
-                    <Lock size={28} />
+                    {limitModalMode === "quota" ? <Lock size={24} /> : <Ticket size={24} />}
                   </div>
-                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 10px" }}>
-                    Daily Free Ticket Limit Reached
+
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 8px" }}>
+                    {limitModalMode === "quota"
+                      ? "Weekly Free Slip Used"
+                      : "Top Up Bet Builder Credits"}
                   </h3>
-                  <p style={{ fontSize: 13.5, color: "#d4cde3", lineHeight: 1.6, margin: "0 0 24px" }}>
-                    You have used your <strong>1 free Bet Builder ticket</strong> for today. Your free ticket resets at midnight. Upgrade to <strong>VIP Pro</strong> for unlimited daily generation and priority high-edge selections!
+                  <p style={{ fontSize: 13, color: "#c9c3e8", lineHeight: 1.55, margin: "0 0 16px" }}>
+                    {limitModalMode === "quota"
+                      ? `You've used this week's free slip${
+                          nextFreeResetAt
+                            ? ` (resets ${new Date(nextFreeResetAt).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                              })})`
+                            : ""
+                        }. Top up instant slip credits (they never expire) or upgrade for unlimited access.`
+                      : `Current balance: ${creditsBalance} credit${
+                          creditsBalance === 1 ? "" : "s"
+                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}. Credits never expire.`}
                   </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                  {/* Currency Switcher (Whop supports USD, NGN & ZAR; other countries use USD) */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      gap: 6,
+                      padding: 4,
+                      borderRadius: 12,
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      marginBottom: 16,
+                    }}
+                  >
+                    {[
+                      { code: "USD" as const, label: "USD ($)" },
+                      { code: "NGN" as const, label: "NGN (₦)" },
+                      { code: "ZAR" as const, label: "ZAR (R)" },
+                    ].map((cur) => {
+                      const active = selectedCreditCurrency === cur.code;
+                      return (
+                        <button
+                          key={cur.code}
+                          type="button"
+                          onClick={() => setSelectedCreditCurrency(cur.code)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            border: "none",
+                            cursor: "pointer",
+                            background: active ? "#7c6cf5" : "transparent",
+                            color: active ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+                          }}
+                        >
+                          {cur.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {checkoutError && (
+                    <div
+                      style={{
+                        marginBottom: 14,
+                        padding: "9px 12px",
+                        borderRadius: 10,
+                        background: "rgba(239, 68, 68, 0.14)",
+                        border: "1px solid rgba(239, 68, 68, 0.38)",
+                        color: "#fca5a5",
+                        fontSize: 12.5,
+                        textAlign: "left",
+                      }}
+                    >
+                      {checkoutError}
+                    </div>
+                  )}
+
+                  {/* 3 Credit Pack Cards */}
+                  <div style={{ display: "grid", gap: 10, marginBottom: 16, textAlign: "left" }}>
+                    {creditPacks.map((pack) => {
+                      const curKey = selectedCreditCurrency.toLowerCase();
+                      const variant =
+                        pack.currencyVariants?.[curKey] || pack.currencyVariants?.usd;
+                      const formattedPrice = variant?.formattedAmount || "$1.00";
+                      const isPopular = pack.id === "CREDITS_3";
+                      const isBuyingThis = buyingPackId === pack.id;
+
+                      return (
+                        <div
+                          key={pack.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            padding: "13px 14px",
+                            borderRadius: 14,
+                            background: isPopular
+                              ? "rgba(124, 108, 245, 0.16)"
+                              : "rgba(255, 255, 255, 0.04)",
+                            border: isPopular
+                              ? "1px solid rgba(124, 108, 245, 0.55)"
+                              : "1px solid rgba(255, 255, 255, 0.12)",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <strong style={{ fontSize: 14.5, color: "#ffffff" }}>
+                                {pack.credits} Bet Builder Slip{pack.credits === 1 ? "" : "s"}
+                              </strong>
+                              {pack.badge && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    textTransform: "uppercase",
+                                    padding: "2px 7px",
+                                    borderRadius: 999,
+                                    background:
+                                      pack.id === "CREDITS_10"
+                                        ? "rgba(47, 208, 138, 0.2)"
+                                        : "rgba(124, 108, 245, 0.28)",
+                                    color:
+                                      pack.id === "CREDITS_10" ? "#34d399" : "#d4ceff",
+                                  }}
+                                >
+                                  {pack.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginTop: 2 }}>
+                              {pack.description}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={buyingPackId !== null}
+                            onClick={() => handleBuyCreditPack(pack.id)}
+                            style={{
+                              flexShrink: 0,
+                              padding: "9px 14px",
+                              borderRadius: 10,
+                              border: "none",
+                              background: isPopular
+                                ? "linear-gradient(135deg, #7c6cf5 0%, #5b4ce0 100%)"
+                                : "rgba(255, 255, 255, 0.12)",
+                              color: "#ffffff",
+                              fontWeight: 800,
+                              fontSize: 13,
+                              cursor: buyingPackId !== null ? "wait" : "pointer",
+                              opacity: buyingPackId && !isBuyingThis ? 0.6 : 1,
+                              minWidth: 96,
+                            }}
+                          >
+                            {isBuyingThis ? "Opening..." : `Buy ${formattedPrice}`}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Link
                       href="/pricing"
                       className="bb-btn bb-btn--primary"
@@ -2197,14 +2536,14 @@ export default function BetBuilderPage() {
                         fontWeight: 900,
                       }}
                     >
-                      Upgrade to VIP Pro (Unlimited Slips)
+                      Or Go Unlimited — Premium / VIP Pro Plans
                     </Link>
                     <button
                       type="button"
                       onClick={() => setShowLimitModal(false)}
                       className="bb-btn bb-btn--ghost"
                     >
-                      Close &amp; Keep Current Slip
+                      Close
                     </button>
                   </div>
                 </>

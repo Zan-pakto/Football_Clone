@@ -4,13 +4,13 @@ import {
   CheckoutResult,
   StandardWebhookEvent,
 } from "./types";
-import { getPlanOrThrow } from "./plans.config";
+import { getCreditPackOrNull, getPurchasableOrThrow } from "./plans.config";
 
 export class MockPaymentProvider implements IPaymentProvider {
   readonly name = "mock";
 
   async createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutResult> {
-    const plan = getPlanOrThrow(input.planId);
+    const plan = getPurchasableOrThrow(input.planId);
     const mockSessionId = `mock_sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const mockSubId = `mock_sub_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const mockCustId = `mock_cus_${input.userId}`;
@@ -41,6 +41,8 @@ export class MockPaymentProvider implements IPaymentProvider {
 
     const eventId = payload.eventId || `mock_evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const eventType = payload.type || "checkout.completed";
+    const planId = payload.planId || "VIP_MONTHLY";
+    const creditPack = getCreditPackOrNull(planId);
 
     console.log(`[MockPaymentProvider] Received mock webhook event: ${eventType} (${eventId})`);
 
@@ -56,13 +58,14 @@ export class MockPaymentProvider implements IPaymentProvider {
       provider: this.name,
       userId: derivedUserId,
       userEmail: payload.userEmail,
-      planId: payload.planId || "VIP_MONTHLY",
+      planId,
+      creditGrant: creditPack?.credits,
       providerSubId: payload.providerSubId || `mock_sub_${Date.now()}`,
       providerCustId: payload.providerCustId || `mock_cus_${derivedUserId || "anon"}`,
       status: payload.status || "ACTIVE",
       currentPeriodEnd,
       cancelAtPeriodEnd: Boolean(payload.cancelAtPeriodEnd),
-      amountPaid: payload.amountPaid || "$19.99",
+      amountPaid: payload.amountPaid || (creditPack ? `$${(creditPack.amountCents / 100).toFixed(2)}` : "$19.99"),
     };
   }
 

@@ -1,4 +1,4 @@
-import { PlanId } from "./types";
+import { CreditPackId, PlanId, SubscriptionPlanId } from "./types";
 
 export interface CurrencyPriceVariant {
   currency: string;
@@ -11,7 +11,7 @@ export interface CurrencyPriceVariant {
 }
 
 export interface PlanDefinition {
-  id: PlanId;
+  id: SubscriptionPlanId;
   tier: "PREMIUM" | "VIP";
   name: string;
   badge: string;
@@ -31,7 +31,21 @@ export interface PlanDefinition {
   currencyVariants: Record<string, CurrencyPriceVariant>;
 }
 
-export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
+export interface CreditPackDefinition {
+  id: CreditPackId;
+  name: string;
+  credits: number;
+  badge?: string;
+  description: string;
+  amountCents: number;
+  currency: string;
+  whopProductId: string;
+  whopPlanId: string;
+  whopCheckoutUrl: string;
+  currencyVariants: Record<string, CurrencyPriceVariant>;
+}
+
+export const SUBSCRIPTION_PLANS: Record<SubscriptionPlanId, PlanDefinition> = {
   PREMIUM_MONTHLY: {
     id: "PREMIUM_MONTHLY",
     tier: "PREMIUM",
@@ -329,29 +343,244 @@ export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
   },
 };
 
+export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
+  CREDITS_1: {
+    id: "CREDITS_1",
+    name: "Bet Builder Credit (1 Slip)",
+    credits: 1,
+    description: "1 instant AI Bet Builder slip generation. Credits never expire.",
+    amountCents: 100, // $1.00
+    currency: "usd",
+    whopProductId: "prod_aujxyKH0dFm3q",
+    whopPlanId: "plan_jvWQQ5YSRkiOX",
+    whopCheckoutUrl: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
+    currencyVariants: {
+      usd: {
+        currency: "USD",
+        symbol: "$",
+        amount: 1.0,
+        formattedAmount: "$1.00",
+        provider: "whop",
+        productId: "plan_jvWQQ5YSRkiOX",
+        checkoutUrl: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
+      },
+      ngn: {
+        currency: "NGN",
+        symbol: "₦",
+        amount: 300,
+        formattedAmount: "₦300",
+        provider: "whop",
+        productId: "plan_bTRQpVLxSC16g",
+        checkoutUrl: "https://whop.com/checkout/plan_bTRQpVLxSC16g",
+      },
+      zar: {
+        currency: "ZAR",
+        symbol: "R",
+        amount: 8,
+        formattedAmount: "R8",
+        provider: "whop",
+        productId: "plan_ZsocLQchMnhaT",
+        checkoutUrl: "https://whop.com/checkout/plan_ZsocLQchMnhaT",
+      },
+    },
+  },
+  CREDITS_3: {
+    id: "CREDITS_3",
+    name: "Bet Builder Credit (3 Slips)",
+    credits: 3,
+    badge: "Most Popular",
+    description: "3 instant AI Bet Builder slips. Ideal for weekend accas.",
+    amountCents: 249, // $2.49
+    currency: "usd",
+    whopProductId: "prod_kJEmaPRVhxJoI",
+    whopPlanId: "plan_mb5q96LMRR3SN",
+    whopCheckoutUrl: "https://whop.com/checkout/plan_mb5q96LMRR3SN",
+    currencyVariants: {
+      usd: {
+        currency: "USD",
+        symbol: "$",
+        amount: 2.49,
+        formattedAmount: "$2.49",
+        provider: "whop",
+        productId: "plan_mb5q96LMRR3SN",
+        checkoutUrl: "https://whop.com/checkout/plan_mb5q96LMRR3SN",
+      },
+      ngn: {
+        currency: "NGN",
+        symbol: "₦",
+        amount: 700,
+        formattedAmount: "₦700",
+        provider: "whop",
+        productId: "plan_zmjHW7hpqGMlK",
+        checkoutUrl: "https://whop.com/checkout/plan_zmjHW7hpqGMlK",
+      },
+      zar: {
+        currency: "ZAR",
+        symbol: "R",
+        amount: 20,
+        formattedAmount: "R20",
+        provider: "whop",
+        productId: "plan_rgBYUoxQK2ntg",
+        checkoutUrl: "https://whop.com/checkout/plan_rgBYUoxQK2ntg",
+      },
+    },
+  },
+  CREDITS_10: {
+    id: "CREDITS_10",
+    name: "Bet Builder Credit (10 Slips)",
+    credits: 10,
+    badge: "Best Value",
+    description: "10 instant AI Bet Builder slips at our lowest rate per slip.",
+    amountCents: 499, // $4.99
+    currency: "usd",
+    whopProductId: "prod_j6F3w5rILzZ7I",
+    whopPlanId: "plan_d9kvGCFy9sGB3",
+    whopCheckoutUrl: "https://whop.com/checkout/plan_d9kvGCFy9sGB3",
+    currencyVariants: {
+      usd: {
+        currency: "USD",
+        symbol: "$",
+        amount: 4.99,
+        formattedAmount: "$4.99",
+        provider: "whop",
+        productId: "plan_d9kvGCFy9sGB3",
+        checkoutUrl: "https://whop.com/checkout/plan_d9kvGCFy9sGB3",
+      },
+      ngn: {
+        currency: "NGN",
+        symbol: "₦",
+        amount: 1500,
+        formattedAmount: "₦1,500",
+        provider: "whop",
+        productId: "plan_YJl6MWOzDgo4d",
+        checkoutUrl: "https://whop.com/checkout/plan_YJl6MWOzDgo4d",
+      },
+      zar: {
+        currency: "ZAR",
+        symbol: "R",
+        amount: 40,
+        formattedAmount: "R40",
+        provider: "whop",
+        productId: "plan_POOQfPT71x540",
+        checkoutUrl: "https://whop.com/checkout/plan_POOQfPT71x540",
+      },
+    },
+  },
+};
+
+export function isCreditPackId(id: string): id is CreditPackId {
+  return id === "CREDITS_1" || id === "CREDITS_3" || id === "CREDITS_10";
+}
+
+export function getCreditPackOrNull(id?: string | null): CreditPackDefinition | null {
+  if (!id || !isCreditPackId(id)) return null;
+  return CREDIT_PACKS[id];
+}
+
+export type AnyPurchasablePlan = PlanDefinition | CreditPackDefinition;
+
 export function getPlanOrThrow(planId: string): PlanDefinition {
-  const plan = SUBSCRIPTION_PLANS[planId as PlanId];
+  const plan = SUBSCRIPTION_PLANS[planId as SubscriptionPlanId];
   if (!plan) {
-    throw new Error(`Invalid plan ID: "${planId}". Valid plans are: ${Object.keys(SUBSCRIPTION_PLANS).join(", ")}`);
+    throw new Error(
+      `Invalid subscription plan ID: "${planId}". Valid plans are: ${Object.keys(SUBSCRIPTION_PLANS).join(", ")}`
+    );
   }
   return plan;
+}
+
+export function getPurchasableOrThrow(planId: string): AnyPurchasablePlan {
+  if (isCreditPackId(planId)) {
+    return CREDIT_PACKS[planId];
+  }
+  const plan = SUBSCRIPTION_PLANS[planId as SubscriptionPlanId];
+  if (!plan) {
+    throw new Error(
+      `Invalid plan ID: "${planId}". Valid plans are: ${[
+        ...Object.keys(SUBSCRIPTION_PLANS),
+        ...Object.keys(CREDIT_PACKS),
+      ].join(", ")}`
+    );
+  }
+  return plan;
+}
+
+const WHOP_ID_TO_INTERNAL_PLAN: Record<string, PlanId> = {
+  // Credit Packs - Plan IDs
+  plan_jvWQQ5YSRkiOX: "CREDITS_1",
+  plan_bTRQpVLxSC16g: "CREDITS_1",
+  plan_ZsocLQchMnhaT: "CREDITS_1",
+  plan_mb5q96LMRR3SN: "CREDITS_3",
+  plan_zmjHW7hpqGMlK: "CREDITS_3",
+  plan_rgBYUoxQK2ntg: "CREDITS_3",
+  plan_d9kvGCFy9sGB3: "CREDITS_10",
+  plan_YJl6MWOzDgo4d: "CREDITS_10",
+  plan_POOQfPT71x540: "CREDITS_10",
+  // Credit Packs - Product IDs
+  prod_aujxyKH0dFm3q: "CREDITS_1",
+  prod_kJEmaPRVhxJoI: "CREDITS_3",
+  prod_j6F3w5rILzZ7I: "CREDITS_10",
+  // Subscription Plans - Whop Plan IDs
+  plan_fTC4HGr9D33uO: "VIP_6MONTHS",
+  plan_b9oSv9CGseeG7: "VIP_6MONTHS",
+  plan_x5pw1IbNFyi1Y: "VIP_6MONTHS",
+  plan_oaCOPGAT2FpXZ: "VIP_6MONTHS",
+  plan_DfSUCcAweadIa: "VIP_MONTHLY",
+  plan_qBmyg12UoWVQc: "VIP_MONTHLY",
+  plan_9Cx98mNqjAtVE: "VIP_MONTHLY",
+  plan_JIrwD7tDw5bnJ: "VIP_MONTHLY",
+  plan_xaGOGXV9S44NL: "PREMIUM_6MONTHS",
+  plan_QWBXn1FL9DyO1: "PREMIUM_6MONTHS",
+  plan_u9AXPZ2NqmPIW: "PREMIUM_6MONTHS",
+  plan_DL3PT43HhWvir: "PREMIUM_6MONTHS",
+  plan_8iNJRtiKtVzMH: "PREMIUM_MONTHLY",
+  plan_dIivpO1ZYQApV: "PREMIUM_MONTHLY",
+  plan_6TkF3PeSpuGXC: "PREMIUM_MONTHLY",
+};
+
+/**
+ * Resolve any Whop plan_... or prod_... identifier to an internal subscription or credit pack ID.
+ */
+export function resolveWhopPlanToInternalId(
+  whopPlanId?: string | null,
+  whopProductId?: string | null
+): PlanId | null {
+  if (whopPlanId && WHOP_ID_TO_INTERNAL_PLAN[whopPlanId]) {
+    return WHOP_ID_TO_INTERNAL_PLAN[whopPlanId];
+  }
+  if (whopProductId && WHOP_ID_TO_INTERNAL_PLAN[whopProductId]) {
+    return WHOP_ID_TO_INTERNAL_PLAN[whopProductId];
+  }
+  return null;
 }
 
 /**
  * Intelligent Payment Routing:
  * - USD, NGN (transfers/OPay), and ZAR -> Whop
- * - All other African currencies / Mobile Money (KES, GHS, UGX, TZS, etc.) -> Bachs
- * - USD and NGN are NEVER routed through Bachs
- * - Every other country outside Africa / unlisted gets USD -> Whop
+ * - Subscription MoMo / African currencies (KES, GHS, UGX, TZS, etc.) -> Bachs
+ * - Credit packs route USD, NGN, ZAR -> Whop, and fallback USD -> Whop
  */
 export function resolveProviderAndCheckout(
   planId: PlanId,
   currencyInput?: string
 ): { provider: "whop" | "bachs"; checkoutUrl: string; currency: string; productId?: string } {
-  const plan = getPlanOrThrow(planId);
   const cur = (currencyInput || "usd").toLowerCase().trim();
 
-  // Strict Routing Rule:
+  if (isCreditPackId(planId)) {
+    const pack = CREDIT_PACKS[planId];
+    const targetKey = cur === "ngn" || cur === "zar" ? cur : "usd";
+    const variant = pack.currencyVariants[targetKey] || pack.currencyVariants.usd;
+    return {
+      provider: "whop",
+      checkoutUrl: variant.checkoutUrl || pack.whopCheckoutUrl,
+      currency: variant.currency,
+      productId: variant.productId || pack.whopPlanId,
+    };
+  }
+
+  const plan = getPlanOrThrow(planId);
+
+  // Strict Routing Rule for Subscriptions:
   // USD, NGN, and ZAR ALWAYS route to Whop
   if (cur === "usd" || cur === "ngn" || cur === "zar") {
     const variant = plan.currencyVariants[cur] || plan.currencyVariants.usd;
@@ -363,7 +592,7 @@ export function resolveProviderAndCheckout(
     };
   }
 
-  // African currencies / Mobile Money route to Bachs
+  // African currencies / Mobile Money route to Bachs for subscriptions
   if (cur === "kes" || cur === "momo" || cur === "ghs" || cur === "ugx" || cur === "tzs" || cur === "mwk" || cur === "rwf" || cur === "xof" || cur === "xaf" || cur === "zmw") {
     const variant = plan.currencyVariants[cur] || plan.currencyVariants.momo || plan.currencyVariants.kes;
     return {

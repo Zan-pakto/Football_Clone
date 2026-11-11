@@ -11,7 +11,13 @@ import {
   StandardWebhookEvent,
   PlanId,
 } from "./types";
-import { getPlanOrThrow, resolveProviderAndCheckout } from "./plans.config";
+import {
+  getCreditPackOrNull,
+  getPlanOrThrow,
+  getPurchasableOrThrow,
+  resolveProviderAndCheckout,
+} from "./plans.config";
+import { betBuilderCreditsService } from "../bet-builder/credits-service";
 
 export class PaymentService {
   private whopProvider: WhopPaymentProvider;
@@ -54,7 +60,7 @@ export class PaymentService {
     successUrl: string;
     cancelUrl: string;
   }): Promise<CheckoutResult> {
-    const plan = getPlanOrThrow(input.planId);
+    const plan = getPurchasableOrThrow(input.planId);
     const routed = resolveProviderAndCheckout(input.planId, input.currency);
 
     console.log(`💳 [PaymentService] Routing checkout for ${input.userEmail} | Plan: ${plan.name} (${plan.id}) | Currency: ${routed.currency} -> Provider: ${routed.provider.toUpperCase()}`);
@@ -126,7 +132,9 @@ export class PaymentService {
 
     console.log(`📥 [PaymentService:Webhook] Processing ${event.type} (${event.eventId}) via ${event.provider}`);
 
-    // ATOMIC TRANSACTION: Check Idempotency + Update Subscription
+    await betBuilderCreditsService.ensureSchema();
+
+    // ATOMIC TRANSACTION: Check Idempotency + Update Subscription or Credits Wallet
     const result = await prisma.$transaction(async (tx) => {
       // 1. Idempotency Check: Check if event ID was already processed
       const existingEvent = await tx.paymentWebhookEvent.findUnique({
@@ -150,6 +158,8 @@ export class PaymentService {
       // 3. Process Lifecycle Events
       if (event.type === "checkout.completed" || event.type === "subscription.created") {
         if (event.userId || event.userEmail) {
+          const creditPack = getCreditPackOrNull(event.planId);
+
           // Resolve User (try by ID, then fallback to email)
           let user = null;
           if (event.userId) {
@@ -166,10 +176,33 @@ export class PaymentService {
             user = await tx.user.create({
               data: {
                 email: event.userEmail.trim().toLowerCase(),
-                name: "VIP Member",
+                name: creditPack ? "Jolloftips Member" : "VIP Member",
                 passwordHash: "payment_auto_created_" + Date.now(),
               },
             });
+          }
+
+          if (creditPack) {
+            const creditsToAdd = event.creditGrant || creditPack.credits;
+            const amountFormatted = event.amountPaid || `$${(creditPack.amountCents / 100).toFixed(2)}`;
+            if (user) {
+              const newBalance = await betBuilderCreditsService.grantCredits(user.id, creditsToAdd, tx);
+              console.log(`🎟️ [PaymentService:Webhook] Granted +${creditsToAdd} Bet Builder credits to ${user.email} (New balance: ${newBalance})`);
+
+              const receiptEmail = emailService.getCreditsPurchaseEmail({
+                name: user.name || "Member",
+                email: user.email,
+                packName: creditPack.name,
+                creditsAdded: creditsToAdd,
+                newBalance,
+                amount: amountFormatted,
+                orderId: event.providerSubId || event.eventId,
+              });
+              emailService.sendEmail(receiptEmail).catch((err) =>
+                console.error("❌ [PaymentService] Failed to send credits receipt email:", err)
+              );
+            }
+            return { status: "processed" as const, eventId: event.eventId, type: event.type };
           }
 
           const plan = getPlanOrThrow(event.planId || "VIP_MONTHLY");

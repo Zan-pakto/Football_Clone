@@ -1,6 +1,11 @@
 import { Router, Request, Response } from "express";
 import { paymentService } from "../lib/payments/payment.service";
-import { SUBSCRIPTION_PLANS, getPlanOrThrow } from "../lib/payments/plans.config";
+import {
+  CREDIT_PACKS,
+  SUBSCRIPTION_PLANS,
+  getPurchasableOrThrow,
+  isCreditPackId,
+} from "../lib/payments/plans.config";
 import { authService } from "../lib/auth/auth-service";
 import { emailService } from "../lib/email/email-service";
 
@@ -64,6 +69,7 @@ router.get("/plans", (_req: Request, res: Response) => {
     success: true,
     provider: paymentService.getProviderName(),
     plans,
+    creditPacks: Object.values(CREDIT_PACKS),
     supportedCurrencies,
     paymentMethods,
     routingRules: {
@@ -76,8 +82,20 @@ router.get("/plans", (_req: Request, res: Response) => {
 });
 
 /**
+ * 1b. GET /api/payments/credit-packs
+ * Returns available Bet Builder credit pack options and multi-currency Whop variants
+ */
+router.get("/credit-packs", (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    packs: Object.values(CREDIT_PACKS),
+    supportedCurrencies: ["USD", "NGN", "ZAR"],
+  });
+});
+
+/**
  * 2. POST /api/payments/checkout
- * Authenticated checkout session generation
+ * Authenticated checkout session generation (subscriptions & credit packs)
  */
 router.post("/checkout", async (req: Request, res: Response) => {
   try {
@@ -87,7 +105,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: "You must be signed in to upgrade to a VIP plan.",
+        error: "You must be signed in to complete checkout.",
       });
     }
 
@@ -99,32 +117,35 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
 
-    // Guard against duplicate checkout if user already has an active non-expired VIP subscription
-    const currentSub = await paymentService.getUserSubscriptionStatus(user.id);
-    if (currentSub.hasActiveSubscription) {
-      const formattedDate = currentSub.currentPeriodEnd
-        ? new Date(currentSub.currentPeriodEnd).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "active";
+    // Validate plan or credit pack exists
+    getPurchasableOrThrow(planId);
+    const isCredits = isCreditPackId(planId);
 
-      return res.status(400).json({
-        success: false,
-        alreadyActive: true,
-        currentPlan: currentSub.plan,
-        currentPeriodEnd: currentSub.currentPeriodEnd,
-        error: `You already have an active ${currentSub.plan} subscription valid until ${formattedDate}. You will be able to pay again once your current access expires.`,
-      });
+    // Guard against duplicate checkout only when purchasing a recurring VIP/Premium subscription
+    if (!isCredits) {
+      const currentSub = await paymentService.getUserSubscriptionStatus(user.id);
+      if (currentSub.hasActiveSubscription) {
+        const formattedDate = currentSub.currentPeriodEnd
+          ? new Date(currentSub.currentPeriodEnd).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "active";
+
+        return res.status(400).json({
+          success: false,
+          alreadyActive: true,
+          currentPlan: currentSub.plan,
+          currentPeriodEnd: currentSub.currentPeriodEnd,
+          error: `You already have an active ${currentSub.plan} subscription valid until ${formattedDate}. You will be able to pay again once your current access expires.`,
+        });
+      }
     }
 
-    // Validate plan exists
-    getPlanOrThrow(planId);
-
     const clientAppUrl = process.env.CLIENT_APP_URL || "http://localhost:3000";
-    const successUrl = `${clientAppUrl}/pricing/success`;
-    const cancelUrl = `${clientAppUrl}/pricing?status=cancelled`;
+    const successUrl = `${clientAppUrl}/pricing/success${isCredits ? `?type=credits&planId=${planId}` : ""}`;
+    const cancelUrl = `${clientAppUrl}${isCredits ? "/bet-builder" : "/pricing?status=cancelled"}`;
 
     const result = await paymentService.createCheckoutSession({
       userId: user.id,

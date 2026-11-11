@@ -2,6 +2,7 @@ import { prisma } from "../db/prisma";
 import { hashPassword, verifyPassword } from "./password";
 import { createToken, verifyToken, TokenPayload } from "./jwt";
 import { sessionService } from "./session-service";
+import { betBuilderCreditsService } from "../bet-builder/credits-service";
 
 export interface AuthUser {
   id: string;
@@ -51,6 +52,7 @@ export class AuthService {
     const trialEndsAtIso = trialEndsAt.toISOString();
 
     let user: AuthUser;
+    await betBuilderCreditsService.ensureSchema();
 
     try {
       const created = await prisma.user.create({
@@ -141,6 +143,7 @@ export class AuthService {
     const emailLower = email.toLowerCase().trim();
 
     let dbUser: any = null;
+    await betBuilderCreditsService.ensureSchema();
     try {
       dbUser = await prisma.user.findFirst({
         where: {
@@ -279,6 +282,7 @@ export class AuthService {
     const emailLower = email.toLowerCase().trim();
 
     let dbUser: any = null;
+    await betBuilderCreditsService.ensureSchema();
     try {
       dbUser = await prisma.user.findFirst({
         where: { email: emailLower },
@@ -397,6 +401,7 @@ export class AuthService {
     if (!isSessionActive) return null;
 
     let dbUser: any = null;
+    await betBuilderCreditsService.ensureSchema();
     try {
       dbUser = await prisma.user.findUnique({
         where: { id: payload.userId },

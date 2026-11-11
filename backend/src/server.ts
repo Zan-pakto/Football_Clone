@@ -21,6 +21,7 @@ import hitandwinRoutes from "./routes/hitandwin.routes";
 import leaguesRoutes from "./routes/leagues.routes";
 import logoCacheRoutes from "./routes/logo-cache.routes";
 import betCodesRoutes from "./routes/bet-codes.routes";
+import betBuilderRoutes from "./routes/bet-builder.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -129,6 +130,7 @@ app.use("/api/hitandwin", hitandwinRoutes);
 app.use("/api/leagues", leaguesRoutes);
 app.use("/api/logo-cache", logoCacheRoutes);
 app.use("/api/bet-codes", betCodesRoutes);
+app.use("/api/bet-builder", betBuilderRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {
@@ -156,6 +158,13 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🌐 Base URL: http://localhost:${PORT}`);
     console.log(`⚡ Football Provider: ${process.env.FOOTBALL_PROVIDER || "nerdytips"}`);
     console.log(`=========================================`);
+
+    // Ensure Bet Builder wallet columns exist cleanly on startup
+    import("./lib/bet-builder/credits-service")
+      .then(({ betBuilderCreditsService }) => {
+        betBuilderCreditsService.ensureSchema();
+      })
+      .catch((e) => console.warn("[Server] Failed to ensure Bet Builder schema:", e.message));
 
     // Start 12-hour NerdyTips automated scraper & storage scheduler
     import("./lib/scraper/scraper-scheduler")

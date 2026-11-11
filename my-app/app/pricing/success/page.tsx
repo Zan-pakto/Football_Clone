@@ -10,6 +10,20 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [subStatus, setSubStatus] = useState<any>(null);
+  const [walletStatus, setWalletStatus] = useState<any>(null);
+
+  const planIdParam = searchParams.get("planId") || "";
+  const isCreditPurchase =
+    searchParams.get("type") === "credits" || planIdParam.startsWith("CREDITS_");
+
+  const creditLabel =
+    planIdParam === "CREDITS_10"
+      ? "+10 Bet Builder Slips"
+      : planIdParam === "CREDITS_3"
+      ? "+3 Bet Builder Slips"
+      : planIdParam === "CREDITS_1"
+      ? "+1 Bet Builder Slip"
+      : "Bet Builder Credits";
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -20,13 +34,25 @@ function SuccessContent() {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
-      const res = await fetch("/api/payments/subscription-status", {
-        headers,
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSubStatus(data);
+      if (isCreditPurchase) {
+        const res = await fetch(`/api/bet-builder/status?_t=${Date.now()}`, {
+          headers,
+          credentials: "include",
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setWalletStatus(data);
+        }
+      } else {
+        const res = await fetch("/api/payments/subscription-status", {
+          headers,
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSubStatus(data);
+        }
       }
     } catch {
       // Failed to load
@@ -65,7 +91,8 @@ function SuccessContent() {
         setTimeout(fetchStatus, 500);
       });
     }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, isCreditPurchase]);
 
   const isActive = subStatus?.hasActiveSubscription || subStatus?.status === "ACTIVE";
 
@@ -114,7 +141,15 @@ function SuccessContent() {
               color: "var(--text-primary)",
             }}
           >
-            Welcome to the <span style={{ color: "var(--gold)" }}>VIP Circle</span>!
+            {isCreditPurchase ? (
+              <>
+                <span style={{ color: "var(--gold)" }}>Bet Builder Credits</span> Ready!
+              </>
+            ) : (
+              <>
+                Welcome to the <span style={{ color: "var(--gold)" }}>VIP Circle</span>!
+              </>
+            )}
           </h1>
 
           <p
@@ -126,7 +161,9 @@ function SuccessContent() {
               margin: "0 auto 32px",
             }}
           >
-            Your payment was successfully received. Unrestricted algorithmic match predictions, banker accumulators, and value odds telemetry are now accessible.
+            {isCreditPurchase
+              ? "Your payment has been received. Your Bet Builder credits are added to your account as soon as payment confirmation arrives from our payment gateway and never expire."
+              : "Your payment was successfully received. Unrestricted algorithmic match predictions, banker accumulators, and value odds telemetry are now accessible."}
           </p>
 
           {/* Current Status Box */}
@@ -140,41 +177,70 @@ function SuccessContent() {
               textAlign: "left",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Subscription Status:</span>
-              {loading ? (
-                <span style={{ fontSize: 12, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
-                  <RefreshCw size={12} className="animate-spin" /> Verifying...
-                </span>
-              ) : isActive ? (
-                <span className="status-pill-won" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <CheckCircle2 size={12} /> ACTIVE (VIP UNLOCKED)
-                </span>
-              ) : (
-                <span style={{ fontSize: 12, color: "var(--accent-green)", fontWeight: 700 }}>
-                  Activating...
-                </span>
-              )}
-            </div>
+            {isCreditPurchase ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Pack Purchased:</span>
+                  <strong style={{ fontSize: 14, color: "var(--gold)" }}>{creditLabel}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Purchased Credit Balance:</span>
+                  {loading ? (
+                    <span style={{ fontSize: 12, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
+                      <RefreshCw size={12} className="animate-spin" /> Checking wallet...
+                    </span>
+                  ) : (
+                    <strong style={{ fontSize: 15, color: "#34d399" }}>
+                      {walletStatus?.creditsBalance ?? 0} Slip{(walletStatus?.creditsBalance ?? 0) === 1 ? "" : "s"}
+                    </strong>
+                  )}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Weekly Free Allowance:</span>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
+                    {walletStatus?.freeWeeklyRemaining > 0 ? "1 Free Slip Ready" : "Used this week"}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Subscription Status:</span>
+                  {loading ? (
+                    <span style={{ fontSize: 12, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
+                      <RefreshCw size={12} className="animate-spin" /> Verifying...
+                    </span>
+                  ) : isActive ? (
+                    <span className="status-pill-won" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <CheckCircle2 size={12} /> ACTIVE (VIP UNLOCKED)
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: "var(--accent-green)", fontWeight: 700 }}>
+                      Activating...
+                    </span>
+                  )}
+                </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Tier:</span>
-              <strong style={{ fontSize: 14, color: "var(--gold)" }}>
-                {subStatus?.plan || "VIP Pro Access"}
-              </strong>
-            </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Tier:</span>
+                  <strong style={{ fontSize: 14, color: "var(--gold)" }}>
+                    {subStatus?.plan || "VIP Pro Access"}
+                  </strong>
+                </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Valid Until:</span>
-              <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
-                {subStatus?.currentPeriodEnd ? new Date(subStatus.currentPeriodEnd).toLocaleDateString() : "Active Ongoing"}
-              </span>
-            </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Valid Until:</span>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
+                    {subStatus?.currentPeriodEnd ? new Date(subStatus.currentPeriodEnd).toLocaleDateString() : "Active Ongoing"}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <Link
-              href="/all-matches"
+              href={isCreditPurchase ? "/bet-builder" : "/all-matches"}
               className="gold-btn"
               style={{
                 padding: "14px 24px",
@@ -187,7 +253,7 @@ function SuccessContent() {
                 gap: 8,
               }}
             >
-              <span>Explore All VIP Predictions</span>
+              <span>{isCreditPurchase ? "Return to AI Bet Builder" : "Explore All VIP Predictions"}</span>
               <ArrowRight size={16} />
             </Link>
 
@@ -205,7 +271,7 @@ function SuccessContent() {
               }}
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              <span>Refresh Subscription Status</span>
+              <span>{isCreditPurchase ? "Refresh Wallet Balance" : "Refresh Subscription Status"}</span>
             </button>
           </div>
         </div>

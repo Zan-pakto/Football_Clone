@@ -6,7 +6,13 @@ import {
   StandardWebhookEvent,
   PlanId,
 } from "./types";
-import { getPlanOrThrow } from "./plans.config";
+import {
+  getCreditPackOrNull,
+  getPurchasableOrThrow,
+  isCreditPackId,
+  resolveProviderAndCheckout,
+  resolveWhopPlanToInternalId,
+} from "./plans.config";
 
 export class WhopPaymentProvider implements IPaymentProvider {
   readonly name = "whop";
@@ -22,24 +28,32 @@ export class WhopPaymentProvider implements IPaymentProvider {
    * 1. Create Hosted Whop Checkout Session or URL
    */
   async createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutResult> {
-    const plan = getPlanOrThrow(input.planId);
+    const plan = getPurchasableOrThrow(input.planId);
+    const routed = resolveProviderAndCheckout(input.planId, input.currency);
+    const isCredits = isCreditPackId(plan.id);
+    const targetWhopPlanId = routed.productId || plan.whopPlanId;
+    const directUrl = routed.checkoutUrl || (targetWhopPlanId ? `https://whop.com/checkout/${targetWhopPlanId}` : null) || plan.whopCheckoutUrl;
 
     // If an official Whop API Key is configured, attempt to dynamically create a checkout configuration
-    if (this.apiKey && !this.apiKey.includes("placeholder")) {
+    if (this.apiKey && !this.apiKey.includes("placeholder") && targetWhopPlanId) {
       try {
         // Whop requires HTTPS for redirect URLs. If on localhost (http), fallback to production or omit
         const clientRedirectUrl = input.successUrl.startsWith("https://")
           ? input.successUrl
-          : (process.env.CLIENT_APP_URL?.startsWith("https://") ? `${process.env.CLIENT_APP_URL}/pricing/success` : undefined);
+          : (process.env.CLIENT_APP_URL?.startsWith("https://")
+              ? `${process.env.CLIENT_APP_URL}/pricing/success${isCredits ? `?type=credits&planId=${plan.id}` : ""}`
+              : undefined);
 
         const payload: Record<string, any> = {
-          plan_id: plan.whopPlanId,
+          plan_id: targetWhopPlanId,
           ...(clientRedirectUrl ? { redirect_url: clientRedirectUrl } : {}),
           ...(process.env.WHOP_ACCOUNT_ID ? { account_id: process.env.WHOP_ACCOUNT_ID } : {}),
           metadata: {
             userId: input.userId,
             userEmail: input.userEmail,
             planId: plan.id,
+            kind: isCredits ? "credits" : "subscription",
+            currency: routed.currency,
           },
         };
 
@@ -71,13 +85,7 @@ export class WhopPaymentProvider implements IPaymentProvider {
       }
     }
 
-    // Direct Whop Checkout URL resolution:
-    // Support multi-currency variant if requested (e.g. ngn, zar, usd)
-    const reqCur = (input.currency || "usd").toLowerCase().trim();
-    const curVariant = plan.currencyVariants?.[reqCur] || plan.currencyVariants?.usd;
-    const targetWhopPlanId = curVariant?.productId || plan.whopPlanId;
-    const directUrl = curVariant?.checkoutUrl || (targetWhopPlanId ? `https://whop.com/checkout/${targetWhopPlanId}` : null) || plan.whopCheckoutUrl;
-
+    // Direct Whop Checkout URL resolution (with metadata query params & currency-matched plan link)
     if (directUrl) {
       try {
         const url = new URL(directUrl);
@@ -90,9 +98,8 @@ export class WhopPaymentProvider implements IPaymentProvider {
         url.searchParams.set("metadata[userId]", input.userId);
         url.searchParams.set("metadata[userEmail]", input.userEmail);
         url.searchParams.set("metadata[planId]", plan.id);
-        if (input.currency) {
-          url.searchParams.set("metadata[currency]", input.currency.toUpperCase());
-        }
+        url.searchParams.set("metadata[kind]", isCredits ? "credits" : "subscription");
+        url.searchParams.set("metadata[currency]", routed.currency);
 
         return {
           sessionId: `whop_link_${Date.now()}`,
@@ -187,42 +194,68 @@ export class WhopPaymentProvider implements IPaymentProvider {
     const userEmail = data.email || data.customer?.email || data.user?.email || metadata.userEmail || undefined;
     const telegramId = metadata.telegramId || metadata.telegram_id || data.custom_fields?.telegram_id || undefined;
 
-    // Resolve internal plan ID
+    // Resolve internal plan ID (handles both subscription plans & Bet Builder credit packs via metadata or Whop IDs)
+    const whopPlanIdRaw = data.plan_id || data.plan?.id || null;
+    const whopProductIdRaw = data.product_id || data.product?.id || null;
     let planId: PlanId = "PREMIUM_MONTHLY";
+    const metaPlanId = typeof metadata.planId === "string" ? metadata.planId : null;
+
     if (
-      metadata.planId === "VIP_MONTHLY" ||
-      metadata.planId === "VIP_6MONTHS" ||
-      metadata.planId === "PREMIUM_MONTHLY" ||
-      metadata.planId === "PREMIUM_6MONTHS"
+      metaPlanId &&
+      (metaPlanId === "VIP_MONTHLY" ||
+        metaPlanId === "VIP_6MONTHS" ||
+        metaPlanId === "PREMIUM_MONTHLY" ||
+        metaPlanId === "PREMIUM_6MONTHS" ||
+        isCreditPackId(metaPlanId))
     ) {
-      planId = metadata.planId;
-    } else if (data.plan_id) {
-      const pId = data.plan_id;
-      if (
-        pId === "plan_fTC4HGr9D33uO" || // VIP 6M USD
-        pId === "plan_b9oSv9CGseeG7" || // VIP 6M NGN
-        pId === "plan_x5pw1IbNFyi1Y" || // VIP 6M ZAR
-        pId === "plan_oaCOPGAT2FpXZ"    // VIP 6M KES
-      ) {
-        planId = "VIP_6MONTHS";
-      } else if (
-        pId === "plan_DfSUCcAweadIa" || // VIP 1M USD
-        pId === "plan_qBmyg12UoWVQc" || // VIP 1M NGN
-        pId === "plan_9Cx98mNqjAtVE" || // VIP 1M ZAR
-        pId === "plan_JIrwD7tDw5bnJ" || // VIP 1M KES
-        pId.toLowerCase().includes("vip")
-      ) {
+      planId = metaPlanId as PlanId;
+    } else {
+      const mapped = resolveWhopPlanToInternalId(whopPlanIdRaw, whopProductIdRaw);
+      if (mapped) {
+        planId = mapped;
+      } else if (typeof whopPlanIdRaw === "string" && whopPlanIdRaw.toLowerCase().includes("vip")) {
         planId = "VIP_MONTHLY";
-      } else if (
-        pId === "plan_xaGOGXV9S44NL" || // Premium 6M USD
-        pId === "plan_QWBXn1FL9DyO1" || // Premium 6M NGN
-        pId === "plan_u9AXPZ2NqmPIW" || // Premium 6M ZAR
-        pId === "plan_DL3PT43HhWvir"    // Premium 6M KES
-      ) {
-        planId = "PREMIUM_6MONTHS";
-      } else {
-        planId = "PREMIUM_MONTHLY";
       }
+    }
+
+    const creditPack = getCreditPackOrNull(planId);
+
+    // Format paid amount cleanly preserving currency when available
+    let amountPaid: string | undefined;
+    const rawCur = (data.currency || metadata.currency || "USD").toString().toUpperCase();
+    const curPrefix = rawCur === "NGN" ? "₦" : rawCur === "ZAR" ? "R" : "$";
+    if (data.final_amount != null) {
+      amountPaid = `${curPrefix}${Number(data.final_amount).toFixed(2)}`;
+    } else if (data.amount != null) {
+      const numeric = Number(data.amount);
+      amountPaid = `${curPrefix}${(numeric > 100 && rawCur === "USD" ? numeric / 100 : numeric).toFixed(2)}`;
+    } else if (data.subtotal != null) {
+      amountPaid = `${curPrefix}${Number(data.subtotal).toFixed(2)}`;
+    }
+
+    // One-time Credit Pack purchases only fulfill on settled payment.succeeded (avoiding premature or duplicate fulfillment)
+    if (creditPack) {
+      if (eventType === "payment.succeeded") {
+        return {
+          eventId,
+          type: "checkout.completed",
+          provider: this.name,
+          userId,
+          userEmail,
+          telegramId,
+          planId: creditPack.id,
+          creditGrant: creditPack.credits,
+          providerSubId: data.id || data.payment_id || eventId,
+          providerCustId: data.customer?.id || data.user_id || data.customer_id || undefined,
+          status: "ACTIVE",
+          amountPaid,
+        };
+      }
+      return {
+        eventId,
+        type: "ignored",
+        provider: this.name,
+      };
     }
 
     // Resolve subscription / membership ID
@@ -248,17 +281,6 @@ export class WhopPaymentProvider implements IPaymentProvider {
     if (!currentPeriodEnd) {
       const daysToAdd = (planId === "PREMIUM_6MONTHS" || planId === "VIP_6MONTHS") ? 180 : 30;
       currentPeriodEnd = new Date(Date.now() + daysToAdd * 86400000);
-    }
-
-    // Format paid amount
-    let amountPaid: string | undefined;
-    if (data.final_amount != null) {
-      amountPaid = `$${Number(data.final_amount).toFixed(2)}`;
-    } else if (data.amount != null) {
-      const numeric = Number(data.amount);
-      amountPaid = `$${(numeric > 100 ? numeric / 100 : numeric).toFixed(2)}`;
-    } else if (data.subtotal != null) {
-      amountPaid = `$${Number(data.subtotal).toFixed(2)}`;
     }
 
     switch (eventType) {
