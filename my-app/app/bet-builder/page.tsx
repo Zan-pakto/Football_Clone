@@ -211,7 +211,8 @@ export default function BetBuilderPage() {
       id: "CREDITS_1",
       name: "Bet Builder Credit (1 Slip)",
       credits: 1,
-      description: "1 instant AI Bet Builder slip generation.",
+      expirationDays: 7,
+      description: "1 instant AI Bet Builder slip (expires after 7 days).",
       currencyVariants: {
         usd: { currency: "USD", formattedAmount: "$1.00" },
         ngn: { currency: "NGN", formattedAmount: "₦300" },
@@ -2391,7 +2392,7 @@ export default function BetBuilderPage() {
                                 { month: "short", day: "numeric" }
                               )}`
                             : ""
-                        }. 1-Slip never expires · 3-Slip valid 7 days · 10-Slip valid 14 days.`}
+                        }. 1 &amp; 3-Slip packs valid 7 days · 10-Slip pack valid 14 days.`}
                   </p>
 
                   {/* Currency Switcher (Whop supports USD, NGN & ZAR; other countries use USD) */}

@@ -387,12 +387,15 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
     id: "CREDITS_1",
     name: "Bet Builder Credit (1 Slip)",
     credits: 1,
-    description: "1 instant AI Bet Builder slip generation. Credits never expire.",
+    expirationDays: 7,
+    description: "1 instant AI Bet Builder slip (expires after 7 days).",
     amountCents: 100, // $1.00
     currency: "usd",
     whopProductId: "prod_aujxyKH0dFm3q",
     whopPlanId: "plan_jvWQQ5YSRkiOX",
     whopCheckoutUrl: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
+    bachsProductId: process.env.BACHS_PRODUCT_CREDITS_1 || "prod_b7fbbd553c1f418e9c77",
+    bachsCheckoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_1 || undefined,
     currencyVariants: {
       usd: {
         currency: "USD",
@@ -421,6 +424,21 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
         productId: "plan_ZsocLQchMnhaT",
         checkoutUrl: "https://whop.com/checkout/plan_ZsocLQchMnhaT",
       },
+      ...buildBachsCurrencyVariants(
+        "prod_b7fbbd553c1f418e9c77",
+        process.env.BACHS_CHECKOUT_URL_CREDITS_1 || "",
+        {
+          ghs: 5,
+          mwk: 700,
+          kes: 100,
+          ugx: 4000,
+          tzs: 2500,
+          rwf: 1000,
+          xaf: 600,
+          xof: 600,
+          zmw: 10,
+        }
+      ),
     },
   },
   CREDITS_3: {
@@ -633,6 +651,7 @@ export const BACHS_PRODUCT_TO_INTERNAL_PLAN: Record<string, PlanId> = {
   prod_ed97f1b60dc344e491c8: "PREMIUM_MONTHLY",
   prod_275e20b69d0940f8a31f: "VIP_6MONTHS",
   prod_8bcc294dbe674aab9ad3: "VIP_MONTHLY",
+  prod_b7fbbd553c1f418e9c77: "CREDITS_1",
   prod_cb545410db9d41e08d25: "CREDITS_3",
   prod_9555b53b472d455b92e8: "CREDITS_10",
 };
