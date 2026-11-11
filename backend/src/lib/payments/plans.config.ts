@@ -395,7 +395,7 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
     whopPlanId: "plan_jvWQQ5YSRkiOX",
     whopCheckoutUrl: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
     bachsProductId: process.env.BACHS_PRODUCT_CREDITS_1 || "prod_b7fbbd553c1f418e9c77",
-    bachsCheckoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_1 || undefined,
+    bachsCheckoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_1 || "https://checkout.bachs.io/pay/pl_fad4ab672b17",
     currencyVariants: {
       usd: {
         currency: "USD",
@@ -426,7 +426,7 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
       },
       ...buildBachsCurrencyVariants(
         "prod_b7fbbd553c1f418e9c77",
-        process.env.BACHS_CHECKOUT_URL_CREDITS_1 || "",
+        process.env.BACHS_CHECKOUT_URL_CREDITS_1 || "https://checkout.bachs.io/pay/pl_fad4ab672b17",
         {
           ghs: 5,
           mwk: 700,
