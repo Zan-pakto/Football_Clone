@@ -146,14 +146,21 @@ export class BachsPaymentProvider implements IPaymentProvider {
   ): Promise<StandardWebhookEvent> {
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : rawBody;
 
-    // Verify HMAC signature if secret is provided
+    // Verify HMAC signature if secret is provided (supports raw hex or sha256=<hex>)
     if (this.webhookSecret && signature) {
+      const provided = signature.replace(/^sha256=/i, "").trim().toLowerCase();
       const computed = crypto
         .createHmac("sha256", this.webhookSecret)
         .update(bodyStr)
-        .digest("hex");
+        .digest("hex")
+        .toLowerCase();
 
-      if (computed !== signature) {
+      const providedBuf = Buffer.from(provided, "utf8");
+      const computedBuf = Buffer.from(computed, "utf8");
+      if (
+        providedBuf.length !== computedBuf.length ||
+        !crypto.timingSafeEqual(providedBuf, computedBuf)
+      ) {
         throw new Error("Invalid Bachs webhook signature");
       }
     }
@@ -178,9 +185,10 @@ export class BachsPaymentProvider implements IPaymentProvider {
     const providerSubId = data.subscription_id || data.id || data.reference;
     const providerCustId = data.customer?.id || data.customer_id;
 
-    // One-time Bet Builder Credit Pack purchases grant credits only on settled charge/checkout events
+    // One-time Bet Builder Credit Pack purchases grant credits only on settled collection/charge events
     if (creditPack) {
       if (
+        eventType.includes("collection.succeeded") ||
         eventType.includes("charge.success") ||
         eventType.includes("payment.succeeded") ||
         eventType.includes("checkout.completed") ||
@@ -216,6 +224,7 @@ export class BachsPaymentProvider implements IPaymentProvider {
     if (
       eventType.includes("subscription.created") ||
       eventType.includes("subscription.trialing") ||
+      eventType.includes("collection.succeeded") ||
       eventType.includes("charge.success") ||
       eventType.includes("checkout.completed")
     ) {
@@ -250,7 +259,11 @@ export class BachsPaymentProvider implements IPaymentProvider {
       };
     }
 
-    if (eventType.includes("payment.failed") || eventType.includes("charge.failed")) {
+    if (
+      eventType.includes("payment.failed") ||
+      eventType.includes("charge.failed") ||
+      eventType.includes("collection.failed")
+    ) {
       return {
         eventId: payload.id || `evt_${Date.now()}`,
         type: "payment.failed",
