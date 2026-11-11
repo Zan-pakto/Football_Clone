@@ -684,10 +684,10 @@ export default function BetBuilderPage() {
         `${idx + 1}. [${m.country} · ${m.league}] ${m.homeTeam} vs ${m.awayTeam} -> Pick: ${m.pick} (${m.marketName}) @ ${m.odds.toFixed(2)}`
     );
     const text =
-      `[JollofTips Bet Builder Slip]\n` +
+      `[Jolloftips.com Bet Builder Slip]\n` +
       `Picks: ${generatedSlip.length} | Combined Odds: ${calculatedOdds.toFixed(2)}\n\n` +
       lines.join("\n") +
-      `\n\nGenerated via JollofTips AI Engine`;
+      `\n\nGenerated via Jolloftips.com AI Engine`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
@@ -860,7 +860,7 @@ export default function BetBuilderPage() {
   const handleCopyAllSelections = () => {
     if (generatedSlip.length === 0) return;
     const lines = [
-      `🎯 JollofTips Slip (${generatedSlip.length} Picks · Combined Odds: ${calculatedOdds.toFixed(2)})`,
+      `🎯 Jolloftips.com Slip (${generatedSlip.length} Picks · Combined Odds: ${calculatedOdds.toFixed(2)})`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       ...generatedSlip.map(
         (m, i) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam}\n   Market: ${m.marketName} | Pick: ${m.pick} (@${m.odds.toFixed(2)})`

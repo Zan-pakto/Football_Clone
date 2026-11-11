@@ -147,7 +147,7 @@ export default function Navbar({ liveCount = 0 }: NavbarProps) {
   const handleCopyFavSlip = (slip: any) => {
     if (!slip || !Array.isArray(slip.slip)) return;
     const lines = [
-      `🎯 JollofTips Saved Slip (${slip.matchesCount} Picks · @${slip.totalOdds})`,
+      `🎯 Jolloftips.com Saved Slip (${slip.matchesCount} Picks · @${slip.totalOdds})`,
       `━━━━━━━━━━━━━━━━━━━━`,
       ...slip.slip.map((m: any, i: number) => `${i + 1}. ${m.homeTeam} vs ${m.awayTeam} — Pick: ${m.pick} (@${Number(m.odds).toFixed(2)})`),
       `━━━━━━━━━━━━━━━━━━━━`,

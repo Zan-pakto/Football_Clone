@@ -145,7 +145,7 @@ export default function RolloverDetailPage({ params }: PageProps) {
     const bookingText = rollover.bookingCode ? `\nBooking Code: ${rollover.bookingCode}` : "";
     const instructionsText = rollover.instructions ? `\nInstructions: ${rollover.instructions}` : "";
 
-    const text = `[Jolloftips] ${rollover.name} (${rollover.type} Rollover)${bookingText}${instructionsText}\nStarting Amount: ₦${rollover.startingAmount.toLocaleString()} | Current Amount: ₦${rollover.currentAmount.toLocaleString()}\nPotential Return: ₦${(rollover.potentialReturn || rollover.currentAmount).toLocaleString()}\n\n${stepsText}\n\nPredictions and potential returns are not guaranteed.`;
+    const text = `[Jolloftips.com] ${rollover.name} (${rollover.type} Rollover)${bookingText}${instructionsText}\nStarting Amount: ₦${rollover.startingAmount.toLocaleString()} | Current Amount: ₦${rollover.currentAmount.toLocaleString()}\nPotential Return: ₦${(rollover.potentialReturn || rollover.currentAmount).toLocaleString()}\n\n${stepsText}\n\nPredictions and potential returns are not guaranteed.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);

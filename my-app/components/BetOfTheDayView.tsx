@@ -297,7 +297,7 @@ export default function BetOfTheDayView({ initialDay = "0" }: BetOfTheDayViewPro
       )
       .join("\n");
     navigator.clipboard.writeText(
-      `[JollofTips Slip of the Day] (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia JollofTips AI Engine`
+      `[Jolloftips.com Slip of the Day] (Total Odds: ${stats.slip.totalOdds})\n\n${text}\n\nVia Jolloftips.com AI Engine`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
