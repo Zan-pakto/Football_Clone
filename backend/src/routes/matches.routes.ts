@@ -232,7 +232,7 @@ router.get("/", async (req: Request, res: Response) => {
       try {
         const { nerdyTipsScraper } = await import("../lib/scraper/nerdytips-scraper");
         const { normalizeScrapedMatchToMatchData } = await import("../lib/scraper/nerdytips-normalizer");
-        const fresh = await nerdyTipsScraper.scrapeDay(d, null, tz);
+        const fresh = await nerdyTipsScraper.scrapeDay(d, undefined, tz);
         if (fresh.length > 0) {
           const normalized = fresh.map(normalizeScrapedMatchToMatchData);
           await store.saveMatches(normalized, d);

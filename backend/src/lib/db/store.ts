@@ -354,7 +354,7 @@ class MatchStore {
         const { nerdyTipsScraper } = await import("../scraper/nerdytips-scraper");
         const { normalizeScrapedMatchToMatchData } = await import("../scraper/nerdytips-normalizer");
         console.log(`[MatchStore] Cold start: auto-scraping live data for d=${d} (tz=${tz || 'default'}) from NerdyTips...`);
-        const scraped = await nerdyTipsScraper.scrapeDay(d, null, tz);
+        const scraped = await nerdyTipsScraper.scrapeDay(d, undefined, tz);
         if (scraped && scraped.length > 0) {
           const normalized = scraped.map(normalizeScrapedMatchToMatchData);
           await this.saveMatches(normalized, d);

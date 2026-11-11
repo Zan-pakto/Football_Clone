@@ -3,6 +3,8 @@ import { normalizeScrapedMatchToMatchData } from "./nerdytips-normalizer";
 import { store } from "../db/store";
 import { cacheService } from "../cache/cache-service";
 
+export const DEFAULT_SYNC_DAYS = ["-1", "0", "1", "2"];
+
 export interface SyncStats {
   success: boolean;
   totalSynced: number;
@@ -59,9 +61,9 @@ export class ScraperScheduler {
   }
 
   /**
-   * Run synchronization for specified days (default: yesterday, today, tomorrow)
+   * Run synchronization for specified days (default: yesterday, today, tomorrow, and day +2)
    */
-  async sync(days: string[] = ["-1", "0", "1"], tz?: string | number | null): Promise<SyncStats> {
+  async sync(days: string[] = DEFAULT_SYNC_DAYS, tz?: string | number | null): Promise<SyncStats> {
     if (this.isRunning) {
       console.log("[ScraperScheduler] Sync already in progress, skipping duplicate trigger.");
       return (
@@ -104,7 +106,7 @@ export class ScraperScheduler {
       await cacheService.invalidate("track_record_progress");
 
       // Invalidate and re-scrape Bet of the Day on the 12-hour sync cycle
-      for (const d of days) {
+      for (const d of days.filter((day) => day === "-1" || day === "0" || day === "1")) {
         await cacheService.invalidatePattern(`botd:${d}:*`);
         await nerdyTipsScraper.scrapeBetOfTheDay(d, activeTz, null, true).catch(() => {});
       }
@@ -148,12 +150,12 @@ export class ScraperScheduler {
 
     console.log(`[ScraperScheduler] Scheduled automatic sync every ${Math.round(intervalMs / 3600000)} hours.`);
 
-    // Run initial sync: prioritize today (d=0) immediately, then tomorrow and yesterday
+    // Run initial sync: prioritize today (d=0) immediately, then tomorrow, day +2, and yesterday
     setTimeout(() => {
       this.sync(["0"])
         .then(() => {
           setTimeout(() => {
-            this.sync(["1", "-1"]).catch((e) =>
+            this.sync(["1", "2", "-1"]).catch((e) =>
               console.warn("[ScraperScheduler] Secondary sync error:", e.message)
             );
           }, 3000);
@@ -177,10 +179,10 @@ export class ScraperScheduler {
       );
     }, 6000);
 
-    // Run recurring 12-hour cycle for matches
+    // Run recurring 12-hour cycle for matches (yesterday through next 3 days)
     this.timer = setInterval(() => {
       console.log("[ScraperScheduler] Running scheduled 12-hour sync cycle...");
-      this.sync(["-1", "0", "1"]).catch((e) =>
+      this.sync(DEFAULT_SYNC_DAYS).catch((e) =>
         console.warn("[ScraperScheduler] Scheduled cycle error:", e.message)
       );
     }, intervalMs);

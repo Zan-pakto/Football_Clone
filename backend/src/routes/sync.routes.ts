@@ -55,8 +55,8 @@ router.post("/", async (req: Request, res: Response) => {
 // POST /api/sync/nerdytips - Trigger 12-hour sync on demand
 router.post("/nerdytips", async (req: Request, res: Response) => {
   try {
-    const { scraperScheduler } = await import("../lib/scraper/scraper-scheduler");
-    const days = req.body?.days || ["-1", "0", "1"];
+    const { scraperScheduler, DEFAULT_SYNC_DAYS } = await import("../lib/scraper/scraper-scheduler");
+    const days = req.body?.days || DEFAULT_SYNC_DAYS;
     // Run sync in background or await if requested
     const waitForCompletion = req.query.wait === "true" || req.body?.wait === true;
 

@@ -350,6 +350,18 @@ export class NerdyTipsScraper {
     const activeTz = tz !== undefined && tz !== null && String(tz).trim() !== "" ? String(tz) : (process.env.TIMEZONE_OFFSET || "0");
     const tzCookie = `odds_format=EU; odds_format_v2=EU; tz_offset_v2=${activeTz}; timezone_manual=1;`;
 
+    // Resolve cached/configured session cookie on cold-start or standalone scrapeDay calls
+    let resolvedCookie = cookieHeader;
+    if (resolvedCookie === undefined) {
+      try {
+        const authResult = await nerdyTipsAuth.login();
+        resolvedCookie = authResult.cookieHeader;
+      } catch {
+        resolvedCookie = null;
+      }
+    }
+    const combinedCookie = resolvedCookie ? `${resolvedCookie}; ${tzCookie}` : tzCookie;
+
     const headers: Record<string, string> = {
       "User-Agent": this.userAgent,
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
@@ -362,7 +374,7 @@ export class NerdyTipsScraper {
       "Sec-Fetch-Site": "none",
       "Sec-Fetch-User": "?1",
       "Upgrade-Insecure-Requests": "1",
-      Cookie: cookieHeader ? `${cookieHeader}; ${tzCookie}` : tzCookie,
+      Cookie: combinedCookie,
     };
 
     try {
@@ -395,7 +407,7 @@ export class NerdyTipsScraper {
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
-        Cookie: cookieHeader ? `${cookieHeader}; ${tzCookie}` : tzCookie,
+        Cookie: combinedCookie,
       };
 
       const batches: string[][] = [];
@@ -640,7 +652,7 @@ export class NerdyTipsScraper {
    * Run a complete multi-day scrape session with automatic login & logout
    */
   async runAuthenticatedCycle(
-    days: string[] = ["-1", "0", "1"],
+    days: string[] = ["-1", "0", "1", "2"],
     tz?: string | number | null
   ): Promise<Record<string, ScrapedMatch[]>> {
     console.log("[NerdyTipsScraper] Starting 12-hour sync cycle...");

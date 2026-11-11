@@ -888,10 +888,6 @@ export class RolloverService {
       isPublished: true,
       bookingCode: "BC10492",
     });
-      targetSteps: 4,
-      description: "Successful 4-step progression completed with 100% win rate.",
-      isPublished: true,
-    });
     await this.addStep(aiCompleted.id, { match: "Arsenal vs Southampton", prediction: "Arsenal Win", odds: 1.40, matchDate: "3 Days Ago", status: "WON" });
     await this.addStep(aiCompleted.id, { match: "Real Madrid vs Alaves", prediction: "Over 1.5 Goals", odds: 1.45, matchDate: "2 Days Ago", status: "WON" });
     await this.addStep(aiCompleted.id, { match: "PSG vs Rennes", prediction: "PSG Win", odds: 1.42, matchDate: "Yesterday", status: "WON" });

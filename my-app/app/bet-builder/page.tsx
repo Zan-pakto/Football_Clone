@@ -50,8 +50,10 @@ interface SlipMatch {
   oddMove?: "up" | "down";
 }
 
+type MatchWithDay = MatchData & { _dayOffset?: number };
+
 interface RawMatchWithCandidates {
-  raw: MatchData;
+  raw: MatchWithDay;
   candidates: Array<{
     market: string;
     pick: string;
@@ -59,6 +61,52 @@ interface RawMatchWithCandidates {
     trustScore: number;
     trustLevel: "cf1" | "cf2" | "cf3" | "cf4";
   }>;
+}
+
+function getWindowMaxDayOffset(windowKey: string): number {
+  if (windowKey === "today") return 0;
+  if (windowKey === "2days") return 1;
+  return 2;
+}
+
+function getWindowLabel(windowKey: string): string {
+  if (windowKey === "today") return "Today";
+  if (windowKey === "2days") return "Today + tomorrow";
+  return "Next 3 days";
+}
+
+function formatWindowMatchDatetime(m: MatchWithDay): string {
+  const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
+  if (m._dayOffset === 0) return `Today · ${kick}`;
+  if (m._dayOffset === 1) return `Tomorrow · ${kick}`;
+
+  if (m.kickoffUtc) {
+    const dt = new Date(m.kickoffUtc);
+    if (!Number.isNaN(dt.getTime())) {
+      const dayLabel = dt.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      return `${dayLabel} · ${kick}`;
+    }
+  }
+
+  if (m.matchDate && /^\d{4}-\d{2}-\d{2}$/.test(m.matchDate)) {
+    const [y, mo, d] = m.matchDate.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+    if (!Number.isNaN(dt.getTime())) {
+      const dayLabel = dt.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      });
+      return `${dayLabel} · ${kick}`;
+    }
+  }
+
+  return typeof m._dayOffset === "number" ? `Day +${m._dayOffset} · ${kick}` : `Upcoming · ${kick}`;
 }
 
 const DEFAULT_BET_TYPES: Record<string, boolean> = {
@@ -132,12 +180,12 @@ export default function BetBuilderPage() {
   const [minOdd, setMinOdd] = useState<number>(1.15);
   const [maxOdd, setMaxOdd] = useState<number>(1.80);
   const [minTrust, setMinTrust] = useState<number>(3.0);
-  const [timeWindow, setTimeWindow] = useState<string>("today");
+  const [timeWindow, setTimeWindow] = useState<string>("3days");
   const [onlyMajor, setOnlyMajor] = useState<boolean>(false);
   const [onlyDecreasing, setOnlyDecreasing] = useState<boolean>(false);
 
-  // Matches inventory from API
-  const [rawMatches, setRawMatches] = useState<MatchData[]>([]);
+  // Matches inventory from API (loaded across today + next 2 days)
+  const [rawMatches, setRawMatches] = useState<MatchWithDay[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
@@ -146,6 +194,7 @@ export default function BetBuilderPage() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<string>("");
   const [generatedSlip, setGeneratedSlip] = useState<SlipMatch[]>([]);
+  const [slipScopeNote, setSlipScopeNote] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState<boolean>(false);
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState<boolean>(false);
 
@@ -215,24 +264,67 @@ export default function BetBuilderPage() {
     };
   }, [todayKey]);
 
-  // Load matches from API
+  // Load matches from API across Today, Tomorrow, and Day +2 so multi-day windows and auto-expansion stay instant
   useEffect(() => {
     async function fetchMatches() {
       try {
         setLoading(true);
         const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const tzOffset = -new Date().getTimezoneOffset();
+        const timestamp = Date.now();
+        const dayOffsets = [0, 1, 2];
 
-        const res = await fetch(`/api/matches?d=0&_t=${Date.now()}`, {
-          headers,
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success && Array.isArray(data.matches)) {
-          setRawMatches(data.matches);
+        const dayResults = await Promise.all(
+          dayOffsets.map(async (dayOffset) => {
+            try {
+              const res = await fetch(`/api/matches?d=${dayOffset}&tz=${tzOffset}&_t=${timestamp}`, {
+                headers,
+                credentials: "include",
+                cache: "no-store",
+              });
+              if (!res.ok) return [] as MatchWithDay[];
+              const data = await res.json();
+              if (!data.success || !Array.isArray(data.matches)) return [] as MatchWithDay[];
+              return (data.matches as MatchData[]).map((m) => ({
+                ...m,
+                _dayOffset: dayOffset,
+              }));
+            } catch {
+              return [] as MatchWithDay[];
+            }
+          })
+        );
+
+        const seenIds = new Set<string>();
+        const merged: MatchWithDay[] = [];
+        for (const list of dayResults) {
+          for (const m of list) {
+            if (!m?.id || seenIds.has(m.id)) continue;
+            seenIds.add(m.id);
+            merged.push(m);
+          }
         }
+
+        const excludedStatuses = new Set([
+          "won",
+          "lost",
+          "canceled",
+          "cancelled",
+          "postponed",
+          "ft",
+          "aet",
+          "pen",
+          "finished",
+          "abd",
+          "awd",
+          "wo",
+        ]);
+        const upcomingOnly = merged.filter(
+          (m) => !excludedStatuses.has((m.status || "").toLowerCase())
+        );
+
+        setRawMatches(upcomingOnly.length > 0 ? upcomingOnly : merged);
       } catch (err) {
         console.error("Error loading match pool:", err);
       } finally {
@@ -257,6 +349,17 @@ export default function BetBuilderPage() {
       "championship",
       "fa cup",
       "copa del rey",
+      "world cup",
+      "nations league",
+      "euro",
+      "afcon",
+      "africa cup",
+      "copa america",
+      "asian cup",
+      "concacaf",
+      "qualif",
+      "international",
+      "friendly",
     ];
 
     const toDec = (val?: string | number | null, fallback = 1.85): number => {
@@ -446,31 +549,43 @@ export default function BetBuilderPage() {
     return pool;
   }, [rawMatches, betTypes, minOdd, maxOdd, minTrust, onlyMajor, universalOnly]);
 
-  // Slip generation solver
-  const buildSlip = useCallback(() => {
-    let pool = matchesPool;
-    if (pool.length === 0 && rawMatches.length > 0) {
-      // Relaxed candidate generation strictly honoring enabled betTypes
-      const toDec = (val?: string | number | null, fallback = 1.85): number => {
-        if (val === undefined || val === null) return fallback;
-        const s = formatDisplayOdd(val);
-        const n = parseFloat(s);
-        return isNaN(n) || n < 1.05 ? fallback : n;
-      };
+  const maxDayOffset = useMemo(() => getWindowMaxDayOffset(timeWindow), [timeWindow]);
 
-      pool = rawMatches.map((m) => {
-        const ratingNum = typeof m.rating === "number" ? m.rating : typeof m.predictions?.bestTip?.rating === "number" ? m.predictions.bestTip.rating : 8.0;
+  const windowEligibleCount = useMemo(
+    () => matchesPool.filter((item) => (item.raw._dayOffset ?? 0) <= maxDayOffset).length,
+    [matchesPool, maxDayOffset]
+  );
+
+  // Slip generation solver
+  const buildSlip = useCallback((): { slip: SlipMatch[]; notice: string | null } => {
+    const toDec = (val?: string | number | null, fallback = 1.85): number => {
+      if (val === undefined || val === null) return fallback;
+      const s = formatDisplayOdd(val);
+      const n = parseFloat(s);
+      return isNaN(n) || n < 1.05 ? fallback : n;
+    };
+
+    const generateRelaxedPool = (matches: MatchWithDay[]): RawMatchWithCandidates[] =>
+      matches.map((m) => {
+        const ratingNum =
+          typeof m.rating === "number"
+            ? m.rating
+            : typeof m.predictions?.bestTip?.rating === "number"
+            ? m.predictions.bestTip.rating
+            : 8.0;
         const hOdd = toDec(m.odds?.home, 1.85);
-        const aOdd = toDec(m.odds?.away, 3.40);
+        const aOdd = toDec(m.odds?.away, 3.4);
         const raw1x2 = (m.predictions?.pickScore?.pick || "").trim();
         const isHomeFav = raw1x2 === "1" || (hOdd <= aOdd && aOdd >= 2.0);
         const isAwayFav = raw1x2 === "2" || (aOdd < hOdd && hOdd >= 2.0);
 
-        const candidates: Array<{ market: string; pick: string; odds: number; trustScore: number; trustLevel: "cf1" | "cf2" | "cf3" | "cf4" }> = [];
+        const candidates: RawMatchWithCandidates["candidates"] = [];
 
         if (betTypes["Double Chance"]) {
           const pick = isHomeFav ? "1X" : isAwayFav ? "X2" : "1X";
-          const odd = isHomeFav ? Math.max(1.10, parseFloat((1 / (1 / hOdd + 1 / 3.4) * 0.96).toFixed(2))) : 1.28;
+          const odd = isHomeFav
+            ? Math.max(1.1, parseFloat(((1 / (1 / hOdd + 1 / 3.4)) * 0.96).toFixed(2)))
+            : 1.28;
           const { trustScore, trustLevel } = computeOddsWeightedTrust(Math.min(10, ratingNum + 0.5), odd);
           candidates.push({ market: "Double Chance", pick, odds: odd, trustScore, trustLevel });
         }
@@ -480,20 +595,70 @@ export default function BetBuilderPage() {
           candidates.push({ market: "Over 2.5", pick: "Over 2.5", odds: oOdd, trustScore, trustLevel });
         }
         if (betTypes["Both Teams to Score"]) {
-          const bOdd = toDec(m.predictions?.btts?.odd, 1.80);
+          const bOdd = toDec(m.predictions?.btts?.odd, 1.8);
           const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, bOdd);
           candidates.push({ market: "Both Teams to Score", pick: "BTTS Yes", odds: bOdd, trustScore, trustLevel });
         }
         if (betTypes["Match Result (1X2)"] || candidates.length === 0) {
-          const pick = isHomeFav ? "1" : isAwayFav ? "2" : (hOdd <= aOdd ? "1" : "2");
+          const pick = isHomeFav ? "1" : isAwayFav ? "2" : hOdd <= aOdd ? "1" : "2";
           const odd = isHomeFav ? hOdd : isAwayFav ? aOdd : Math.min(hOdd, aOdd);
           const { trustScore, trustLevel } = computeOddsWeightedTrust(ratingNum, odd);
-          candidates.push({ market: "Match Result (1X2)", pick, odds: Math.min(3.2, Math.max(1.10, odd)), trustScore, trustLevel });
+          candidates.push({
+            market: "Match Result (1X2)",
+            pick,
+            odds: Math.min(3.2, Math.max(1.1, odd)),
+            trustScore,
+            trustLevel,
+          });
         }
         return { raw: m, candidates };
       });
-    }
-    if (pool.length === 0) return [];
+
+    const toSlipMatch = (
+      matchObj: RawMatchWithCandidates,
+      candidate: RawMatchWithCandidates["candidates"][number],
+      withRandomMove: boolean
+    ): SlipMatch => {
+      const m = matchObj.raw;
+      return {
+        id: m.id,
+        datetime: formatWindowMatchDatetime(m),
+        country: m.country || "World",
+        league: m.leagueName || "League",
+        homeTeam: m.homeTeam,
+        awayTeam: m.awayTeam,
+        homeLogo: m.homeLogo,
+        awayLogo: m.awayLogo,
+        trustScore: candidate.trustScore >= 9.5 ? "10" : candidate.trustScore.toFixed(1),
+        trustLevel: candidate.trustLevel,
+        pick: candidate.pick,
+        marketName: candidate.market,
+        odds: candidate.odds,
+        ...(withRandomMove ? { oddMove: Math.random() > 0.65 ? "down" : undefined } : {}),
+      };
+    };
+
+    const partitionByWindow = (sourcePool: RawMatchWithCandidates[], neededPicks: number) => {
+      const inWin = sourcePool.filter((item) => (item.raw._dayOffset ?? 0) <= maxDayOffset);
+      const later = sourcePool
+        .filter((item) => (item.raw._dayOffset ?? 0) > maxDayOffset)
+        .sort((a, b) => (a.raw._dayOffset ?? 0) - (b.raw._dayOffset ?? 0));
+
+      if (inWin.length >= neededPicks || later.length === 0) {
+        return { priorityPool: inWin, supplementPool: [] as RawMatchWithCandidates[], expandedToDay: null as number | null };
+      }
+
+      if (maxDayOffset === 0) {
+        const d1 = later.filter((item) => (item.raw._dayOffset ?? 0) === 1);
+        const d2 = later.filter((item) => (item.raw._dayOffset ?? 0) >= 2);
+        if (inWin.length + d1.length >= neededPicks || d2.length === 0) {
+          return { priorityPool: inWin, supplementPool: d1, expandedToDay: 1 };
+        }
+        return { priorityPool: inWin, supplementPool: [...d1, ...d2], expandedToDay: 2 };
+      }
+
+      return { priorityPool: inWin, supplementPool: later, expandedToDay: 2 };
+    };
 
     let targetPicks = 5;
     if (isFixedCount && parseInt(fixedCount, 10)) {
@@ -512,55 +677,87 @@ export default function BetBuilderPage() {
       else targetPicks = 14;
     }
 
-    targetPicks = Math.min(targetPicks, pool.length);
+    let { priorityPool, supplementPool, expandedToDay } = partitionByWindow(matchesPool, targetPicks);
+    let usedRelaxed = false;
+
+    if (priorityPool.length + supplementPool.length < Math.min(targetPicks, 2) && rawMatches.length > 0) {
+      const relaxedPool = generateRelaxedPool(rawMatches);
+      const relaxedPartition = partitionByWindow(relaxedPool, targetPicks);
+      if (
+        relaxedPartition.priorityPool.length + relaxedPartition.supplementPool.length >
+        priorityPool.length + supplementPool.length
+      ) {
+        priorityPool = relaxedPartition.priorityPool;
+        supplementPool = relaxedPartition.supplementPool;
+        expandedToDay = relaxedPartition.expandedToDay;
+        usedRelaxed = true;
+      }
+    }
+
+    const pool = [...priorityPool, ...supplementPool];
+    if (pool.length === 0) return { slip: [], notice: null };
+
+    const effectiveTargetPicks = Math.min(targetPicks, pool.length);
+
+    const notes: string[] = [];
+    if (expandedToDay !== null) {
+      const targetWindowText = expandedToDay === 1 ? "Tomorrow" : "Next 3 days";
+      if (priorityPool.length === 0) {
+        notes.push(`No matching fixtures in ${getWindowLabel(timeWindow)} — pulled ${targetWindowText} games instead.`);
+      } else {
+        notes.push(
+          `Only ${priorityPool.length} matching fixture${priorityPool.length === 1 ? "" : "s"} in ${getWindowLabel(
+            timeWindow
+          )} — auto-expanded to ${targetWindowText}.`
+        );
+      }
+    }
+    if (usedRelaxed) {
+      notes.push("Relaxed strict odds/trust filters to complete your slip.");
+    }
+    if (pool.length < targetPicks) {
+      notes.push(`Only ${pool.length} of ${targetPicks} requested fixtures available across Next 3 days.`);
+    }
+    const notice = notes.length > 0 ? notes.join(" ") : null;
 
     let bestSlip: SlipMatch[] = [];
     let bestDiff = Infinity;
 
+    // Shuffle within day-priority tiers so in-window matches are always kept before expanded days
+    const buildTrialOrder = (): RawMatchWithCandidates[] => {
+      if (supplementPool.length === 0) {
+        return [...priorityPool].sort(() => Math.random() - 0.5);
+      }
+      const shuffledPriority = [...priorityPool].sort(() => Math.random() - 0.5);
+      const suppDay1 = supplementPool.filter((item) => (item.raw._dayOffset ?? 0) === 1).sort(() => Math.random() - 0.5);
+      const suppDay2 = supplementPool.filter((item) => (item.raw._dayOffset ?? 0) >= 2).sort(() => Math.random() - 0.5);
+      return [...shuffledPriority, ...suppDay1, ...suppDay2];
+    };
+
     // Run multiple randomized combinatorial search trials to hit closest odds
     const trials = Math.min(25, Math.max(12, pool.length));
     for (let t = 0; t < trials; t++) {
-      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      const ordered = buildTrialOrder();
       const currentSelected: SlipMatch[] = [];
       let currentOdds = 1.0;
 
-      for (const matchObj of shuffled) {
-        if (currentSelected.length >= targetPicks) break;
-        const remainingPicks = targetPicks - currentSelected.length;
+      for (const matchObj of ordered) {
+        if (currentSelected.length >= effectiveTargetPicks) break;
+        const remainingPicks = effectiveTargetPicks - currentSelected.length;
         const neededOddPerPick = Math.pow(Math.max(1.01, targetOdds / currentOdds), 1 / remainingPicks);
 
         // Sort match candidates by distance to needed odd
-        const sortedCandidates = [...matchObj.candidates].sort((a, b) =>
-          Math.abs(a.odds - neededOddPerPick) - Math.abs(b.odds - neededOddPerPick)
+        const sortedCandidates = [...matchObj.candidates].sort(
+          (a, b) => Math.abs(a.odds - neededOddPerPick) - Math.abs(b.odds - neededOddPerPick)
         );
         const candidate = sortedCandidates[0] || matchObj.candidates[0];
         if (!candidate) continue;
 
-        const m = matchObj.raw;
-        const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
-        const dateStr = `Today · ${kick}`;
-
-        currentSelected.push({
-          id: m.id,
-          datetime: dateStr,
-          country: m.country || "World",
-          league: m.leagueName || "League",
-          homeTeam: m.homeTeam,
-          awayTeam: m.awayTeam,
-          homeLogo: m.homeLogo,
-          awayLogo: m.awayLogo,
-          trustScore: candidate.trustScore >= 9.5 ? "10" : candidate.trustScore.toFixed(1),
-          trustLevel: candidate.trustLevel,
-          pick: candidate.pick,
-          marketName: candidate.market,
-          odds: candidate.odds,
-          oddMove: Math.random() > 0.65 ? "down" : undefined,
-        });
-
+        currentSelected.push(toSlipMatch(matchObj, candidate, true));
         currentOdds *= candidate.odds;
       }
 
-      if (currentSelected.length >= Math.min(2, targetPicks)) {
+      if (currentSelected.length >= Math.min(2, effectiveTargetPicks)) {
         const diff = Math.abs(Math.log(currentOdds) - Math.log(targetOdds));
         if (diff < bestDiff) {
           bestDiff = diff;
@@ -569,27 +766,13 @@ export default function BetBuilderPage() {
       }
     }
 
-    return bestSlip.length > 0 ? bestSlip : pool.slice(0, targetPicks).map((matchObj) => {
-      const m = matchObj.raw;
-      const c = matchObj.candidates[0];
-      const kick = formatMatchKickoff(m.kickTime, m.kickoffUtc, m.matchDate);
-      return {
-        id: m.id,
-        datetime: `Today · ${kick}`,
-        country: m.country || "World",
-        league: m.leagueName || "League",
-        homeTeam: m.homeTeam,
-        awayTeam: m.awayTeam,
-        homeLogo: m.homeLogo,
-        awayLogo: m.awayLogo,
-        trustScore: c.trustScore >= 9.5 ? "10" : c.trustScore.toFixed(1),
-        trustLevel: c.trustLevel,
-        pick: c.pick,
-        marketName: c.market,
-        odds: c.odds,
-      };
-    });
-  }, [matchesPool, rawMatches, betTypes, isFixedCount, fixedCount, numPicksRange, targetOdds]);
+    const finalSlip =
+      bestSlip.length > 0
+        ? bestSlip
+        : pool.slice(0, effectiveTargetPicks).map((matchObj) => toSlipMatch(matchObj, matchObj.candidates[0], false));
+
+    return { slip: finalSlip, notice };
+  }, [matchesPool, rawMatches, betTypes, isFixedCount, fixedCount, numPicksRange, targetOdds, maxDayOffset, timeWindow]);
 
   // Track when user changes parameters after an initial slip was generated (never auto-generate games without user clicking button)
   useEffect(() => {
@@ -627,8 +810,9 @@ export default function BetBuilderPage() {
     await new Promise((r) => setTimeout(r, 200));
 
     // Generate new randomized slip respecting all parameters
-    const newSlip = buildSlip();
+    const { slip: newSlip, notice } = buildSlip();
     setGeneratedSlip(newSlip);
+    setSlipScopeNote(notice);
     setHasGenerated(true);
     setHasUnappliedChanges(false);
     setIsGenerating(false);
@@ -1214,6 +1398,45 @@ export default function BetBuilderPage() {
               </div>
             </div>
 
+            {/* 4b. Match Window */}
+            <div className="bb-field">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <label className="bb-field__label" style={{ marginBottom: 0 }}>
+                  Match window
+                </label>
+                <span style={{ fontSize: 11.5, color: "rgba(255, 255, 255, 0.58)", fontWeight: 500 }}>
+                  {loading
+                    ? "Loading..."
+                    : `${windowEligibleCount} match${windowEligibleCount === 1 ? "" : "es"} ready`}
+                </span>
+              </div>
+              <div className="bb-pills" role="group" aria-label="Match window">
+                {[
+                  { value: "today", label: "Today" },
+                  { value: "2days", label: "Today + tomorrow" },
+                  { value: "3days", label: "Next 3 days" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`bb-pill ${timeWindow === opt.value ? "is-active" : ""}`}
+                    aria-pressed={timeWindow === opt.value}
+                    onClick={() => setTimeWindow(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 5. Minimum Pick Trust */}
             <div className="bb-field">
               <label className="bb-field__label" htmlFor="bb-trust">
@@ -1642,6 +1865,26 @@ export default function BetBuilderPage() {
                       >
                         Target {targetOdds.toFixed(2)} · {deltaPercent > 0 ? `+${deltaPercent}%` : `${deltaPercent}%`}
                       </span>
+                      {slipScopeNote && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: 11.5,
+                            fontWeight: 500,
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            background: "rgba(124, 108, 245, 0.14)",
+                            border: "1px solid rgba(124, 108, 245, 0.35)",
+                            color: "#d4ceff",
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          <Info size={12} style={{ flexShrink: 0 }} />
+                          {slipScopeNote}
+                        </span>
+                      )}
 
                       {/* Universal Markets Status Pill */}
                       {universalValidation.isUniversal ? (
