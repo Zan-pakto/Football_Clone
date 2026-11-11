@@ -162,7 +162,9 @@ function SuccessContent() {
             }}
           >
             {isCreditPurchase
-              ? "Your payment has been received. Your Bet Builder credits are added to your account as soon as payment confirmation arrives from our payment gateway and never expire."
+              ? planIdParam === "CREDITS_10"
+                ? "Your payment has been received. Your 10 Bet Builder slip credits are added once payment confirmation arrives and remain valid for 14 days."
+                : "Your payment has been received. Your Bet Builder credits are added to your account as soon as payment confirmation arrives and never expire."
               : "Your payment was successfully received. Unrestricted algorithmic match predictions, banker accumulators, and value odds telemetry are now accessible."}
           </p>
 

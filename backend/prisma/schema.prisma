@@ -253,15 +253,17 @@ model PredictionSettlement {
 }
 
 model User {
-  id                   String    @id @default(uuid())
-  email                String    @unique
-  passwordHash         String    @map("password_hash")
-  name                 String?
-  role                 Role      @default(USER)
-  betBuilderCredits    Int       @default(0) @map("bet_builder_credits")
-  betBuilderLastFreeAt DateTime? @map("bet_builder_last_free_at")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  id                              String    @id @default(uuid())
+  email                           String    @unique
+  passwordHash                    String    @map("password_hash")
+  name                            String?
+  role                            Role      @default(USER)
+  betBuilderCredits               Int       @default(0) @map("bet_builder_credits")
+  betBuilderLastFreeAt            DateTime? @map("bet_builder_last_free_at")
+  betBuilderTimedCredits          Int       @default(0) @map("bet_builder_timed_credits")
+  betBuilderTimedCreditsExpiresAt DateTime? @map("bet_builder_timed_credits_expires_at")
+  createdAt                       DateTime  @default(now()) @map("created_at")
+  updatedAt                       DateTime  @updatedAt @map("updated_at")
 
   sessions      Session[]
   subscriptions Subscription[]

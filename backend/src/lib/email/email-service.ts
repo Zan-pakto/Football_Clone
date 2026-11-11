@@ -388,11 +388,13 @@ Thank you for choosing Jolloftips!
     newBalance: number;
     amount: string;
     orderId?: string;
+    expirationDays?: number;
   }): EmailPayload {
-    const { name, email, packName, creditsAdded, newBalance, amount, orderId } = params;
+    const { name, email, packName, creditsAdded, newBalance, amount, orderId, expirationDays } = params;
     const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_APP_URL || "https://jolloftips.com";
     const builderUrl = `${frontendUrl}/bet-builder`;
     const subject = `✅ ${creditsAdded} Bet Builder Credit${creditsAdded === 1 ? "" : "s"} Added - Jolloftips`;
+    const validityText = expirationDays && expirationDays > 0 ? `${expirationDays} days` : "Never expires";
 
     const html = `
       <!DOCTYPE html>
@@ -413,6 +415,7 @@ Thank you for choosing Jolloftips!
               <tr><td style="padding:6px 0; color:#94a3b8;">Pack:</td><td style="padding:6px 0; color:#fff; font-weight:700; text-align:right;">${packName}</td></tr>
               <tr><td style="padding:6px 0; color:#94a3b8;">Credits Added:</td><td style="padding:6px 0; color:#34d399; font-weight:700; text-align:right;">+${creditsAdded} Slips</td></tr>
               <tr><td style="padding:6px 0; color:#94a3b8;">New Credit Balance:</td><td style="padding:6px 0; color:#fbbf24; font-weight:700; text-align:right;">${newBalance} Slips</td></tr>
+              <tr><td style="padding:6px 0; color:#94a3b8;">Validity:</td><td style="padding:6px 0; color:#c4b5fd; font-weight:700; text-align:right;">${validityText}</td></tr>
               <tr><td style="padding:6px 0; color:#94a3b8;">Amount Paid:</td><td style="padding:6px 0; color:#fff; font-weight:700; text-align:right;">${amount}</td></tr>
               ${orderId ? `<tr><td style="padding:6px 0; color:#94a3b8;">Reference:</td><td style="padding:6px 0; color:#94a3b8; font-size:12px; text-align:right; font-family:monospace;">${orderId}</td></tr>` : ""}
             </table>
@@ -425,7 +428,7 @@ Thank you for choosing Jolloftips!
       </html>
     `;
 
-    const text = `Hi ${name || "Member"},\n\n+${creditsAdded} Bet Builder credit(s) added (${packName}). New balance: ${newBalance} slip(s). Amount: ${amount}.\nGenerate slips at: ${builderUrl}`;
+    const text = `Hi ${name || "Member"},\n\n+${creditsAdded} Bet Builder credit(s) added (${packName}). Validity: ${validityText}. New balance: ${newBalance} slip(s). Amount: ${amount}.\nGenerate slips at: ${builderUrl}`;
     return { to: email, subject, html, text };
   }
 

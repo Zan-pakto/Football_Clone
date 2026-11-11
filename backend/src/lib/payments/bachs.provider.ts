@@ -5,7 +5,12 @@ import {
   CheckoutResult,
   StandardWebhookEvent,
 } from "./types";
-import { getPlanOrThrow } from "./plans.config";
+import {
+  getCreditPackOrNull,
+  getPurchasableOrThrow,
+  isCreditPackId,
+  resolveBachsProductToInternalId,
+} from "./plans.config";
 
 export class BachsPaymentProvider implements IPaymentProvider {
   readonly name = "bachs";
@@ -29,7 +34,8 @@ export class BachsPaymentProvider implements IPaymentProvider {
    * 1. Create Checkout Session on Bachs.io
    */
   async createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutResult> {
-    const plan = getPlanOrThrow(input.planId);
+    const plan = getPurchasableOrThrow(input.planId);
+    const isCredits = isCreditPackId(plan.id);
 
     // 1. Direct Bachs Checkout Paylink (Preferred for hosted Mobile Money / M-Pesa checkouts)
     const targetUrl = plan.bachsCheckoutUrl;
@@ -45,6 +51,7 @@ export class BachsPaymentProvider implements IPaymentProvider {
         url.searchParams.set("metadata[userId]", input.userId);
         url.searchParams.set("metadata[userEmail]", input.userEmail);
         url.searchParams.set("metadata[planId]", plan.id);
+        url.searchParams.set("metadata[kind]", isCredits ? "credits" : "subscription");
         if (input.successUrl.startsWith("https://")) {
           url.searchParams.set("redirect_url", input.successUrl);
         }
@@ -89,14 +96,17 @@ export class BachsPaymentProvider implements IPaymentProvider {
             planId: input.planId,
           },
         },
-        trial_period_days: plan.hasTrial ? (plan.trialDays || 7) : undefined,
+        ...(!isCredits && "hasTrial" in plan && plan.hasTrial
+          ? { trial_period_days: plan.trialDays || 7 }
+          : {}),
         redirect_url: input.successUrl,
         cancel_url: input.cancelUrl,
         metadata: {
           userId: input.userId,
           userEmail: input.userEmail,
           planId: input.planId,
-          trialDays: plan.trialDays || 7,
+          kind: isCredits ? "credits" : "subscription",
+          ...(!isCredits && "trialDays" in plan ? { trialDays: plan.trialDays || 7 } : {}),
         },
       };
 
@@ -160,20 +170,47 @@ export class BachsPaymentProvider implements IPaymentProvider {
 
     const userEmail = data.customer?.email || data.email || data.metadata?.userEmail;
     const userId = data.metadata?.userId || data.customer?.metadata?.userId;
-    let planId = data.metadata?.planId || "VIP_MONTHLY";
     const productId = data.product_id || data.product?.id || data.metadata?.productId || data.metadata?.product_id;
-    if (productId === "prod_cb9782fabf1c4c5a8b67") {
-      planId = "PREMIUM_6MONTHS";
-    } else if (productId === "prod_ed97f1b60dc344e491c8") {
-      planId = "PREMIUM_MONTHLY";
-    } else if (productId === "prod_275e20b69d0940f8a31f") {
-      planId = "VIP_6MONTHS";
-    } else if (productId === "prod_8bcc294dbe674aab9ad3") {
-      planId = "VIP_MONTHLY";
-    }
+    const mappedFromProduct = resolveBachsProductToInternalId(productId);
+    const planId = mappedFromProduct || data.metadata?.planId || "VIP_MONTHLY";
+    const creditPack = getCreditPackOrNull(planId);
 
     const providerSubId = data.subscription_id || data.id || data.reference;
     const providerCustId = data.customer?.id || data.customer_id;
+
+    // One-time Bet Builder Credit Pack purchases grant credits only on settled charge/checkout events
+    if (creditPack) {
+      if (
+        eventType.includes("charge.success") ||
+        eventType.includes("payment.succeeded") ||
+        eventType.includes("checkout.completed") ||
+        eventType.includes("order.paid")
+      ) {
+        const curCode = (data.currency || data.metadata?.currency || "").toString().toUpperCase();
+        const amountPaid =
+          data.amount != null && curCode
+            ? `${curCode} ${data.amount}`
+            : undefined;
+        return {
+          eventId: payload.id || `bachs_evt_${Date.now()}`,
+          type: "checkout.completed",
+          provider: this.name,
+          userId,
+          userEmail,
+          planId: creditPack.id,
+          creditGrant: creditPack.credits,
+          providerSubId: data.reference || data.id,
+          providerCustId,
+          status: "ACTIVE",
+          amountPaid,
+        };
+      }
+      return {
+        eventId: payload.id || `bachs_evt_${Date.now()}`,
+        type: "ignored",
+        provider: this.name,
+      };
+    }
 
     // Handle Trialing / Subscriptions
     if (

@@ -12,6 +12,7 @@ import {
   PlanId,
 } from "./types";
 import {
+  BACHS_PRODUCT_TO_INTERNAL_PLAN,
   getCreditPackOrNull,
   getPlanOrThrow,
   getPurchasableOrThrow,
@@ -109,10 +110,7 @@ export class PaymentService {
       lowerHeaders["x-bachs-signature"] ||
       lowerHeaders["bachs-signature"] ||
       bodyStr.includes("bachs.io") ||
-      bodyStr.includes("prod_ed97f1b60dc344e491c8") ||
-      bodyStr.includes("prod_cb9782fabf1c4c5a8b67") ||
-      bodyStr.includes("prod_8bcc294dbe674aab9ad3") ||
-      bodyStr.includes("prod_275e20b69d0940f8a31f")
+      Object.keys(BACHS_PRODUCT_TO_INTERNAL_PLAN).some((prodId) => bodyStr.includes(prodId))
     ) {
       targetProvider = this.bachsProvider;
     } else if (lowerHeaders["stripe-signature"]) {
@@ -186,7 +184,12 @@ export class PaymentService {
             const creditsToAdd = event.creditGrant || creditPack.credits;
             const amountFormatted = event.amountPaid || `$${(creditPack.amountCents / 100).toFixed(2)}`;
             if (user) {
-              const newBalance = await betBuilderCreditsService.grantCredits(user.id, creditsToAdd, tx);
+              const newBalance = await betBuilderCreditsService.grantCredits(
+                user.id,
+                creditsToAdd,
+                tx,
+                creditPack.expirationDays
+              );
               console.log(`🎟️ [PaymentService:Webhook] Granted +${creditsToAdd} Bet Builder credits to ${user.email} (New balance: ${newBalance})`);
 
               const receiptEmail = emailService.getCreditsPurchaseEmail({
@@ -197,6 +200,7 @@ export class PaymentService {
                 newBalance,
                 amount: amountFormatted,
                 orderId: event.providerSubId || event.eventId,
+                expirationDays: creditPack.expirationDays,
               });
               emailService.sendEmail(receiptEmail).catch((err) =>
                 console.error("❌ [PaymentService] Failed to send credits receipt email:", err)

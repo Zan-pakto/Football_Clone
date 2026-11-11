@@ -35,6 +35,7 @@ export interface CreditPackDefinition {
   id: CreditPackId;
   name: string;
   credits: number;
+  expirationDays?: number;
   badge?: string;
   description: string;
   amountCents: number;
@@ -42,6 +43,8 @@ export interface CreditPackDefinition {
   whopProductId: string;
   whopPlanId: string;
   whopCheckoutUrl: string;
+  bachsProductId?: string;
+  bachsCheckoutUrl?: string;
   currencyVariants: Record<string, CurrencyPriceVariant>;
 }
 
@@ -429,13 +432,16 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
     id: "CREDITS_10",
     name: "Bet Builder Credit (10 Slips)",
     credits: 10,
+    expirationDays: 14,
     badge: "Best Value",
-    description: "10 instant AI Bet Builder slips at our lowest rate per slip.",
+    description: "10 instant AI Bet Builder slips (expires after 14 days).",
     amountCents: 499, // $4.99
     currency: "usd",
     whopProductId: "prod_j6F3w5rILzZ7I",
     whopPlanId: "plan_d9kvGCFy9sGB3",
     whopCheckoutUrl: "https://whop.com/checkout/plan_d9kvGCFy9sGB3",
+    bachsProductId: process.env.BACHS_PRODUCT_CREDITS_10 || "prod_9555b53b472d455b92e8",
+    bachsCheckoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || undefined,
     currencyVariants: {
       usd: {
         currency: "USD",
@@ -463,6 +469,78 @@ export const CREDIT_PACKS: Record<CreditPackId, CreditPackDefinition> = {
         provider: "whop",
         productId: "plan_POOQfPT71x540",
         checkoutUrl: "https://whop.com/checkout/plan_POOQfPT71x540",
+      },
+      ghs: {
+        currency: "GHS",
+        symbol: "GH₵",
+        amount: 25,
+        formattedAmount: "GH₵25",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      kes: {
+        currency: "KES",
+        symbol: "KSh",
+        amount: 250,
+        formattedAmount: "KSh 250",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      ugx: {
+        currency: "UGX",
+        symbol: "UGX",
+        amount: 7500,
+        formattedAmount: "UGX 7,500",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      tzs: {
+        currency: "TZS",
+        symbol: "TZS",
+        amount: 5000,
+        formattedAmount: "TZS 5,000",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      mwk: {
+        currency: "MWK",
+        symbol: "MWK",
+        amount: 3500,
+        formattedAmount: "MWK 3,500",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      rwf: {
+        currency: "RWF",
+        symbol: "RWF",
+        amount: 3000,
+        formattedAmount: "RWF 3,000",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      xaf: {
+        currency: "XAF",
+        symbol: "XAF",
+        amount: 1350,
+        formattedAmount: "XAF 1,350",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
+      },
+      xof: {
+        currency: "XOF",
+        symbol: "XOF",
+        amount: 1350,
+        formattedAmount: "XOF 1,350",
+        provider: "bachs",
+        productId: "prod_9555b53b472d455b92e8",
+        checkoutUrl: process.env.BACHS_CHECKOUT_URL_CREDITS_10 || "",
       },
     },
   },
@@ -554,11 +632,44 @@ export function resolveWhopPlanToInternalId(
   return null;
 }
 
+export const BACHS_PRODUCT_TO_INTERNAL_PLAN: Record<string, PlanId> = {
+  prod_cb9782fabf1c4c5a8b67: "PREMIUM_6MONTHS",
+  prod_ed97f1b60dc344e491c8: "PREMIUM_MONTHLY",
+  prod_275e20b69d0940f8a31f: "VIP_6MONTHS",
+  prod_8bcc294dbe674aab9ad3: "VIP_MONTHLY",
+  prod_9555b53b472d455b92e8: "CREDITS_10",
+};
+
+/**
+ * Resolve any Bachs prod_... identifier to an internal subscription or credit pack ID.
+ */
+export function resolveBachsProductToInternalId(
+  bachsProductId?: string | null
+): PlanId | null {
+  if (bachsProductId && BACHS_PRODUCT_TO_INTERNAL_PLAN[bachsProductId]) {
+    return BACHS_PRODUCT_TO_INTERNAL_PLAN[bachsProductId];
+  }
+  return null;
+}
+
+const AFRICAN_MOMO_CURRENCIES = new Set([
+  "kes",
+  "momo",
+  "ghs",
+  "ugx",
+  "tzs",
+  "mwk",
+  "rwf",
+  "xof",
+  "xaf",
+  "zmw",
+]);
+
 /**
  * Intelligent Payment Routing:
  * - USD, NGN (transfers/OPay), and ZAR -> Whop
- * - Subscription MoMo / African currencies (KES, GHS, UGX, TZS, etc.) -> Bachs
- * - Credit packs route USD, NGN, ZAR -> Whop, and fallback USD -> Whop
+ * - African MoMo currencies (KES, GHS, UGX, TZS, MWK, RWF, XAF, XOF, ZMW) -> Bachs (when paylink/API configured)
+ * - Unconfigured MoMo credit packs safely fall back to USD -> Whop
  */
 export function resolveProviderAndCheckout(
   planId: PlanId,
@@ -568,6 +679,16 @@ export function resolveProviderAndCheckout(
 
   if (isCreditPackId(planId)) {
     const pack = CREDIT_PACKS[planId];
+    if (AFRICAN_MOMO_CURRENCIES.has(cur) && pack.bachsCheckoutUrl) {
+      const variant = pack.currencyVariants[cur] || pack.currencyVariants.kes || pack.currencyVariants.ghs;
+      return {
+        provider: "bachs",
+        checkoutUrl: variant?.checkoutUrl || pack.bachsCheckoutUrl,
+        currency: cur === "momo" ? "MOMO" : cur.toUpperCase(),
+        productId: variant?.productId || pack.bachsProductId,
+      };
+    }
+
     const targetKey = cur === "ngn" || cur === "zar" ? cur : "usd";
     const variant = pack.currencyVariants[targetKey] || pack.currencyVariants.usd;
     return {
@@ -593,7 +714,7 @@ export function resolveProviderAndCheckout(
   }
 
   // African currencies / Mobile Money route to Bachs for subscriptions
-  if (cur === "kes" || cur === "momo" || cur === "ghs" || cur === "ugx" || cur === "tzs" || cur === "mwk" || cur === "rwf" || cur === "xof" || cur === "xaf" || cur === "zmw") {
+  if (AFRICAN_MOMO_CURRENCIES.has(cur)) {
     const variant = plan.currencyVariants[cur] || plan.currencyVariants.momo || plan.currencyVariants.kes;
     return {
       provider: "bachs",

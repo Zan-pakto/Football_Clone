@@ -202,6 +202,8 @@ export default function BetBuilderPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isVip, setIsVip] = useState<boolean>(false);
   const [creditsBalance, setCreditsBalance] = useState<number>(0);
+  const [timedCredits, setTimedCredits] = useState<number>(0);
+  const [timedCreditsExpiresAt, setTimedCreditsExpiresAt] = useState<string | null>(null);
   const [freeWeeklyRemaining, setFreeWeeklyRemaining] = useState<number>(0);
   const [nextFreeResetAt, setNextFreeResetAt] = useState<string | null>(null);
   const [creditPacks, setCreditPacks] = useState<any[]>([
@@ -232,8 +234,9 @@ export default function BetBuilderPage() {
       id: "CREDITS_10",
       name: "Bet Builder Credit (10 Slips)",
       credits: 10,
+      expirationDays: 14,
       badge: "Best Value",
-      description: "10 instant AI Bet Builder slips at our lowest rate.",
+      description: "10 instant AI Bet Builder slips (expires after 14 days).",
       currencyVariants: {
         usd: { currency: "USD", formattedAmount: "$4.99" },
         ngn: { currency: "NGN", formattedAmount: "₦1,500" },
@@ -279,6 +282,15 @@ export default function BetBuilderPage() {
     }
   }, []);
 
+  const applyWalletSnapshot = useCallback((data: any) => {
+    setIsVip(Boolean(data.isUnlimited));
+    setCreditsBalance(Number(data.creditsBalance || 0));
+    setTimedCredits(Number(data.timedCredits || 0));
+    setTimedCreditsExpiresAt(data.timedCreditsExpiresAt || null);
+    setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining || 0));
+    setNextFreeResetAt(data.nextFreeResetAt || null);
+  }, []);
+
   const refreshWalletStatus = useCallback(async () => {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
@@ -293,14 +305,13 @@ export default function BetBuilderPage() {
       }
       if (data.success && data.isLoggedIn) {
         setIsLoggedIn(true);
-        setIsVip(Boolean(data.isUnlimited));
-        setCreditsBalance(Number(data.creditsBalance || 0));
-        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining || 0));
-        setNextFreeResetAt(data.nextFreeResetAt || null);
+        applyWalletSnapshot(data);
       } else {
         setIsLoggedIn(false);
         setIsVip(false);
         setCreditsBalance(0);
+        setTimedCredits(0);
+        setTimedCreditsExpiresAt(null);
         setFreeWeeklyRemaining(0);
         setNextFreeResetAt(null);
       }
@@ -308,7 +319,7 @@ export default function BetBuilderPage() {
       setIsLoggedIn(false);
       setIsVip(false);
     }
-  }, []);
+  }, [applyWalletSnapshot]);
 
   // Load server-authoritative auth, subscriber access & credit wallet on mount
   useEffect(() => {
@@ -940,10 +951,7 @@ export default function BetBuilderPage() {
       }
 
       if (res.status === 402 || data.quotaExhausted || !data.allowed) {
-        setIsVip(Boolean(data.isUnlimited));
-        setCreditsBalance(Number(data.creditsBalance || 0));
-        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining || 0));
-        setNextFreeResetAt(data.nextFreeResetAt || null);
+        applyWalletSnapshot(data);
         setIsGenerating(false);
         setGenerationStep("");
         openCreditsModal("quota");
@@ -951,10 +959,7 @@ export default function BetBuilderPage() {
       }
 
       if (res.ok && data.success) {
-        setIsVip(Boolean(data.isUnlimited));
-        setCreditsBalance(Number(data.creditsBalance ?? creditsBalance));
-        setFreeWeeklyRemaining(Number(data.freeWeeklyRemaining ?? freeWeeklyRemaining));
-        setNextFreeResetAt(data.nextFreeResetAt ?? null);
+        applyWalletSnapshot(data);
       }
     } catch {
       setIsGenerating(false);
@@ -2375,10 +2380,17 @@ export default function BetBuilderPage() {
                                 day: "numeric",
                               })})`
                             : ""
-                        }. Top up instant slip credits (they never expire) or upgrade for unlimited access.`
+                        }. Top up instant slip credits (10-Slip packs valid for 14 days) or upgrade for unlimited access.`
                       : `Current balance: ${creditsBalance} credit${
                           creditsBalance === 1 ? "" : "s"
-                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}. Credits never expire.`}
+                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}${
+                          timedCredits > 0 && timedCreditsExpiresAt
+                            ? ` · ${timedCredits} expiring ${new Date(timedCreditsExpiresAt).toLocaleDateString(
+                                undefined,
+                                { month: "short", day: "numeric" }
+                              )}`
+                            : ""
+                        }. 1 & 3 slip packs never expire; 10-Slip packs are valid for 14 days.`}
                   </p>
 
                   {/* Currency Switcher (Whop supports USD, NGN & ZAR; other countries use USD) */}
