@@ -98,8 +98,13 @@ export class AccessControlService {
     let globalTipIndex = 0;
     return fixtures.map((f) => {
       const hasPredictions = f.predictions && f.predictions.length > 0;
+      const isFinished = f.status === "FINISHED" || f.elapsed === "FT";
+      const isLive = !isFinished && (f.status === "LIVE" || Boolean(f.elapsed && /^\d+['′]/.test(f.elapsed)));
+      const hasEligibleFreePred = (f.predictions || []).some((p) => !p.isPremium);
+
       const filtered = this.filterFixtureForUser(f, user, globalTipIndex);
-      if (hasPredictions) {
+      // Only upcoming, non-live, non-premium fixtures consume the 10-tip daily free quota
+      if (hasPredictions && !isFinished && !isLive && hasEligibleFreePred) {
         globalTipIndex += 1;
       }
       return filtered;

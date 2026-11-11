@@ -44,6 +44,7 @@ interface CurrencyOption {
   symbol: string;
   name: string;
   flag: string;
+  flagUrl: string;
   region: string;
   provider: "Whop" | "Bachs.io";
   methodsText: string;
@@ -55,6 +56,7 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
     symbol: "$",
     name: "US Dollar",
     flag: "🇺🇸",
+    flagUrl: "/flags/united-states.png",
     region: "Worldwide & International",
     provider: "Whop",
     methodsText: "PayPal • Cards • Apple Pay • Google Pay",
@@ -64,6 +66,7 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
     symbol: "₦",
     name: "Nigerian Naira",
     flag: "🇳🇬",
+    flagUrl: "/flags/nigeria.png",
     region: "Nigeria",
     provider: "Whop",
     methodsText: "Instant Bank Transfer • Cards • OPay",
@@ -73,6 +76,7 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
     symbol: "R",
     name: "South African Rand",
     flag: "🇿🇦",
+    flagUrl: "/flags/south-africa.png",
     region: "South Africa",
     provider: "Whop",
     methodsText: "Cards • Instant EFT • Ozow",
@@ -82,6 +86,7 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
     symbol: "KSh",
     name: "Kenyan Shilling",
     flag: "🇰🇪",
+    flagUrl: "/flags/kenya.png",
     region: "Kenya & East Africa",
     provider: "Bachs.io",
     methodsText: "M-Pesa • Airtel Money • Mobile Money",
@@ -91,9 +96,10 @@ const CURRENCIES: Record<CurrencyCode, CurrencyOption> = {
     symbol: "Local",
     name: "African Local Payments",
     flag: "🌍",
-    region: "Ghana, Kenya, Uganda, Tanzania & All Africa",
+    flagUrl: "/flags/world.png",
+    region: "Ghana, Kenya, Uganda, Tanzania, Malawi, Zambia & All Africa",
     provider: "Bachs.io",
-    methodsText: "M-Pesa • MTN • Telecel • Airtel • Orange • Wave",
+    methodsText: "M-Pesa • MTN • Telecel • Airtel • TNM Mpamba • Orange • Wave",
   },
 };
 
@@ -193,12 +199,12 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     providers: "MTN, Telecel / Vodafone, AirtelTigo",
     prices: {
       premium: {
-        "1month": { price: "GH₵ 155", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
-        "6months": { price: "GH₵ 775", periodLabel: "/6-mo", billedNote: "GH₵ 129/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "GH₵134.99", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
+        "6months": { price: "GH₵674.99", periodLabel: "/6-mo", billedNote: "GH₵112.50/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "GH₵ 310", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
-        "6months": { price: "GH₵ 1,240", periodLabel: "/6-mo", billedNote: "GH₵ 207/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "GH₵269.99", periodLabel: "/month", billedNote: "Billed monthly via MTN / Telecel" },
+        "6months": { price: "GH₵1,349.99", periodLabel: "/6-mo", billedNote: "GH₵225.00/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -217,7 +223,7 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
       },
       vip: {
         "1month": { price: "KSh 2,940", periodLabel: "/month", billedNote: "Billed monthly via Safaricom M-Pesa" },
-        "6months": { price: "KSh 14,700", periodLabel: "/6-mo", billedNote: "KSh 2,450/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "6months": { price: "KSh 14,700", periodLabel: "/6-mo", billedNote: "KSh 2,450/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -231,12 +237,12 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     providers: "MTN, Airtel Money",
     prices: {
       premium: {
-        "1month": { price: "UGX 37,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
-        "6months": { price: "UGX 185,000", periodLabel: "/6-mo", billedNote: "UGX 30,833/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "UGX 45,620", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
+        "6months": { price: "UGX 228,100", periodLabel: "/6-mo", billedNote: "UGX 38,017/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "UGX 74,000", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
-        "6months": { price: "UGX 295,000", periodLabel: "/6-mo", billedNote: "UGX 49,166/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "UGX 91,240", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel" },
+        "6months": { price: "UGX 456,200", periodLabel: "/6-mo", billedNote: "UGX 76,033/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -250,12 +256,31 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     providers: "Vodacom M-Pesa, Tigo Pesa, Airtel",
     prices: {
       premium: {
-        "1month": { price: "TZS 26,500", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
-        "6months": { price: "TZS 132,500", periodLabel: "/6-mo", billedNote: "TZS 22,083/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "TZS 29,775", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
+        "6months": { price: "TZS 148,875", periodLabel: "/6-mo", billedNote: "TZS 24,813/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "TZS 53,000", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
-        "6months": { price: "TZS 212,000", periodLabel: "/6-mo", billedNote: "TZS 35,333/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "TZS 59,550", periodLabel: "/month", billedNote: "Billed monthly via M-Pesa / Tigo" },
+        "6months": { price: "TZS 297,750", periodLabel: "/6-mo", billedNote: "TZS 49,625/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+    },
+  },
+  {
+    id: "MW",
+    name: "Malawi",
+    currency: "MWK",
+    symbol: "MWK",
+    flag: "🇲🇼",
+    flagUrl: "/flags/malawi.png",
+    providers: "Airtel Money, TNM Mpamba",
+    prices: {
+      premium: {
+        "1month": { price: "MWK 19,710", periodLabel: "/month", billedNote: "Billed monthly via Airtel / TNM Mpamba" },
+        "6months": { price: "MWK 98,550", periodLabel: "/6-mo", billedNote: "MWK 16,425/mo equivalent • Save 17%", savings: "SAVE 17%" },
+      },
+      vip: {
+        "1month": { price: "MWK 39,420", periodLabel: "/month", billedNote: "Billed monthly via Airtel / TNM Mpamba" },
+        "6months": { price: "MWK 197,100", periodLabel: "/6-mo", billedNote: "MWK 32,850/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -269,12 +294,12 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     providers: "MTN Mobile Money, Airtel Money",
     prices: {
       premium: {
-        "1month": { price: "RWF 13,500", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
-        "6months": { price: "RWF 67,500", periodLabel: "/6-mo", billedNote: "RWF 11,250/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "RWF 16,685", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
+        "6months": { price: "RWF 83,425", periodLabel: "/6-mo", billedNote: "RWF 13,904/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "RWF 27,000", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
-        "6months": { price: "RWF 108,000", periodLabel: "/6-mo", billedNote: "RWF 18,000/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "RWF 33,370", periodLabel: "/month", billedNote: "Billed monthly via MTN Mobile Money" },
+        "6months": { price: "RWF 166,850", periodLabel: "/6-mo", billedNote: "RWF 27,808/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -282,37 +307,37 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     id: "CM",
     name: "Cameroon & Central Africa",
     currency: "XAF",
-    symbol: "FCFA",
+    symbol: "XAF",
     flag: "🇨🇲",
     flagUrl: "/flags/cameroon.png",
     providers: "Orange Money, MTN Mobile",
     prices: {
       premium: {
-        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
-        "6months": { price: "30,000 FCFA", periodLabel: "/6-mo", billedNote: "5,000 FCFA/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "XAF 6,600", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
+        "6months": { price: "XAF 33,000", periodLabel: "/6-mo", billedNote: "XAF 5,500/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
-        "6months": { price: "48,000 FCFA", periodLabel: "/6-mo", billedNote: "8,000 FCFA/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "XAF 13,200", periodLabel: "/month", billedNote: "Billed monthly via Orange / MTN" },
+        "6months": { price: "XAF 66,000", periodLabel: "/6-mo", billedNote: "XAF 11,000/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
   {
     id: "CI",
-    name: "Ivory Coast / Senegal / Franc CFA",
+    name: "Ivory Coast / Senegal / West CFA",
     currency: "XOF",
-    symbol: "FCFA",
+    symbol: "XOF",
     flag: "🇨🇮",
     flagUrl: "/flags/cote-d-ivoire.png",
     providers: "Wave, Orange Money, MTN, Moov",
     prices: {
       premium: {
-        "1month": { price: "6,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
-        "6months": { price: "30,000 FCFA", periodLabel: "/6-mo", billedNote: "5,000 FCFA/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "XOF 6,600", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
+        "6months": { price: "XOF 33,000", periodLabel: "/6-mo", billedNote: "XOF 5,500/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "12,000 FCFA", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
-        "6months": { price: "48,000 FCFA", periodLabel: "/6-mo", billedNote: "8,000 FCFA/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "XOF 13,200", periodLabel: "/month", billedNote: "Billed monthly via Wave / Orange / MTN" },
+        "6months": { price: "XOF 66,000", periodLabel: "/6-mo", billedNote: "XOF 11,000/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -320,18 +345,18 @@ export const MOMO_COUNTRIES: MoMoCountryOption[] = [
     id: "ZM",
     name: "Zambia",
     currency: "ZMW",
-    symbol: "ZK",
+    symbol: "ZMW",
     flag: "🇿🇲",
     flagUrl: "/flags/zambia.png",
     providers: "MTN, Airtel Money, Zamtel",
     prices: {
       premium: {
-        "1month": { price: "ZK 270", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
-        "6months": { price: "ZK 1,350", periodLabel: "/6-mo", billedNote: "ZK 225/mo equivalent • Save 17%", savings: "SAVE 17%" },
+        "1month": { price: "ZMW 225", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "ZMW 1,125", periodLabel: "/6-mo", billedNote: "ZMW 187.50/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
       vip: {
-        "1month": { price: "ZK 540", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
-        "6months": { price: "ZK 2,150", periodLabel: "/6-mo", billedNote: "ZK 358/mo equivalent • Save 33%", savings: "SAVE 33%" },
+        "1month": { price: "ZMW 450", periodLabel: "/month", billedNote: "Billed monthly via MTN / Airtel Money" },
+        "6months": { price: "ZMW 2,250", periodLabel: "/6-mo", billedNote: "ZMW 375/mo equivalent • Save 17%", savings: "SAVE 17%" },
       },
     },
   },
@@ -672,6 +697,10 @@ export default function PricingPage() {
         setCurrency("MOMO");
         const ci = MOMO_COUNTRIES.find((c) => c.id === "CI");
         if (ci) setSelectedMoMoCountry(ci);
+      } else if (tz.includes("Blantyre") || tz.includes("Lilongwe")) {
+        setCurrency("MOMO");
+        const mw = MOMO_COUNTRIES.find((c) => c.id === "MW");
+        if (mw) setSelectedMoMoCountry(mw);
       } else if (
         tz.includes("Lusaka") ||
         tz.includes("Maputo") ||
@@ -773,6 +802,7 @@ export default function PricingPage() {
         symbol: selectedMoMoCountry.symbol,
         name: `${selectedMoMoCountry.name} Mobile Money`,
         flag: selectedMoMoCountry.flag,
+        flagUrl: selectedMoMoCountry.flagUrl,
         region: `${selectedMoMoCountry.name} & Africa`,
         provider: "Bachs.io" as const,
         methodsText: selectedMoMoCountry.providers,
@@ -996,8 +1026,19 @@ export default function PricingPage() {
                     boxShadow: isSelected ? "0 2px 10px rgba(245, 158, 11, 0.3)" : "none",
                   }}
                 >
-                  <span style={{ fontSize: 15 }}>{opt.flag}</span>
-                  <span>{opt.code}</span>
+                  <img
+                    src={opt.flagUrl}
+                    alt={opt.code}
+                    style={{
+                      width: 18,
+                      height: 13,
+                      borderRadius: 2,
+                      objectFit: "cover",
+                      flexShrink: 0,
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                    }}
+                  />
+                  <span>{opt.code === "MOMO" ? "LOCAL" : opt.code}</span>
                   <span style={{ opacity: 0.75 }}>({opt.symbol})</span>
                 </button>
               );
@@ -1046,7 +1087,17 @@ export default function PricingPage() {
             >
               <div>
                 <div style={{ color: "#fbbf24", fontWeight: 900, fontSize: 13.5, display: "flex", alignItems: "center", gap: 7 }}>
-                  <span>{selectedMoMoCountry.flag}</span>
+                  <img
+                    src={selectedMoMoCountry.flagUrl}
+                    alt={selectedMoMoCountry.name}
+                    style={{
+                      width: 22,
+                      height: 15,
+                      borderRadius: 3,
+                      objectFit: "cover",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                    }}
+                  />
                   <span>Active Country: {selectedMoMoCountry.name} ({selectedMoMoCountry.currency})</span>
                 </div>
                 <p style={{ margin: "4px 0 0", fontSize: 12, color: "#d4cde3", lineHeight: 1.4 }}>
@@ -1953,15 +2004,18 @@ export default function PricingPage() {
             }}
           >
             {[
-              { code: "USD ($)", name: "United States & Global", flag: "🇺🇸", gateway: "Whop", methods: "PayPal, Cards, Apple/Google Pay" },
-              { code: "NGN (₦)", name: "Nigerian Naira", flag: "🇳🇬", gateway: "Whop", methods: "Bank Transfer, OPay, ATM Cards" },
-              { code: "ZAR (R)", name: "South African Rand", flag: "🇿🇦", gateway: "Whop", methods: "Credit/Debit Cards, Instant EFT" },
-              { code: "KES (KSh)", name: "Kenyan Shilling", flag: "🇰🇪", gateway: "Bachs.io", methods: "M-Pesa, Airtel Money" },
-              { code: "GHS (GH₵)", name: "Ghanaian Cedi", flag: "🇬🇭", gateway: "Bachs.io", methods: "MTN MoMo, Vodafone Cash" },
-              { code: "UGX", name: "Ugandan Shilling", flag: "🇺🇬", gateway: "Bachs.io", methods: "Airtel Money, MTN MoMo" },
-              { code: "TZS", name: "Tanzanian Shilling", flag: "🇹🇿", gateway: "Bachs.io", methods: "M-Pesa, Airtel Money" },
-              { code: "XOF / XAF", name: "West & Central African CFA", flag: "🌍", gateway: "Bachs.io", methods: "Orange Money, MTN Mobile" },
-              { code: "RWF", name: "Rwandan Franc", flag: "🇷🇼", gateway: "Bachs.io", methods: "MTN Mobile Money" },
+              { code: "USD ($)", name: "United States & Global", flagUrl: "/flags/united-states.png", gateway: "Whop", methods: "PayPal, Cards, Apple/Google Pay" },
+              { code: "NGN (₦)", name: "Nigeria", flagUrl: "/flags/nigeria.png", gateway: "Whop", methods: "Bank Transfer, OPay, ATM Cards" },
+              { code: "ZAR (R)", name: "South Africa", flagUrl: "/flags/south-africa.png", gateway: "Whop", methods: "Credit/Debit Cards, Instant EFT, Ozow" },
+              { code: "KES (KSh)", name: "Kenya", flagUrl: "/flags/kenya.png", gateway: "Bachs.io", methods: "Safaricom M-Pesa, Airtel Money" },
+              { code: "GHS (GH₵)", name: "Ghana", flagUrl: "/flags/ghana.png", gateway: "Bachs.io", methods: "MTN, Telecel / Vodafone, AirtelTigo" },
+              { code: "UGX", name: "Uganda", flagUrl: "/flags/uganda.png", gateway: "Bachs.io", methods: "MTN, Airtel Money" },
+              { code: "TZS", name: "Tanzania", flagUrl: "/flags/tanzania.png", gateway: "Bachs.io", methods: "Vodacom M-Pesa, Tigo Pesa, Airtel" },
+              { code: "MWK", name: "Malawi", flagUrl: "/flags/malawi.png", gateway: "Bachs.io", methods: "Airtel Money, TNM Mpamba" },
+              { code: "ZMW", name: "Zambia", flagUrl: "/flags/zambia.png", gateway: "Bachs.io", methods: "MTN, Airtel Money, Zamtel" },
+              { code: "RWF", name: "Rwanda", flagUrl: "/flags/rwanda.png", gateway: "Bachs.io", methods: "MTN Mobile Money, Airtel Money" },
+              { code: "XAF", name: "Cameroon & Central Africa", flagUrl: "/flags/cameroon.png", gateway: "Bachs.io", methods: "Orange Money, MTN Mobile" },
+              { code: "XOF", name: "Ivory Coast, Senegal & West CFA", flagUrl: "/flags/cote-d-ivoire.png", gateway: "Bachs.io", methods: "Wave, Orange Money, MTN, Moov" },
             ].map((item) => (
               <div
                 key={item.code}
@@ -1975,11 +2029,24 @@ export default function PricingPage() {
                   gap: 10,
                 }}
               >
-                <span style={{ fontSize: 20 }}>{item.flag}</span>
+                <img
+                  src={item.flagUrl}
+                  alt={item.name}
+                  style={{
+                    width: 24,
+                    height: 17,
+                    borderRadius: 3,
+                    objectFit: "cover",
+                    flexShrink: 0,
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                  }}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>{item.code}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,0.06)", color: "var(--text-dim)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>
+                      {item.name} <span style={{ color: "#a79fff", fontWeight: 700, fontSize: 11.5 }}>({item.code})</span>
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: "rgba(255,255,255,0.06)", color: "var(--text-dim)", flexShrink: 0 }}>
                       {item.gateway}
                     </span>
                   </div>

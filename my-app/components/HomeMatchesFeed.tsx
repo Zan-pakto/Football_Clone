@@ -134,6 +134,11 @@ function mapApiGroupsToLeagueGroups(apiGroups: any[]): LeagueGroupItem[] {
   }));
 }
 
+const HOME_DEFAULT_FILTERS: FilterState = {
+  ...DEFAULT_FILTERS,
+  category: "free_tips",
+};
+
 export default function HomeMatchesFeed({
   initialTodayGroups,
   initialYesterdayGroups = [],
@@ -141,7 +146,7 @@ export default function HomeMatchesFeed({
   totalYesterdayMatches = 0,
 }: HomeMatchesFeedProps) {
   const [activeDay, setActiveDay] = useState<"today" | "yesterday">("today");
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<FilterState>(HOME_DEFAULT_FILTERS);
 
   const [todayGroups, setTodayGroups] = useState<LeagueGroupItem[]>(initialTodayGroups);
   const [yesterdayGroups, setYesterdayGroups] = useState<LeagueGroupItem[]>(initialYesterdayGroups);
@@ -428,60 +433,58 @@ export default function HomeMatchesFeed({
     // Pro VIP users or visitors viewing previous day's results get all matches unlocked for free
     if (isVip || activeDay === "yesterday") return filteredGroups;
 
-    // For today's free picks, prioritize UPCOMING / LIVE high-confidence games over finished midnight games
-    const prioritizedGroups = filteredGroups
-      .map((g) => {
-        const live = g.matches.filter((m) => m.isLive || m.status === "live");
-        const upcoming = g.matches.filter(
-          (m) =>
-            !m.isLive &&
-            m.status !== "live" &&
-            m.status !== "won" &&
-            m.status !== "lost" &&
-            m.status !== "finished" &&
-            m.status !== "fin"
-        );
-        const finished = g.matches.filter(
-          (m) =>
-            m.status === "won" ||
-            m.status === "lost" ||
-            m.status === "finished" ||
-            m.status === "fin"
-        );
-        return {
-          ...g,
-          matches: [...upcoming, ...live, ...finished],
-        };
-      })
-      .sort((a, b) => {
-        const aHasPlayable = a.matches.some(
-          (m) => m.status !== "won" && m.status !== "lost" && m.status !== "finished" && m.status !== "fin"
-        );
-        const bHasPlayable = b.matches.some(
-          (m) => m.status !== "won" && m.status !== "lost" && m.status !== "finished" && m.status !== "fin"
-        );
-        if (aHasPlayable && !bHasPlayable) return -1;
-        if (!aHasPlayable && bHasPlayable) return 1;
-        return 0;
-      });
+    // For today's free picks, take upcoming unlocked picks across ALL leagues before falling back to live/finished games
+    const isFinishedStatus = (m: MatchData) =>
+      m.status === "won" || m.status === "lost" || m.status === "finished" || m.status === "fin";
+    const isLiveStatus = (m: MatchData) => Boolean(m.isLive || m.status === "live");
 
+    const selectedByGroup = new Map<number, MatchData[]>();
     let matchCounter = 0;
-    const limitedGroups: LeagueGroupItem[] = [];
 
-    for (const group of prioritizedGroups) {
-      if (matchCounter >= FREE_PREDICTIONS_LIMIT) break;
+    // Pass 1: Collect upcoming playable matches first across all groups
+    filteredGroups.forEach((group, idx) => {
+      if (matchCounter >= FREE_PREDICTIONS_LIMIT) return;
+      const upcoming = group.matches.filter((m) => !isLiveStatus(m) && !isFinishedStatus(m));
+      if (upcoming.length === 0) return;
 
       const remainingSlots = FREE_PREDICTIONS_LIMIT - matchCounter;
-      const allowedMatches = group.matches.slice(0, remainingSlots);
+      const picked = upcoming.slice(0, remainingSlots);
+      if (picked.length > 0) {
+        selectedByGroup.set(idx, [...picked]);
+        matchCounter += picked.length;
+      }
+    });
 
-      if (allowedMatches.length > 0) {
+    // Pass 2: Only if fewer than 10 upcoming matches exist, backfill with live then finished matches
+    if (matchCounter < FREE_PREDICTIONS_LIMIT) {
+      filteredGroups.forEach((group, idx) => {
+        if (matchCounter >= FREE_PREDICTIONS_LIMIT) return;
+        const secondary = [
+          ...group.matches.filter((m) => isLiveStatus(m) && !isFinishedStatus(m)),
+          ...group.matches.filter((m) => isFinishedStatus(m)),
+        ];
+        if (secondary.length === 0) return;
+
+        const remainingSlots = FREE_PREDICTIONS_LIMIT - matchCounter;
+        const picked = secondary.slice(0, remainingSlots);
+        if (picked.length > 0) {
+          const existing = selectedByGroup.get(idx) || [];
+          selectedByGroup.set(idx, [...existing, ...picked]);
+          matchCounter += picked.length;
+        }
+      });
+    }
+
+    const limitedGroups: LeagueGroupItem[] = [];
+    filteredGroups.forEach((group, idx) => {
+      const picked = selectedByGroup.get(idx);
+      if (picked && picked.length > 0) {
         limitedGroups.push({
           ...group,
-          matches: allowedMatches,
+          matches: picked,
         });
-        matchCounter += allowedMatches.length;
       }
-    }
+    });
 
     return limitedGroups;
   }, [filteredGroups, isVip, activeDay]);
@@ -626,6 +629,7 @@ export default function HomeMatchesFeed({
         availableLeagues={availableLeagues}
         totalMatchesCount={activeTotalMatches}
         filteredCount={filteredMatchesCount}
+        defaultFilters={HOME_DEFAULT_FILTERS}
       />
 
       {/* ── Loading Spinner for Yesterday data if fetching ── */}
@@ -892,7 +896,7 @@ export default function HomeMatchesFeed({
             Try broadening your rating threshold or choosing &quot;All Markets&quot;.
           </p>
           <button
-            onClick={() => setFilters(DEFAULT_FILTERS)}
+            onClick={() => setFilters(HOME_DEFAULT_FILTERS)}
             style={{
               padding: "8px 18px",
               borderRadius: 8,

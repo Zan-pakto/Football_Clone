@@ -42,6 +42,7 @@ interface MatchFilterModalProps {
   availableLeagues: Array<{ name: string; country: string; count: number }>;
   totalMatchesCount: number;
   filteredCount: number;
+  defaultFilters?: FilterState;
 }
 
 export default function MatchFilterModal({
@@ -50,20 +51,22 @@ export default function MatchFilterModal({
   availableLeagues,
   totalMatchesCount,
   filteredCount,
+  defaultFilters = DEFAULT_FILTERS,
 }: MatchFilterModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [leagueSearch, setLeagueSearch] = useState("");
+  const prioritizeDailyFreePicks = defaultFilters.category === "free_tips";
 
-  // Calculate active filter count
+  // Calculate active filter count relative to page defaults
   const activeCount = useMemo(() => {
     let count = 0;
-    if (filters.market !== "all") count++;
-    if (filters.minRating > 0) count++;
-    if (filters.category !== "all") count++;
+    if (filters.market !== defaultFilters.market) count++;
+    if (filters.minRating !== defaultFilters.minRating) count++;
+    if (filters.category !== defaultFilters.category) count++;
     if (filters.selectedLeagues.length > 0) count++;
     if (filters.searchTerm.trim() !== "") count++;
     return count;
-  }, [filters]);
+  }, [filters, defaultFilters]);
 
   const filteredLeagueList = useMemo(() => {
     if (!leagueSearch.trim()) return availableLeagues;
@@ -81,8 +84,38 @@ export default function MatchFilterModal({
   };
 
   const resetFilters = () => {
-    onFilterChange(DEFAULT_FILTERS);
+    onFilterChange(defaultFilters);
   };
+
+  const renderFreePicksPill = (label: string) => (
+    <button
+      key="daily_free_picks"
+      onClick={() =>
+        onFilterChange({
+          ...filters,
+          category: filters.category === "free_tips" && !prioritizeDailyFreePicks ? "all" : "free_tips",
+          market: prioritizeDailyFreePicks ? "all" : filters.market,
+        })
+      }
+      className={styles.quickPill}
+      data-active={filters.category === "free_tips"}
+      style={{
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: "pointer",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        border: filters.category === "free_tips" ? "1px solid #7c6cf5" : "1px solid rgba(167, 159, 255, 0.1)",
+        background: filters.category === "free_tips" ? "rgba(124, 108, 245, 0.22)" : "rgba(255, 255, 255, 0.03)",
+        color: filters.category === "free_tips" ? "#ffffff" : "#a79fff",
+        transition: "all 0.15s ease",
+      }}
+    >
+      <Zap size={12} fill={filters.category === "free_tips" ? "#ffd700" : "none"} color={filters.category === "free_tips" ? "#ffd700" : "currentColor"} />
+      <span>{label}</span>
+    </button>
+  );
 
   return (
     <>
@@ -92,17 +125,29 @@ export default function MatchFilterModal({
       >
         {/* Left: Quick Market Pills */}
         <div className={styles.quickPills}>
+          {prioritizeDailyFreePicks && renderFreePicksPill("Daily Free Picks")}
+
           {[
             { id: "all", label: "All Markets" },
             { id: "1x2", label: "1X2 Winner" },
             { id: "over25", label: "Over 2.5 Goals" },
             { id: "btts", label: "Both Teams Score" },
           ].map((m) => {
-            const isActive = filters.market === m.id && filters.category === "all";
+            const isActive =
+              m.id === "all"
+                ? filters.market === "all" && filters.category === "all"
+                : filters.market === m.id && filters.category !== "top_tips";
             return (
               <button
                 key={m.id}
-                onClick={() => onFilterChange({ ...filters, market: m.id as any, category: "all" })}
+                onClick={() => {
+                  if (m.id === "all") {
+                    onFilterChange({ ...filters, market: "all", category: "all" });
+                  } else {
+                    const nextMarket = filters.market === m.id ? "all" : (m.id as any);
+                    onFilterChange({ ...filters, market: nextMarket });
+                  }
+                }}
                 className={styles.quickPill}
                 data-active={isActive}
                 style={{
@@ -144,7 +189,12 @@ export default function MatchFilterModal({
 
           {/* Quick Top Tips Button */}
           <button
-            onClick={() => onFilterChange({ ...filters, category: filters.category === "top_tips" ? "all" : "top_tips" })}
+            onClick={() =>
+              onFilterChange({
+                ...filters,
+                category: filters.category === "top_tips" ? defaultFilters.category : "top_tips",
+              })
+            }
             className={styles.quickPill}
             data-active={filters.category === "top_tips"}
             style={{
@@ -164,27 +214,7 @@ export default function MatchFilterModal({
             <span>Top Tips</span>
           </button>
 
-          {/* Quick Free Tips Button */}
-          <button
-            onClick={() => onFilterChange({ ...filters, category: filters.category === "free_tips" ? "all" : "free_tips" })}
-            className={styles.quickPill}
-            data-active={filters.category === "free_tips"}
-            style={{
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              border: filters.category === "free_tips" ? "1px solid #7c6cf5" : "1px solid rgba(167, 159, 255, 0.1)",
-              background: filters.category === "free_tips" ? "rgba(124, 108, 245, 0.22)" : "rgba(255, 255, 255, 0.03)",
-              color: filters.category === "free_tips" ? "#c4b5fd" : "#a79fff",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Zap size={12} fill={filters.category === "free_tips" ? "#c4b5fd" : "none"} />
-            <span>Free Tips</span>
-          </button>
+          {!prioritizeDailyFreePicks && renderFreePicksPill("Free Tips")}
         </div>
 
         {/* Right: Search & Main Filter Modal Trigger */}

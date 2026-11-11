@@ -168,7 +168,17 @@ export default async function HomePage() {
   const totalMatches = todayGroups.reduce((acc, g) => acc + g.matches.length, 0);
   const totalYesterday = yesterdayGroups.reduce((acc, g) => acc + g.matches.length, 0);
   const allTodayMatchesFlat = todayGroups.flatMap((g) => g.matches);
-  const featuredMatch = allTodayMatchesFlat.length > 0 ? allTodayMatchesFlat[0] : null;
+  const featuredMatch =
+    allTodayMatchesFlat.find(
+      (m) =>
+        !m.isLocked &&
+        !m.predictions?.bestTip?.isLocked &&
+        m.status !== "won" &&
+        m.status !== "lost"
+    ) ||
+    allTodayMatchesFlat.find((m) => !m.isLocked && !m.predictions?.bestTip?.isLocked) ||
+    allTodayMatchesFlat[0] ||
+    null;
 
   return (
     <div style={{ background: "#0a081d", minHeight: "100vh", color: "#f1eff8" }}>
