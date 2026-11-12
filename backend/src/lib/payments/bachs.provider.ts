@@ -271,6 +271,7 @@ export class BachsPaymentProvider implements IPaymentProvider {
       eventType.includes("subscription.created") ||
       eventType.includes("subscription.trialing") ||
       eventType.includes("collection.succeeded") ||
+      eventType.includes("invoice.paid") ||
       eventType.includes("charge.success") ||
       eventType.includes("checkout.completed")
     ) {
