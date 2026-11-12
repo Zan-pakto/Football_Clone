@@ -181,6 +181,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
   try {
     const signature =
       (req.headers["x-bachs-signature"] as string) ||
+      (req.headers["x-bachs-signature-v2"] as string) ||
       (req.headers["bachs-signature"] as string) ||
       (req.headers["webhook-signature"] as string) ||
       (req.headers["whop-signature"] as string) ||

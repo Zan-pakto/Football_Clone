@@ -108,6 +108,7 @@ export class PaymentService {
 
     if (
       lowerHeaders["x-bachs-signature"] ||
+      lowerHeaders["x-bachs-signature-v2"] ||
       lowerHeaders["bachs-signature"] ||
       bodyStr.includes("bachs.io") ||
       Object.keys(BACHS_PRODUCT_TO_INTERNAL_PLAN).some((prodId) => bodyStr.includes(prodId))

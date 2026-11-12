@@ -146,21 +146,67 @@ export class BachsPaymentProvider implements IPaymentProvider {
   ): Promise<StandardWebhookEvent> {
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : rawBody;
 
-    // Verify HMAC signature if secret is provided (supports raw hex or sha256=<hex>)
-    if (this.webhookSecret && signature) {
-      const provided = signature.replace(/^sha256=/i, "").trim().toLowerCase();
-      const computed = crypto
-        .createHmac("sha256", this.webhookSecret)
-        .update(bodyStr)
-        .digest("hex")
-        .toLowerCase();
+    const lowerHeaders: Record<string, string> = {};
+    if (headers) {
+      for (const [k, v] of Object.entries(headers)) {
+        lowerHeaders[k.toLowerCase()] = Array.isArray(v) ? (v[0] || "") : (v || "");
+      }
+    }
 
-      const providedBuf = Buffer.from(provided, "utf8");
-      const computedBuf = Buffer.from(computed, "utf8");
-      if (
-        providedBuf.length !== computedBuf.length ||
-        !crypto.timingSafeEqual(providedBuf, computedBuf)
-      ) {
+    const headerSig =
+      lowerHeaders["x-bachs-signature"] ||
+      lowerHeaders["bachs-signature"] ||
+      signature ||
+      "";
+    const sigV2 = lowerHeaders["x-bachs-signature-v2"] || "";
+    const headerTs = lowerHeaders["x-bachs-timestamp"] || "";
+
+    // Parse optional v2 header format: "t=<unix_sec>,v1=<hex>"
+    let v2Timestamp = "";
+    let v2Signature = "";
+    if (sigV2) {
+      for (const part of sigV2.split(",")) {
+        const [k, val] = part.split("=").map((s) => s.trim());
+        if (k === "t" && val) v2Timestamp = val;
+        if (k === "v1" && val) v2Signature = val;
+      }
+    }
+
+    const activeTimestamp = (headerTs || v2Timestamp).trim();
+    const activeSignature = (headerSig || v2Signature).replace(/^sha256=/i, "").trim().toLowerCase();
+
+    // Verify HMAC-SHA256 signature when BACHS_WEBHOOK_SECRET is configured
+    if (this.webhookSecret) {
+      if (!activeSignature) {
+        throw new Error("Missing Bachs webhook signature");
+      }
+
+      if (activeTimestamp) {
+        const tsNum = parseInt(activeTimestamp, 10);
+        if (!Number.isFinite(tsNum) || Math.abs(Math.floor(Date.now() / 1000) - tsNum) > 300) {
+          throw new Error("Stale or invalid Bachs webhook timestamp");
+        }
+      }
+
+      const candidatePayloads = activeTimestamp
+        ? [`${activeTimestamp}.${bodyStr}`, bodyStr]
+        : [bodyStr];
+
+      const providedBuf = Buffer.from(activeSignature, "utf8");
+      const matched = candidatePayloads.some((payloadToSign) => {
+        const computed = crypto
+          .createHmac("sha256", this.webhookSecret)
+          .update(payloadToSign, "utf8")
+          .digest("hex")
+          .toLowerCase();
+        const computedBuf = Buffer.from(computed, "utf8");
+        return (
+          providedBuf.length === computedBuf.length &&
+          crypto.timingSafeEqual(providedBuf, computedBuf)
+        );
+      });
+
+      if (!matched) {
         throw new Error("Invalid Bachs webhook signature");
       }
     }

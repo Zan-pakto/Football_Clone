@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
       "whop-signature",
       "stripe-signature",
       "x-bachs-signature",
+      "x-bachs-signature-v2",
+      "x-bachs-timestamp",
       "bachs-signature",
     ];
 
