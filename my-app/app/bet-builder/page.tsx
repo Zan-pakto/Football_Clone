@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Info,
   Lock,
+  X,
   Zap,
   Ticket,
   ArrowRight,
@@ -159,6 +160,67 @@ function computeOddsWeightedTrust(
 
   return { trustScore: finalScore, trustLevel };
 }
+
+
+const FALLBACK_CREDIT_PRICES: Record<string, Record<string, string>> = {
+  CREDITS_1: {
+    USD: "$1.00",
+    NGN: "₦300",
+    ZAR: "R8",
+    KES: "KSh 100",
+    GHS: "GH₵5.00",
+    UGX: "UGX 4,000",
+    TZS: "TZS 2,500",
+    MWK: "MWK 700",
+    RWF: "RWF 1,000",
+    XAF: "FCFA 600",
+    XOF: "CFA 600",
+    ZMW: "ZMW 10.00",
+  },
+  CREDITS_3: {
+    USD: "$2.49",
+    NGN: "₦700",
+    ZAR: "R20",
+    KES: "KSh 120",
+    GHS: "GH₵12.00",
+    UGX: "UGX 4,000",
+    TZS: "TZS 2,500",
+    MWK: "MWK 1,500",
+    RWF: "RWF 1,400",
+    XAF: "FCFA 600",
+    XOF: "CFA 600",
+    ZMW: "ZMW 20.00",
+  },
+  CREDITS_10: {
+    USD: "$4.99",
+    NGN: "₦1,500",
+    ZAR: "R40",
+    KES: "KSh 250",
+    GHS: "GH₵25.00",
+    UGX: "UGX 7,500",
+    TZS: "TZS 5,000",
+    MWK: "MWK 3,500",
+    RWF: "RWF 3,000",
+    XAF: "FCFA 1,350",
+    XOF: "CFA 1,350",
+    ZMW: "ZMW 40.00",
+  },
+};
+
+const DIRECT_CHECKOUT_URLS: Record<string, { whop: string; bachs: string }> = {
+  CREDITS_1: {
+    whop: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
+    bachs: "https://checkout.bachs.io/pay/pl_fad4ab672b17",
+  },
+  CREDITS_3: {
+    whop: "https://whop.com/checkout/plan_mb5q96LMRR3SN",
+    bachs: "https://checkout.bachs.io/pay/pl_727267129bd5",
+  },
+  CREDITS_10: {
+    whop: "https://whop.com/checkout/plan_d9kvGCFy9sGB3",
+    bachs: "https://checkout.bachs.io/pay/pl_9a1e39a7dbd3",
+  },
+};
 
 export default function BetBuilderPage() {
   // Odds slider state
@@ -872,8 +934,19 @@ export default function BetBuilderPage() {
   const handleBuyCreditPack = async (packId: string) => {
     setCheckoutError(null);
     setBuyingPackId(packId);
+    const isMoMo = !["USD", "NGN", "ZAR"].includes(selectedCreditCurrency);
+    const directFallback = DIRECT_CHECKOUT_URLS[packId];
+    const directUrl = directFallback ? (isMoMo ? directFallback.bachs : directFallback.whop) : null;
+
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("jt_auth_token") : null;
+      if (!token) {
+        if (directUrl) {
+          window.location.href = directUrl;
+          return;
+        }
+      }
+
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: {
@@ -888,15 +961,19 @@ export default function BetBuilderPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success || !data.checkoutUrl) {
-        if (res.status === 401) {
-          setIsLoggedIn(false);
-          setLimitModalMode("signup");
+        if (directUrl) {
+          window.location.href = directUrl;
+          return;
         }
         setCheckoutError(data.error || "Unable to open checkout. Please try again.");
         return;
       }
       window.location.href = data.checkoutUrl;
     } catch {
+      if (directUrl) {
+        window.location.href = directUrl;
+        return;
+      }
       setCheckoutError("Network error initializing checkout. Please try again.");
     } finally {
       setBuyingPackId(null);
@@ -2321,12 +2398,13 @@ export default function BetBuilderPage() {
           >
             <div
               style={{
-                maxWidth: !isLoggedIn || limitModalMode === "signup" ? 470 : 560,
+                position: "relative",
+                maxWidth: limitModalMode === "signup" ? 480 : 580,
                 width: "100%",
                 background: "#141132",
                 border: "1px solid rgba(167, 159, 255, 0.25)",
-                borderRadius: 18,
-                padding: "28px 24px",
+                borderRadius: 20,
+                padding: "28px 24px 24px",
                 textAlign: "center",
                 boxShadow: "0 20px 50px rgba(0, 0, 0, 0.65)",
                 maxHeight: "92vh",
@@ -2334,7 +2412,90 @@ export default function BetBuilderPage() {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {!isLoggedIn || limitModalMode === "signup" ? (
+              {/* Top-Right Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowLimitModal(false)}
+                aria-label="Close dialog"
+                style={{
+                  position: "absolute",
+                  top: 14,
+                  right: 14,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#cbd5e1",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  zIndex: 5,
+                }}
+              >
+                <X size={16} />
+              </button>
+
+              {/* Segmented Mode Switcher Tabs */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: 12,
+                  padding: 4,
+                  marginBottom: 20,
+                  maxWidth: "100%",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setLimitModalMode("signup")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 9,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    background: limitModalMode === "signup" ? "#7c6cf5" : "transparent",
+                    color: limitModalMode === "signup" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+                    transition: "all 0.15s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Ticket size={13} />
+                  <span>Free Weekly Slip</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLimitModalMode("shop")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 9,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    background: limitModalMode !== "signup" ? "#7c6cf5" : "transparent",
+                    color: limitModalMode !== "signup" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+                    transition: "all 0.15s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Sparkles size={13} color="#fbbf24" />
+                  <span>Credit Packs &amp; Pricing</span>
+                </button>
+              </div>
+
+              {limitModalMode === "signup" ? (
                 <>
                   <div
                     style={{
@@ -2346,7 +2507,7 @@ export default function BetBuilderPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 18px",
+                      margin: "0 auto 16px",
                       color: "#c4b5fd",
                     }}
                   >
@@ -2355,8 +2516,8 @@ export default function BetBuilderPage() {
                   <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 10px" }}>
                     Claim Your 1 Free Weekly Slip
                   </h3>
-                  <p style={{ fontSize: 13.5, color: "#b6afe4", lineHeight: 1.6, margin: "0 0 24px" }}>
-                    Create a free Jolloftips.com account in 30 seconds to claim your <strong>1 free weekly Bet Builder slip</strong> or top up pay-as-you-go slip credits.
+                  <p style={{ fontSize: 13.5, color: "#b6afe4", lineHeight: 1.6, margin: "0 0 22px" }}>
+                    Create a free Jolloftips.com account in 30 seconds to claim your <strong>1 free weekly Bet Builder slip</strong> or buy pay-as-you-go slip credits.
                   </p>
                   <div style={{ display: "flex", gap: 10 }}>
                     <Link
@@ -2373,6 +2534,31 @@ export default function BetBuilderPage() {
                     >
                       Log In
                     </Link>
+                  </div>
+
+                  <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <button
+                      type="button"
+                      onClick={() => setLimitModalMode("shop")}
+                      style={{
+                        width: "100%",
+                        padding: "11px 16px",
+                        borderRadius: 12,
+                        background: "rgba(124, 108, 245, 0.14)",
+                        border: "1px solid rgba(124, 108, 245, 0.45)",
+                        color: "#c4b5fd",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Sparkles size={14} color="#fbbf24" />
+                      <span>Looking for pricing? View Credit Packs (from $1.00 / ₦300) &rarr;</span>
+                    </button>
                   </div>
                 </>
               ) : (
@@ -2415,16 +2601,11 @@ export default function BetBuilderPage() {
                               })})`
                             : ""
                         }. Top up instant slip credits or upgrade for unlimited access.`
-                      : `Current balance: ${creditsBalance} credit${
+                      : isLoggedIn
+                      ? `Current balance: ${creditsBalance} credit${
                           creditsBalance === 1 ? "" : "s"
-                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}${
-                          timedCredits > 0 && timedCreditsExpiresAt
-                            ? ` · next expiry ${new Date(timedCreditsExpiresAt).toLocaleDateString(
-                                undefined,
-                                { month: "short", day: "numeric" }
-                              )}`
-                            : ""
-                        }. 1 &amp; 3-Slip packs valid 7 days · 10-Slip pack valid 14 days.`}
+                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}. 1 &amp; 3-Slip packs valid 7 days · 10-Slip pack valid 14 days.`
+                      : "Pay-as-you-go slip credits. No monthly commitment required. 1 & 3-Slip packs valid 7 days · 10-Slip pack valid 14 days."}
                   </p>
 
                   {/* Currency Switcher (USD/NGN/ZAR via Cards/OPay, African Countries via Mobile Money) */}
@@ -2523,9 +2704,9 @@ export default function BetBuilderPage() {
                   <div style={{ display: "grid", gap: 10, marginBottom: 16, textAlign: "left" }}>
                     {creditPacks.map((pack) => {
                       const curKey = selectedCreditCurrency.toLowerCase();
-                      const isMoMo = !["usd", "ngn", "zar"].includes(curKey);
                       const variant = pack.currencyVariants?.[curKey];
-                      const formattedPrice = variant?.formattedAmount || (isMoMo ? "Local MoMo" : pack.currencyVariants?.usd?.formattedAmount || "$1.00");
+                      const fallbackPrice = FALLBACK_CREDIT_PRICES[pack.id]?.[selectedCreditCurrency] || FALLBACK_CREDIT_PRICES[pack.id]?.USD || "$1.00";
+                      const formattedPrice = variant?.formattedAmount || fallbackPrice;
                       const isPopular = pack.id === "CREDITS_3";
                       const isBuyingThis = buyingPackId === pack.id;
 
@@ -2605,6 +2786,24 @@ export default function BetBuilderPage() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!isLoggedIn && (
+                      <button
+                        type="button"
+                        onClick={() => setLimitModalMode("signup")}
+                        style={{
+                          padding: "10px",
+                          borderRadius: 10,
+                          background: "rgba(255, 255, 255, 0.05)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          color: "#c4b5fd",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        &larr; Want 1 Free Slip Weekly Instead? Sign Up Free
+                      </button>
+                    )}
                     <Link
                       href="/pricing"
                       className="bb-btn bb-btn--primary"
@@ -2619,13 +2818,18 @@ export default function BetBuilderPage() {
                     >
                       Or Go Unlimited — Premium / VIP Pro Plans
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setShowLimitModal(false)}
-                      className="bb-btn bb-btn--ghost"
+                    <a
+                      href="/pricing#credits"
+                      style={{
+                        fontSize: 12,
+                        color: "var(--gold)",
+                        textDecoration: "underline",
+                        textAlign: "center",
+                        marginTop: 4,
+                      }}
                     >
-                      Close
-                    </button>
+                      View full credit pricing table on Pricing Page &rarr;
+                    </a>
                   </div>
                 </>
               )}
