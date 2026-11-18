@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Copy,
   CheckCircle2,
+  Crown,
   Star,
   Check,
   ChevronDown,
@@ -2399,14 +2400,14 @@ export default function BetBuilderPage() {
             <div
               style={{
                 position: "relative",
-                maxWidth: limitModalMode === "signup" ? 480 : 580,
+                maxWidth: limitModalMode === "signup" ? 480 : 540,
                 width: "100%",
-                background: "#141132",
-                border: "1px solid rgba(167, 159, 255, 0.25)",
-                borderRadius: 20,
-                padding: "28px 24px 24px",
+                background: "linear-gradient(180deg, #181438 0%, #100d28 100%)",
+                border: "1px solid rgba(167, 159, 255, 0.22)",
+                borderRadius: 22,
+                padding: "24px 22px 20px",
                 textAlign: "center",
-                boxShadow: "0 20px 50px rgba(0, 0, 0, 0.65)",
+                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.7)",
                 maxHeight: "92vh",
                 overflowY: "auto",
               }}
@@ -2423,15 +2424,16 @@ export default function BetBuilderPage() {
                   right: 14,
                   width: 32,
                   height: 32,
-                  borderRadius: 10,
-                  background: "rgba(255, 255, 255, 0.08)",
+                  borderRadius: 9,
+                  background: "rgba(255, 255, 255, 0.07)",
                   border: "1px solid rgba(255, 255, 255, 0.12)",
                   color: "#cbd5e1",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  zIndex: 5,
+                  zIndex: 10,
+                  transition: "all 0.15s ease",
                 }}
               >
                 <X size={16} />
@@ -2444,29 +2446,30 @@ export default function BetBuilderPage() {
                   alignItems: "center",
                   gap: 4,
                   background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
                   borderRadius: 12,
-                  padding: 4,
-                  marginBottom: 20,
-                  maxWidth: "100%",
+                  padding: 3,
+                  marginBottom: 18,
+                  maxWidth: "calc(100% - 50px)",
                 }}
               >
                 <button
                   type="button"
                   onClick={() => setLimitModalMode("signup")}
                   style={{
-                    padding: "6px 14px",
+                    padding: "7px 14px",
                     borderRadius: 9,
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: 700,
-                    border: "none",
+                    border: limitModalMode === "signup" ? "1px solid rgba(124, 108, 245, 0.5)" : "1px solid transparent",
                     cursor: "pointer",
-                    background: limitModalMode === "signup" ? "#7c6cf5" : "transparent",
-                    color: limitModalMode === "signup" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
-                    transition: "all 0.15s ease",
-                    display: "flex",
+                    background: limitModalMode === "signup" ? "linear-gradient(135deg, #7c6cf5, #6366f1)" : "transparent",
+                    color: limitModalMode === "signup" ? "#ffffff" : "#94a3b8",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
+                    transition: "all 0.15s ease",
+                    boxShadow: limitModalMode === "signup" ? "0 2px 10px rgba(124, 108, 245, 0.35)" : "none",
                   }}
                 >
                   <Ticket size={13} />
@@ -2476,18 +2479,19 @@ export default function BetBuilderPage() {
                   type="button"
                   onClick={() => setLimitModalMode("shop")}
                   style={{
-                    padding: "6px 14px",
+                    padding: "7px 14px",
                     borderRadius: 9,
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: 700,
-                    border: "none",
+                    border: limitModalMode !== "signup" ? "1px solid rgba(124, 108, 245, 0.5)" : "1px solid transparent",
                     cursor: "pointer",
-                    background: limitModalMode !== "signup" ? "#7c6cf5" : "transparent",
-                    color: limitModalMode !== "signup" ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
-                    transition: "all 0.15s ease",
-                    display: "flex",
+                    background: limitModalMode !== "signup" ? "linear-gradient(135deg, #7c6cf5, #6366f1)" : "transparent",
+                    color: limitModalMode !== "signup" ? "#ffffff" : "#94a3b8",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
+                    transition: "all 0.15s ease",
+                    boxShadow: limitModalMode !== "signup" ? "0 2px 10px rgba(124, 108, 245, 0.35)" : "none",
                   }}
                 >
                   <Sparkles size={13} color="#fbbf24" />
@@ -2499,62 +2503,72 @@ export default function BetBuilderPage() {
                 <>
                   <div
                     style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 16,
+                      width: 52,
+                      height: 52,
+                      borderRadius: 15,
                       background: "rgba(124, 108, 245, 0.18)",
-                      border: "1px solid rgba(124, 108, 245, 0.35)",
+                      border: "1px solid rgba(124, 108, 245, 0.4)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 16px",
+                      margin: "0 auto 14px",
                       color: "#c4b5fd",
                     }}
                   >
-                    <Ticket size={28} />
+                    <Ticket size={26} />
                   </div>
-                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 10px" }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
                     Claim Your 1 Free Weekly Slip
                   </h3>
-                  <p style={{ fontSize: 13.5, color: "#b6afe4", lineHeight: 1.6, margin: "0 0 22px" }}>
-                    Create a free Jolloftips.com account in 30 seconds to claim your <strong>1 free weekly Bet Builder slip</strong> or buy pay-as-you-go slip credits.
+                  <p style={{ fontSize: 13, color: "#c9c3e8", lineHeight: 1.55, margin: "0 0 20px" }}>
+                    Create a free Jolloftips.com account in 30 seconds to claim your <strong>1 free weekly Bet Builder slip</strong>, or top up pay-as-you-go slip credits anytime.
                   </p>
                   <div style={{ display: "flex", gap: 10 }}>
                     <Link
                       href="/register?redirect=/bet-builder"
-                      className="bb-btn bb-btn--primary"
                       style={{
                         flex: 1,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        textAlign: "center",
-                        textDecoration: "none",
+                        gap: 8,
                         height: 44,
-                        lineHeight: 1,
+                        padding: "0 18px",
+                        borderRadius: 12,
+                        background: "linear-gradient(135deg, #7c6cf5, #6366f1)",
+                        color: "#ffffff",
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        textDecoration: "none",
+                        boxShadow: "0 6px 20px rgba(124, 108, 245, 0.35)",
                       }}
                     >
-                      Sign Up Free
+                      <Ticket size={15} />
+                      <span>Sign Up Free</span>
                     </Link>
                     <Link
                       href="/login?redirect=/bet-builder"
-                      className="bb-btn bb-btn--ghost"
                       style={{
                         flex: 1,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        textAlign: "center",
-                        textDecoration: "none",
                         height: 44,
-                        lineHeight: 1,
+                        padding: "0 18px",
+                        borderRadius: 12,
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: "#e2e8f0",
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        textDecoration: "none",
                       }}
                     >
                       Log In
                     </Link>
                   </div>
 
-                  <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
                     <button
                       type="button"
                       onClick={() => setLimitModalMode("shop")}
@@ -2562,13 +2576,13 @@ export default function BetBuilderPage() {
                         width: "100%",
                         padding: "11px 16px",
                         borderRadius: 12,
-                        background: "rgba(124, 108, 245, 0.14)",
-                        border: "1px solid rgba(124, 108, 245, 0.45)",
+                        background: "rgba(124, 108, 245, 0.12)",
+                        border: "1px solid rgba(124, 108, 245, 0.35)",
                         color: "#c4b5fd",
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: "pointer",
-                        display: "flex",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 8,
@@ -2583,57 +2597,60 @@ export default function BetBuilderPage() {
                 <>
                   <div
                     style={{
-                      width: 52,
-                      height: 52,
+                      width: 48,
+                      height: 48,
                       borderRadius: 14,
-                      background:
-                        limitModalMode === "quota"
-                          ? "rgba(245, 158, 11, 0.15)"
-                          : "rgba(124, 108, 245, 0.18)",
-                      border:
-                        limitModalMode === "quota"
-                          ? "1px solid rgba(245, 158, 11, 0.35)"
-                          : "1px solid rgba(124, 108, 245, 0.35)",
+                      background: "rgba(124, 108, 245, 0.18)",
+                      border: "1px solid rgba(124, 108, 245, 0.4)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 14px",
-                      color: limitModalMode === "quota" ? "#fbbf24" : "#c4b5fd",
+                      margin: "0 auto 10px",
+                      color: "#fbbf24",
                     }}
                   >
-                    {limitModalMode === "quota" ? <Lock size={24} /> : <Ticket size={24} />}
+                    <Sparkles size={22} />
                   </div>
 
-                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 8px" }}>
-                    {limitModalMode === "quota"
-                      ? "Weekly Free Slip Used"
-                      : "Top Up Bet Builder Credits"}
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: "#ffffff", margin: "0 0 6px", letterSpacing: "-0.01em" }}>
+                    Top Up Bet Builder Credits
                   </h3>
-                  <p style={{ fontSize: 13, color: "#c9c3e8", lineHeight: 1.55, margin: "0 0 16px" }}>
-                    {limitModalMode === "quota"
-                      ? `You've used this week's free slip${
-                          nextFreeResetAt
-                            ? ` (resets ${new Date(nextFreeResetAt).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                              })})`
-                            : ""
-                        }. Top up instant slip credits or upgrade for unlimited access.`
-                      : isLoggedIn
-                      ? `Current balance: ${creditsBalance} credit${
-                          creditsBalance === 1 ? "" : "s"
-                        }${freeWeeklyRemaining > 0 ? " + 1 weekly free slip ready" : ""}. 1 &amp; 3-Slip packs valid 7 days · 10-Slip pack valid 14 days.`
-                      : "Pay-as-you-go slip credits. No monthly commitment required. 1 & 3-Slip packs valid 7 days · 10-Slip pack valid 14 days."}
+
+                  {limitModalMode === "quota" && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "5px 12px",
+                        borderRadius: 20,
+                        background: "rgba(245, 158, 11, 0.12)",
+                        border: "1px solid rgba(245, 158, 11, 0.35)",
+                        color: "#fcd34d",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        margin: "0 auto 8px",
+                      }}
+                    >
+                      <Lock size={12} />
+                      <span>
+                        Weekly free slip used{nextFreeResetAt ? ` (resets ${new Date(nextFreeResetAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })})` : ""}
+                      </span>
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: 12.5, color: "#94a3b8", lineHeight: 1.5, margin: "0 0 14px" }}>
+                    Pay-as-you-go slip credits. No subscription commitment. 1 &amp; 3-Slip packs valid 7 days &bull; 10-Slip pack valid 14 days.
                   </p>
 
-                  {/* Currency Switcher (USD/NGN/ZAR via Cards/OPay, African Countries via Mobile Money) */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  {/* Currency Switcher */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 14 }}>
                     <div
                       style={{
                         display: "inline-flex",
                         flexWrap: "wrap",
                         justifyContent: "center",
-                        gap: 6,
+                        gap: 4,
                         padding: 4,
                         borderRadius: 12,
                         background: "rgba(255, 255, 255, 0.05)",
@@ -2655,14 +2672,16 @@ export default function BetBuilderPage() {
                           type="button"
                           onClick={() => setSelectedCreditCurrency(cur.code)}
                           style={{
-                            padding: "6px 12px",
+                            padding: "6px 14px",
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 700,
-                            border: "none",
+                            border: cur.isActive ? "1px solid rgba(124, 108, 245, 0.6)" : "1px solid transparent",
                             cursor: "pointer",
-                            background: cur.isActive ? "#7c6cf5" : "transparent",
-                            color: cur.isActive ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
+                            background: cur.isActive ? "linear-gradient(135deg, #7c6cf5, #6366f1)" : "transparent",
+                            color: cur.isActive ? "#ffffff" : "#94a3b8",
+                            boxShadow: cur.isActive ? "0 2px 10px rgba(124, 108, 245, 0.35)" : "none",
+                            transition: "all 0.15s ease",
                           }}
                         >
                           {cur.label}
@@ -2680,7 +2699,7 @@ export default function BetBuilderPage() {
                           maxWidth: 320,
                           padding: "8px 12px",
                           borderRadius: 10,
-                          background: "rgba(255, 255, 255, 0.07)",
+                          background: "#120f2e",
                           border: "1px solid rgba(124, 108, 245, 0.45)",
                           color: "#ffffff",
                           fontSize: 12.5,
@@ -2688,15 +2707,15 @@ export default function BetBuilderPage() {
                           outline: "none",
                         }}
                       >
-                        <option value="KES" style={{ background: "#141132" }}>Kenya — M-Pesa / Airtel (KES)</option>
-                        <option value="GHS" style={{ background: "#141132" }}>Ghana — MTN / Telecel MoMo (GHS)</option>
-                        <option value="UGX" style={{ background: "#141132" }}>Uganda — MTN / Airtel MoMo (UGX)</option>
-                        <option value="TZS" style={{ background: "#141132" }}>Tanzania — M-Pesa / Tigo Pesa (TZS)</option>
-                        <option value="MWK" style={{ background: "#141132" }}>Malawi — Airtel / TNM Mpamba (MWK)</option>
-                        <option value="ZMW" style={{ background: "#141132" }}>Zambia — MTN / Airtel MoMo (ZMW)</option>
-                        <option value="RWF" style={{ background: "#141132" }}>Rwanda — MTN / Airtel MoMo (RWF)</option>
-                        <option value="XAF" style={{ background: "#141132" }}>Cameroon &amp; Central Africa (XAF)</option>
-                        <option value="XOF" style={{ background: "#141132" }}>Ivory Coast / Senegal / West Africa (XOF)</option>
+                        <option value="KES">Kenya — M-Pesa / Airtel (KES)</option>
+                        <option value="GHS">Ghana — MTN / Telecel MoMo (GHS)</option>
+                        <option value="UGX">Uganda — MTN / Airtel MoMo (UGX)</option>
+                        <option value="TZS">Tanzania — M-Pesa / Tigo Pesa (TZS)</option>
+                        <option value="MWK">Malawi — Airtel / TNM Mpamba (MWK)</option>
+                        <option value="ZMW">Zambia — MTN / Airtel MoMo (ZMW)</option>
+                        <option value="RWF">Rwanda — MTN / Airtel MoMo (RWF)</option>
+                        <option value="XAF">Cameroon &amp; Central Africa (XAF)</option>
+                        <option value="XOF">Ivory Coast / Senegal / West Africa (XOF)</option>
                       </select>
                     )}
                   </div>
@@ -2704,8 +2723,8 @@ export default function BetBuilderPage() {
                   {checkoutError && (
                     <div
                       style={{
-                        marginBottom: 14,
-                        padding: "9px 12px",
+                        marginBottom: 12,
+                        padding: "8px 12px",
                         borderRadius: 10,
                         background: "rgba(239, 68, 68, 0.14)",
                         border: "1px solid rgba(239, 68, 68, 0.38)",
@@ -2719,13 +2738,14 @@ export default function BetBuilderPage() {
                   )}
 
                   {/* 3 Credit Pack Cards */}
-                  <div style={{ display: "grid", gap: 10, marginBottom: 16, textAlign: "left" }}>
+                  <div style={{ display: "grid", gap: 9, marginBottom: 14, textAlign: "left" }}>
                     {creditPacks.map((pack) => {
                       const curKey = selectedCreditCurrency.toLowerCase();
                       const variant = pack.currencyVariants?.[curKey];
                       const fallbackPrice = FALLBACK_CREDIT_PRICES[pack.id]?.[selectedCreditCurrency] || FALLBACK_CREDIT_PRICES[pack.id]?.USD || "$1.00";
                       const formattedPrice = variant?.formattedAmount || fallbackPrice;
                       const isPopular = pack.id === "CREDITS_3";
+                      const isBestValue = pack.id === "CREDITS_10";
                       const isBuyingThis = buyingPackId === pack.id;
 
                       return (
@@ -2736,42 +2756,49 @@ export default function BetBuilderPage() {
                             alignItems: "center",
                             justifyContent: "space-between",
                             gap: 12,
-                            padding: "13px 14px",
+                            padding: "12px 14px",
                             borderRadius: 14,
                             background: isPopular
-                              ? "rgba(124, 108, 245, 0.16)"
+                              ? "linear-gradient(135deg, rgba(124, 108, 245, 0.14) 0%, rgba(18, 16, 38, 0.8) 100%)"
+                              : isBestValue
+                              ? "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(18, 16, 38, 0.8) 100%)"
                               : "rgba(255, 255, 255, 0.04)",
                             border: isPopular
-                              ? "1px solid rgba(124, 108, 245, 0.55)"
+                              ? "1.5px solid rgba(124, 108, 245, 0.65)"
+                              : isBestValue
+                              ? "1.5px solid rgba(16, 185, 129, 0.5)"
                               : "1px solid rgba(255, 255, 255, 0.12)",
+                            boxShadow: isPopular ? "0 4px 16px rgba(124, 108, 245, 0.15)" : isBestValue ? "0 4px 16px rgba(16, 185, 129, 0.12)" : "none",
                           }}
                         >
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <strong style={{ fontSize: 14.5, color: "#ffffff" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                              <strong style={{ fontSize: 14, color: "#ffffff", fontWeight: 800 }}>
                                 {pack.credits} Bet Builder Slip{pack.credits === 1 ? "" : "s"}
                               </strong>
                               {pack.badge && (
                                 <span
                                   style={{
-                                    fontSize: 10,
-                                    fontWeight: 800,
+                                    fontSize: 9.5,
+                                    fontWeight: 900,
+                                    letterSpacing: "0.04em",
                                     textTransform: "uppercase",
                                     padding: "2px 7px",
                                     borderRadius: 999,
-                                    background:
-                                      pack.id === "CREDITS_10"
-                                        ? "rgba(47, 208, 138, 0.2)"
-                                        : "rgba(124, 108, 245, 0.28)",
-                                    color:
-                                      pack.id === "CREDITS_10" ? "#34d399" : "#d4ceff",
+                                    background: isBestValue
+                                      ? "rgba(16, 185, 129, 0.2)"
+                                      : "rgba(124, 108, 245, 0.25)",
+                                    border: isBestValue
+                                      ? "1px solid rgba(16, 185, 129, 0.4)"
+                                      : "1px solid rgba(124, 108, 245, 0.45)",
+                                    color: isBestValue ? "#34d399" : "#c4b5fd",
                                   }}
                                 >
                                   {pack.badge}
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginTop: 2 }}>
+                            <div style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 2 }}>
                               {pack.description}
                             </div>
                           </div>
@@ -2782,18 +2809,30 @@ export default function BetBuilderPage() {
                             onClick={() => handleBuyCreditPack(pack.id)}
                             style={{
                               flexShrink: 0,
-                              padding: "9px 14px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              height: 38,
+                              padding: "0 15px",
                               borderRadius: 10,
                               border: "none",
                               background: isPopular
                                 ? "linear-gradient(135deg, #7c6cf5 0%, #5b4ce0 100%)"
-                                : "rgba(255, 255, 255, 0.12)",
+                                : isBestValue
+                                ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                                : "rgba(255, 255, 255, 0.1)",
                               color: "#ffffff",
                               fontWeight: 800,
-                              fontSize: 13,
+                              fontSize: 12.5,
                               cursor: buyingPackId !== null ? "wait" : "pointer",
                               opacity: buyingPackId && !isBuyingThis ? 0.6 : 1,
+                              boxShadow: isPopular
+                                ? "0 4px 14px rgba(124, 108, 245, 0.35)"
+                                : isBestValue
+                                ? "0 4px 14px rgba(16, 185, 129, 0.35)"
+                                : "none",
                               minWidth: 96,
+                              transition: "all 0.15s ease",
                             }}
                           >
                             {isBuyingThis ? "Opening..." : `Buy ${formattedPrice}`}
@@ -2803,56 +2842,90 @@ export default function BetBuilderPage() {
                     })}
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {!isLoggedIn && (
-                      <button
-                        type="button"
-                        onClick={() => setLimitModalMode("signup")}
+                  {/* VIP Unlimited Banner */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.04) 100%)",
+                        border: "1px solid rgba(245, 158, 11, 0.3)",
+                        borderRadius: 14,
+                        padding: "12px 14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        textAlign: "left",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#fbbf24", fontWeight: 800, fontSize: 12.5 }}>
+                          <Crown size={14} />
+                          <span>Want Unlimited Slips?</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: "#cbd5e1", marginTop: 2 }}>
+                          VIP Pro subscribers get unlimited generations + VIP picks.
+                        </div>
+                      </div>
+
+                      <Link
+                        href="/pricing"
                         style={{
-                          padding: "10px",
-                          borderRadius: 10,
-                          background: "rgba(255, 255, 255, 0.05)",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          color: "#c4b5fd",
+                          flexShrink: 0,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          height: 34,
+                          padding: "0 13px",
+                          borderRadius: 9,
+                          background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                          color: "#0f0c24",
+                          fontWeight: 800,
                           fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
+                          textDecoration: "none",
+                          boxShadow: "0 3px 10px rgba(245, 158, 11, 0.25)",
                         }}
                       >
-                        &larr; Want 1 Free Slip Weekly Instead? Sign Up Free
-                      </button>
-                    )}
-                    <Link
-                      href="/pricing"
-                      className="bb-btn bb-btn--primary"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        textDecoration: "none",
-                        textAlign: "center",
-                        background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                        borderColor: "#f59e0b",
-                        color: "#08071e",
-                        fontWeight: 900,
-                        height: 44,
-                        lineHeight: 1,
-                      }}
-                    >
-                      Or Go Unlimited — Premium / VIP Pro Plans
-                    </Link>
-                    <a
-                      href="/pricing#credits"
-                      style={{
-                        fontSize: 12,
-                        color: "var(--gold)",
-                        textDecoration: "underline",
-                        textAlign: "center",
-                        marginTop: 4,
-                      }}
-                    >
-                      View full credit pricing table on Pricing Page &rarr;
-                    </a>
+                        <span>View Plans</span>
+                        <ArrowRight size={12} />
+                      </Link>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 2 }}>
+                      {!isLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={() => setLimitModalMode("signup")}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#c4b5fd",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            textUnderlineOffset: 3,
+                          }}
+                        >
+                          &larr; Claim 1 Free Weekly Slip
+                        </button>
+                      )}
+                      <a
+                        href="/pricing#credits"
+                        style={{
+                          fontSize: 12,
+                          color: "var(--gold)",
+                          textDecoration: "underline",
+                          textUnderlineOffset: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <span>Full Pricing Table</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
                   </div>
                 </>
               )}
