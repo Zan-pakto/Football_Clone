@@ -16,6 +16,7 @@ import {
   Zap,
   HelpCircle,
   ChevronDown,
+  Ticket,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -187,6 +188,108 @@ export interface MoMoCountryOption {
     };
   };
 }
+
+
+interface CreditPackOption {
+  id: string;
+  name: string;
+  slips: number;
+  validity: string;
+  badge?: string;
+  whopUrl: string;
+  bachsUrl: string;
+  prices: Record<string, string>;
+  features: string[];
+}
+
+const CREDIT_PACKS_CONFIG: CreditPackOption[] = [
+  {
+    id: "CREDITS_1",
+    name: "1 Slip Pack",
+    slips: 1,
+    validity: "Valid for 7 days",
+    whopUrl: "https://whop.com/checkout/plan_jvWQQ5YSRkiOX",
+    bachsUrl: "https://checkout.bachs.io/pay/pl_fad4ab672b17",
+    prices: {
+      USD: "$1.00",
+      NGN: "₦300",
+      ZAR: "R8",
+      KES: "KSh 100",
+      GHS: "GH₵5.00",
+      UGX: "UGX 4,000",
+      TZS: "TZS 2,500",
+      MWK: "MWK 700",
+      RWF: "RWF 1,000",
+      XAF: "FCFA 600",
+      XOF: "CFA 600",
+      ZMW: "ZMW 10.00",
+    },
+    features: [
+      "1 AI-optimized accumulator slip",
+      "Dynamic odds & trust threshold matching",
+      "One-click booking code generation",
+      "Valid for 7 days from purchase",
+    ],
+  },
+  {
+    id: "CREDITS_3",
+    name: "3 Slips Pack",
+    slips: 3,
+    validity: "Valid for 7 days",
+    badge: "MOST POPULAR",
+    whopUrl: "https://whop.com/checkout/plan_mb5q96LMRR3SN",
+    bachsUrl: "https://checkout.bachs.io/pay/pl_727267129bd5",
+    prices: {
+      USD: "$2.49",
+      NGN: "₦700",
+      ZAR: "R20",
+      KES: "KSh 120",
+      GHS: "GH₵12.00",
+      UGX: "UGX 4,000",
+      TZS: "TZS 2,500",
+      MWK: "MWK 1,500",
+      RWF: "RWF 1,400",
+      XAF: "FCFA 600",
+      XOF: "CFA 600",
+      ZMW: "ZMW 20.00",
+    },
+    features: [
+      "3 AI-optimized accumulator slips",
+      "Multi-day & weekend fixture coverage",
+      "Save up to 22% vs single slip rate",
+      "Valid for 7 days from purchase",
+    ],
+  },
+  {
+    id: "CREDITS_10",
+    name: "10 Slips Pack",
+    slips: 10,
+    validity: "Valid for 14 days",
+    badge: "BEST VALUE",
+    whopUrl: "https://whop.com/checkout/plan_d9kvGCFy9sGB3",
+    bachsUrl: "https://checkout.bachs.io/pay/pl_9a1e39a7dbd3",
+    prices: {
+      USD: "$4.99",
+      NGN: "₦1,500",
+      ZAR: "R40",
+      KES: "KSh 250",
+      GHS: "GH₵25.00",
+      UGX: "UGX 7,500",
+      TZS: "TZS 5,000",
+      MWK: "MWK 3,500",
+      RWF: "RWF 3,000",
+      XAF: "FCFA 1,350",
+      XOF: "CFA 1,350",
+      ZMW: "ZMW 40.00",
+    },
+    features: [
+      "10 AI-optimized accumulator slips",
+      "Extended 14-day validity window",
+      "Save 50% vs single slip rate",
+      "Full booking code conversion to SportyBet & Bet9ja",
+    ],
+  },
+];
 
 export const MOMO_COUNTRIES: MoMoCountryOption[] = [
   {
@@ -967,6 +1070,27 @@ export default function PricingPage() {
           >
             <Sparkles size={16} />
             <span>7-Day Free Trial Included on All Sign-Ups &bull; $0 Today &bull; Cancel Anytime</span>
+          </div>
+
+          {/* Quick jump to Bet Builder Credits */}
+          <div style={{ marginTop: 14 }}>
+            <a
+              href="#credits"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--gold)",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+                opacity: 0.95,
+              }}
+            >
+              <Ticket size={14} />
+              <span>Looking for pay-per-slip Bet Builder credits instead? View Slip Credit Packs &darr;</span>
+            </a>
           </div>
         </div>
 
@@ -1799,7 +1923,258 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Accepted Payment Methods Section (Featuring PayPal, OPay, M-Pesa, Mobile Money) */}
+        {/* ════════════════════════════════════════════════════════════
+            BET BUILDER SLIP CREDITS (PAY-AS-YOU-GO)
+            ════════════════════════════════════════════════════════════ */}
+        <section
+          id="credits"
+          style={{
+            maxWidth: 1140,
+            margin: "0 auto 50px",
+            background: "linear-gradient(180deg, rgba(22, 18, 48, 0.75) 0%, rgba(14, 12, 30, 0.9) 100%)",
+            border: "1px solid rgba(124, 108, 245, 0.35)",
+            borderRadius: 20,
+            padding: "36px 28px",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.35)",
+          }}
+        >
+          <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 34px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "4px 14px",
+                borderRadius: 20,
+                background: "rgba(124, 108, 245, 0.18)",
+                border: "1px solid rgba(124, 108, 245, 0.4)",
+                color: "#c4b5fd",
+                fontSize: 11.5,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              PAY-AS-YOU-GO &bull; NO MONTHLY COMMITMENT
+            </span>
+            <h2
+              style={{
+                fontSize: "clamp(22px, 3.2vw, 30px)",
+                fontWeight: 900,
+                color: "#ffffff",
+                margin: "0 0 10px",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Bet Builder Slip Credits
+            </h2>
+            <p style={{ fontSize: 14, color: "#b6afe4", lineHeight: 1.6, margin: 0 }}>
+              Build personalized high-accuracy accumulator slips instantly with our AI model.
+              Every registered user receives <strong>1 free slip every week</strong>.
+              Subscribers to <strong style={{ color: "var(--gold)" }}>Premium Pro &amp; VIP Pro</strong> enjoy <strong>unlimited slips</strong>.
+              Need extra slips without a subscription? Top up on-demand slip credit packs below.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: 20,
+            }}
+          >
+            {CREDIT_PACKS_CONFIG.map((pack) => {
+              const currentCreditCur = currency === "MOMO" ? selectedMoMoCountry.currency : currency;
+              const formattedPrice = pack.prices[currentCreditCur] || pack.prices.USD;
+              const isBachs = !["USD", "NGN", "ZAR"].includes(currentCreditCur);
+              const checkoutUrl = isBachs ? pack.bachsUrl : pack.whopUrl;
+              const isPopular = pack.id === "CREDITS_3";
+              const isBestValue = pack.id === "CREDITS_10";
+
+              return (
+                <div
+                  key={pack.id}
+                  style={{
+                    position: "relative",
+                    background: isPopular
+                      ? "linear-gradient(180deg, rgba(124, 108, 245, 0.15) 0%, rgba(18, 16, 38, 0.9) 100%)"
+                      : "rgba(18, 18, 30, 0.7)",
+                    border: isPopular
+                      ? "1.5px solid #7c6cf5"
+                      : isBestValue
+                      ? "1.5px solid rgba(251, 191, 36, 0.5)"
+                      : "1px solid var(--border-color)",
+                    borderRadius: 16,
+                    padding: "26px 22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    boxShadow: isPopular ? "0 10px 30px rgba(124, 108, 245, 0.2)" : "none",
+                  }}
+                >
+                  {pack.badge && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: -11,
+                        right: 20,
+                        padding: "3px 10px",
+                        borderRadius: 12,
+                        background: isPopular
+                          ? "linear-gradient(135deg, #7c6cf5, #6366f1)"
+                          : "linear-gradient(135deg, #f59e0b, #d97706)",
+                        color: "#ffffff",
+                        fontSize: 10,
+                        fontWeight: 900,
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {pack.badge}
+                    </div>
+                  )}
+
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: "rgba(124, 108, 245, 0.18)",
+                          border: "1px solid rgba(124, 108, 245, 0.35)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#c4b5fd",
+                        }}
+                      >
+                        <Ticket size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 17, fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                          {pack.name}
+                        </h3>
+                        <span style={{ fontSize: 11.5, color: "#94a3b8" }}>{pack.validity}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "16px 0 20px" }}>
+                      <span style={{ fontSize: 32, fontWeight: 900, color: "#ffffff" }}>
+                        {formattedPrice}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                        {pack.slips === 1 ? "one-time" : `~${Math.round((parseFloat(formattedPrice.replace(/[^0-9.]/g, '')) || 0) / pack.slips * 100) / 100} / slip`}
+                      </span>
+                    </div>
+
+                    <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+                      {pack.features.map((feature, idx) => (
+                        <li
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 8,
+                            fontSize: 12.5,
+                            color: "var(--text-secondary)",
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          <Check size={14} color="#2fd08a" style={{ flexShrink: 0, marginTop: 2 }} />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <a
+                      href={checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="gold-outline-btn"
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        textDecoration: "none",
+                        boxSizing: "border-box",
+                        background: isPopular
+                          ? "linear-gradient(135deg, #7c6cf5, #6366f1)"
+                          : "rgba(255, 255, 255, 0.06)",
+                        color: "#ffffff",
+                        borderColor: isPopular ? "#7c6cf5" : "rgba(255, 255, 255, 0.2)",
+                      }}
+                    >
+                      <Ticket size={14} />
+                      <span>Buy {pack.slips} Slip{pack.slips > 1 ? "s" : ""} ({formattedPrice})</span>
+                    </a>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        color: "var(--text-dim)",
+                        textAlign: "center",
+                        marginTop: 8,
+                      }}
+                    >
+                      {isBachs ? `${selectedMoMoCountry.name} Mobile Money` : currentCreditCur === "NGN" ? "Cards • OPay • Bank Transfer" : "Cards • Apple Pay • Google Pay"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              marginTop: 26,
+              padding: "14px 18px",
+              borderRadius: 12,
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#c9c3e8" }}>
+              <Sparkles size={16} color="#fbbf24" />
+              <span>
+                Want to test the Bet Builder first? Try generating slips with our AI engine on the Bet Builder page.
+              </span>
+            </div>
+            <Link
+              href="/bet-builder"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 16px",
+                borderRadius: 10,
+                background: "rgba(124, 108, 245, 0.2)",
+                border: "1px solid rgba(124, 108, 245, 0.5)",
+                color: "#ffffff",
+                fontSize: 12.5,
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              <span>Launch Bet Builder</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </section>
+
+
+                {/* Accepted Payment Methods Section (Featuring PayPal, OPay, M-Pesa, Mobile Money) */}
         <div
           style={{
             maxWidth: 1140,

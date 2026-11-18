@@ -1319,25 +1319,47 @@ export default function BetBuilderPage() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/register?redirect=/bet-builder"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  background: "rgba(124, 108, 245, 0.18)",
-                  border: "1px solid rgba(124, 108, 245, 0.4)",
-                  color: "#c4b5fd",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textDecoration: "none",
-                }}
-              >
-                <Ticket size={13} />
-                <span>Sign up free for 1 Weekly Slip</span>
-              </Link>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Link
+                  href="/register?redirect=/bet-builder"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    background: "rgba(124, 108, 245, 0.18)",
+                    border: "1px solid rgba(124, 108, 245, 0.4)",
+                    color: "#c4b5fd",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textDecoration: "none",
+                  }}
+                >
+                  <Ticket size={13} />
+                  <span>Sign up free for 1 Weekly Slip</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => openCreditsModal("shop")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    background: "rgba(255, 255, 255, 0.06)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#e2e8f0",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Sparkles size={12} color="#fbbf24" />
+                  <span>Credit Packs Pricing</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
