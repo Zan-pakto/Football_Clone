@@ -1230,9 +1230,9 @@ export default function BetBuilderPage() {
       <Navbar />
 
       {/* Main Container */}
-      <main style={{ maxWidth: 1360, margin: "0 auto", padding: "24px 20px 80px", position: "relative", zIndex: 1 }}>
+      <main className="bb-main">
         {/* Compact Hero Header */}
-        <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div className="bb-header">
           <div>
             <div className="bb-tagline" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Sparkles size={12} />
@@ -1242,7 +1242,7 @@ export default function BetBuilderPage() {
           </div>
 
           {/* User Tier / Weekly Free Slip & Credits Status Badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div className="bb-header__badges">
             {isVip ? (
               <div
                 style={{
@@ -1448,6 +1448,7 @@ export default function BetBuilderPage() {
 
               {/* Universal Markets Fast Toggle (SportyBet & Bet9ja 100% Ready) */}
               <div
+                className="bb-universal-box"
                 style={{
                   padding: "10px 12px",
                   borderRadius: 10,
@@ -1790,7 +1791,7 @@ export default function BetBuilderPage() {
             ) : isGenerating ? (
               /* High-end Generation Animation */
               <div
-                className="bb-placeholder"
+                className="bb-placeholder bb-placeholder--generating"
                 style={{
                   minHeight: 380,
                   display: "flex",
@@ -1847,7 +1848,7 @@ export default function BetBuilderPage() {
             ) : generatedSlip.length === 0 ? (
               /* High-Converting Pre-Generation State: Games ONLY revealed after hitting Generate Slip */
               <div
-                className="bb-placeholder"
+                className="bb-placeholder bb-placeholder--pregen"
                 style={{
                   minHeight: 460,
                   display: "flex",
@@ -1912,6 +1913,7 @@ export default function BetBuilderPage() {
 
                 {/* 3 Value Pillars */}
                 <div
+                  className="bb-pillars-grid"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -2122,11 +2124,11 @@ export default function BetBuilderPage() {
                   </div>
 
                   {/* Header Actions */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div className="bb-slip__actions">
                     <button
                       type="button"
                       onClick={() => setShowBookingModal(true)}
-                      className="bb-slip__fav"
+                      className="bb-slip__fav bb-slip__fav--primary"
                       style={{
                         background: "linear-gradient(135deg, rgba(47, 208, 138, 0.22) 0%, rgba(20, 184, 166, 0.22) 100%)",
                         color: "#2fd08a",
@@ -2823,7 +2825,7 @@ export default function BetBuilderPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", marginBottom: 8, textTransform: "uppercase" }}>
                       Select Target Bookmaker
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                    <div className="bb-bookie-tabs" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                       {[
                         { id: "sportybet", label: "SportyBet", color: "#e41b23", sub: "Most Popular" },
                         { id: "bet9ja", label: "Bet9ja", color: "#008753", sub: "Instant Load" },
@@ -2834,6 +2836,7 @@ export default function BetBuilderPage() {
                           <button
                             key={b.id}
                             type="button"
+                            className="bb-bookie-tab"
                             onClick={() => {
                               setSelectedBookie(b.id as any);
                               handleGenerateBookingCode(b.id as any);
@@ -2852,10 +2855,10 @@ export default function BetBuilderPage() {
                               transition: "all 0.15s ease",
                             }}
                           >
-                            <span style={{ fontSize: 13, fontWeight: 900, color: isSel ? b.color : "#d4cde3" }}>
+                            <span className="bb-bookie-tab__label" style={{ fontSize: 13, fontWeight: 900, color: isSel ? b.color : "#d4cde3" }}>
                               {b.label}
                             </span>
-                            <span style={{ fontSize: 9.5, color: "#8a85b5", fontWeight: 600 }}>
+                            <span className="bb-bookie-tab__sub" style={{ fontSize: 9.5, color: "#8a85b5", fontWeight: 600 }}>
                               {b.sub}
                             </span>
                           </button>
@@ -3164,7 +3167,7 @@ export default function BetBuilderPage() {
                   </div>
 
                   {/* From -> To Selectors */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
+                  <div className="bb-convert-select-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
                     <div>
                       <label style={{ fontSize: 11, fontWeight: 700, color: "#a79fff", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
                         From Bookie
@@ -3190,7 +3193,7 @@ export default function BetBuilderPage() {
                       </select>
                     </div>
 
-                    <div style={{ marginTop: 18, color: "#7c6cf5" }}>
+                    <div className="bb-convert-arrow" style={{ marginTop: 18, color: "#7c6cf5" }}>
                       <ArrowRight size={18} />
                     </div>
 
