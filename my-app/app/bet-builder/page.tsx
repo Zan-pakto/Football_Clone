@@ -2523,14 +2523,32 @@ export default function BetBuilderPage() {
                     <Link
                       href="/register?redirect=/bet-builder"
                       className="bb-btn bb-btn--primary"
-                      style={{ flex: 1, textDecoration: "none", textAlign: "center" }}
+                      style={{
+                        flex: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        textAlign: "center",
+                        textDecoration: "none",
+                        height: 44,
+                        lineHeight: 1,
+                      }}
                     >
                       Sign Up Free
                     </Link>
                     <Link
                       href="/login?redirect=/bet-builder"
                       className="bb-btn bb-btn--ghost"
-                      style={{ flex: 1, textDecoration: "none", textAlign: "center" }}
+                      style={{
+                        flex: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        textAlign: "center",
+                        textDecoration: "none",
+                        height: 44,
+                        lineHeight: 1,
+                      }}
                     >
                       Log In
                     </Link>
@@ -2808,12 +2826,17 @@ export default function BetBuilderPage() {
                       href="/pricing"
                       className="bb-btn bb-btn--primary"
                       style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         textDecoration: "none",
                         textAlign: "center",
                         background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
                         borderColor: "#f59e0b",
                         color: "#08071e",
                         fontWeight: 900,
+                        height: 44,
+                        lineHeight: 1,
                       }}
                     >
                       Or Go Unlimited — Premium / VIP Pro Plans

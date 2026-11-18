@@ -1946,6 +1946,11 @@ body {
   gap: 8px;
 }
 .bb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
   height: 42px;
   padding: 0 20px;
   border-radius: 12px;
@@ -1955,6 +1960,7 @@ body {
   border: 1px solid transparent;
   transition: filter .15s, border-color .15s, background .15s, color .15s, transform .12s, box-shadow .15s;
   box-sizing: border-box;
+  line-height: 1;
 }
 .bb-btn:active:not(:disabled) {
   transform: translateY(1px);
